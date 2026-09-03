@@ -118,8 +118,8 @@ Sanchay is built using modern Android development technologies.
 ### Clone the repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/sanchay.git
-cd sanchay
+git clone https://github.com/udbhavnc7/Sanchay
+cd Sanchay
 ```
 
 Open the project in Android Studio and allow Gradle to synchronize the project.
