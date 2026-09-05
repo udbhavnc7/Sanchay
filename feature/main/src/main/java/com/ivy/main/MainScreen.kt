@@ -13,7 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ivy.accounts.AccountsTab
 import com.ivy.base.model.TransactionType
-import com.ivy.home.HomeTab
+import com.ivy.home.SanchayHomeDashboard
 import com.ivy.legacy.IvyWalletPreview
 import com.ivy.legacy.data.model.MainTab
 import com.ivy.legacy.ivyWalletCtx
@@ -61,7 +61,7 @@ private fun BoxWithConstraintsScope.UI(
     onCreateAccount: (CreateAccountData) -> Unit,
 ) {
     when (tab) {
-        MainTab.HOME -> HomeTab()
+        MainTab.HOME -> SanchayHomeDashboard()
         MainTab.ACCOUNTS -> AccountsTab()
     }
 
