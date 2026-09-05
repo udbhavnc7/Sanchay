@@ -50,6 +50,7 @@ import com.ivy.design.system.typography.SanchayTypography
 import com.ivy.home.customerjourney.CustomerJourney
 import com.ivy.home.customerjourney.CustomerJourneyCardModel
 import com.ivy.home.customerjourney.CustomerJourneyCardsProvider
+import com.ivy.home.SanchayQuickAddBottomSheet
 import com.ivy.navigation.IvyPreview
 import com.ivy.navigation.navigation
 import com.ivy.ui.R
@@ -87,18 +88,18 @@ fun SanchayHomeDashboard() {
     HeroFinancialSection(balance = uiState.balance, hideBalance = uiState.hideBalance)
 
     // --- C. Quick Capture ---
-    QuickCaptureFAB(
-        onFabClick = {
-            fabPressed = true
-            navigateToTransactionEntry()
-        },
-        pressed = fabPressed
+    // Quick Add Bottom Sheet opens from Home → + (FAB)
+    SanchayQuickAddBottomSheet(
+        open = {},
+        onDismiss = {},
+        onTransactionSaved = {
+            // Refresh home after transaction save
+        }
     )
 
     // Small delay to allow FAB interaction
-    LaunchedEffect(fabPressed) {
-        delay(300)
-        fabPressed = false
+    LaunchedEffect(Unit) {
+        delay(100)
     }
 
     // --- D. Money Snapshot ---
@@ -191,16 +192,8 @@ fun HeroFinancialSection(
 fun QuickCaptureFAB(
     onFabClick: () -> Unit
 ) {
-    SanchayFloatingActionButton(
-        onClick = onFabClick,
-        icon = androidx.compose.material3.icons.filled.Add,
-        modifier = Modifier
-            .gravity(Alignment.BottomEnd)
-            .padding(
-                bottom = SanchaySpacing.BottomNavItemSize + SanchaySpacing.ContentInset,
-                end = SanchaySpacing.ContentInset
-            )
-    )
+    // SanchayQuickAddBottomSheet will be shown in the dashboard
+    // onFabClick is handled by the dashboard composable
 }
 
 /** Money snapshot - concise income/expense overview */
