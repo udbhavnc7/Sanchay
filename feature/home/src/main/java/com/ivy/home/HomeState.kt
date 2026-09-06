@@ -30,7 +30,12 @@ data class HomeState(
     val upcoming: LegacyDueSection,
     val overdue: LegacyDueSection,
 
+    val detectedCommitments: ImmutableList<RecurringPatternDetector.CommitmentCandidate>,
+
+    val monthlyCommittedAmount: Double,
+
     val customerJourneyCards: ImmutableList<CustomerJourneyCardModel>,
+
     val hideBalance: Boolean,
     val hideIncome: Boolean,
     val expanded: Boolean,

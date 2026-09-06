@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="What Do You Want to Watch?"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <RadioGroup
+            android:id="@+id/ruleTypeGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F5F5F5"
+            android:padding="8dp">
+
+            <RadioButton
+                android:id="@+id/spendingRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Spending"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/budgetRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Budgets"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/cashFlowRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cash Flow"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/commitmentsRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Upcoming Payments"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/goalsRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Goals"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/pactsRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Money Others Owe Me"
+                android:textSize="16sp"/>
+
+            <RadioButton
+                android:id="@+id/purchaseRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Purchase Protection"
+                android:textSize="16sp"/>
+        </RadioGroup>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/nextBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Next: Trigger Condition"
+        android:textAllCaps="false"
+        android:background="?attr/colorPrimary"
+        android:textColor="@android:color/white"/>
+</LinearLayout>

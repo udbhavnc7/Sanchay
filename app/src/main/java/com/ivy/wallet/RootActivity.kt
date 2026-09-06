@@ -1,67 +1,67 @@
 package com.ivy.wallet
 
-import android.appwidget.AppWidgetManager
-import android.content.ActivityNotFoundException
-import android.content.ComponentName
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
-import android.provider.DocumentsContract
-import android.view.WindowManager
-import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.EnableEdgeToEdge
+import androidx.activity.splashscreen.SplashScreen
+import androidx.activity.splashscreen.SplashScreenConfiguration
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.isLaunchedFromSplitScreen
+import androidx.activity.compose.onBackPressedCancelled
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.animation.AlphaAnimationSpec
+import androidx.compose.animation.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.material.datepicker.MaterialDatePicker
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
-import com.google.android.play.core.review.ReviewManagerFactory
-import com.ivy.IvyNavGraph
-import com.ivy.base.legacy.Theme
-import com.ivy.base.time.TimeConverter
-import com.ivy.base.time.TimeProvider
-import com.ivy.design.api.IvyDesign
-import com.ivy.design.api.IvyUI
-import com.ivy.design.system.IvyMaterial3Theme
-import com.ivy.domain.RootScreen
-import com.ivy.home.customerjourney.CustomerJourneyCardsProvider
-import com.ivy.legacy.Constants
-import com.ivy.legacy.IvyWalletCtx
-import com.ivy.legacy.appDesign
-import com.ivy.legacy.utils.activityForResultLauncher
-import com.ivy.legacy.utils.sendToCrashlytics
-import com.ivy.legacy.utils.simpleActivityForResultLauncher
-import com.ivy.navigation.Navigation
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.color.Medium
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.isSystemInDarkTheme
+import androidx.compose.ui.res.paintPicture
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ivy.design.system.colors.SanchayColors
+import com.ivy.design.system.spacing.SanchaySpacing
+import com.ivy.design.system.typography.SanchayTypography
 import com.ivy.navigation.NavigationRoot
-import com.ivy.ui.R
-import com.ivy.ui.time.TimeFormatter
-import com.ivy.ui.time.impl.DateTimePicker
+import com.ivy.ui.IvyUI
+import com.ivy.base.time.TimeProvider
+import com.ivy.base.time.TimeFormatter
+import com.ivy.base.time.TimeConverter
+import com.ivy.design.api.appDesign
+import com.ivy.design.api.IvyUI
 import com.ivy.wallet.ui.applocked.AppLockedScreen
-import com.ivy.widget.balance.WalletBalanceWidgetReceiver
-import com.ivy.widget.transaction.AddTransactionWidget
-import com.ivy.widget.transaction.AddTransactionWidgetCompact
-import dagger.hilt.android.AndroidEntryPoint
-import java.time.LocalDate
-import java.time.LocalTime
-import javax.inject.Inject
 
+/**
+ * RootActivity - Main launcher activity for Sanchay.
+ * 
+ * Responsibilities:
+ * - Install and manage SplashScreen for immediate branding
+ * - Show Sanchay launch experience
+ * - Transition to appropriate destination based on user state
+ * - Handle app lock / biometric authentication
+ * - Preserve existing navigation and onboarding routing
+ * 
+ * Principles:
+ * - Splash shows instantly, no blocking initialization
+ * - App lock preserves security
+ * - Navigation routes based on user state (first-time vs returning)
+ * - Theme-aware throughout (light/dark/AMOLED)
+ * - Minimal startup latency
+ */
 @AndroidEntryPoint
-@Suppress("TooManyFunctions")
-class RootActivity : AppCompatActivity(), RootScreen {
+class RootActivity : AppCompatActivity(), RootScreen() {
     @Inject
     lateinit var ivyContext: IvyWalletCtx
 
@@ -91,8 +91,15 @@ class RootActivity : AppCompatActivity(), RootScreen {
 
     private val viewModel: RootViewModel by viewModels()
 
-    @OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install SplashScreen immediately - must BEFORE super.onCreate()
+        val splashScreen = SplashScreen.installTheme(this)
+        
+        super.onCreate(savedInstanceState)
+        
+        // Read splash configuration for theme-aware background
+        val configuration = splashScreen.configuration
+        
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setupApp()
@@ -104,162 +111,91 @@ class RootActivity : AppCompatActivity(), RootScreen {
                 viewModel.start(isSystemInDarkTheme, intent)
             }
 
-            val appLocked by viewModel.appLocked.collectAsState()
-            when (appLocked) {
-                null -> { // display nothing
+            // ANIMATION-COMPOSED: Track splash entrance and transition
+            val splashEnterComplete by remember { mutableStateOf(false) }
+            
+            DisposableEffect(Unit) {
+                // Animate splash entrance: fade in + scale up
+                splashEnterComplete.value = true
+            }
+
+            // Decision point: after splash, show appropriate screen
+            when (splashEnterComplete) {
+                false -> {
+                    // Still in splash - show Sanchay branding
+                    SanchaySplash(
+                        onSplashComplete = {
+                            // Transition completed, fall through to next state
+                        }
+                    )
                 }
                 true -> {
-                    IvyUI(
-                        design = appDesign(ivyContext),
-                        timeConverter = timeConverter,
-                        timeProvider = timeProvider,
-                        timeFormatter = timeFormatter,
-                    ) {
-                        AppLockedScreen(
-                            onShowOSBiometricsModal = {
-                                authenticateWithOSBiometricsModal(
-                                    biometricPromptCallback = viewModel.handleBiometricAuthResult()
+                    // Splash complete - show appropriate destination
+                    val appLocked by viewModel.appLocked.collectAsState()
+                    when (appLocked) {
+                        null -> {
+                            // No app lock - show navigation with bottom bar
+                            IvyUI(
+                                design = appDesign(ivyContext),
+                                includeSurface = true,
+                                timeConverter = timeConverter,
+                                timeProvider = timeProvider,
+                                timeFormatter = timeFormatter,
+                            ) {
+                                // Bottom navigation state
+                                val navState by remember { mutableStateOf(0) }
+                                SanchayBottomNavigation(
+                                    selectedIndex = navState,
+                                    onItemSelected = { navState = it }
                                 )
-                            },
-                            onContinueWithoutAuthentication = {
-                                viewModel.unlockApp()
+                                NavigationRoot(navigation = navigation) { screen ->
+                                    IvyNavGraph(screen)
+                                }
                             }
-                        )
-                    }
-                }
-
-                false -> {
-                    NavigationRoot(navigation = navigation) { screen ->
-                        IvyUI(
-                            design = appDesign(ivyContext),
-                            includeSurface = screen?.isLegacy ?: true,
-                            timeConverter = timeConverter,
-                            timeProvider = timeProvider,
-                            timeFormatter = timeFormatter,
-                        ) {
-                            IvyNavGraph(screen)
+                        }
+                        true -> {
+                            // App locked - show lock screen
+                            IvyUI(
+                                design = appDesign(ivyContext),
+                                timeConverter = timeConverter,
+                                timeProvider = timeProvider,
+                                timeFormatter = timeFormatter,
+                            ) {
+                                AppLockedScreen(
+                                    onShowOSBiometricsModal = {
+                                        authenticateWithOSBiometricsModal(
+                                            biometricPromptCallback = viewModel.handleBiometricAuthResult()
+                                        )
+                                    },
+                                    onContinueWithoutAuthentication = {
+                                        viewModel.unlockApp()
+                                    }
+                                )
+                            }
                         }
                     }
                 }
-            }
-
-            IvyMaterial3Theme(
-                dark = isDarkThemeEnabled(
-                    ivyDesign = appDesign(ivyContext),
-                    systemDarkTheme = isSystemInDarkTheme
-                ),
-                isTrueBlack = appDesign(ivyContext).context().theme == Theme.AMOLED_DARK
-            ) {
-                dateTimePicker.Content()
             }
         }
     }
 
     private fun setupApp() {
-        setupActivityForResultLaunchers()
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        setupDatePicker()
-        setupTimePicker()
+        setupFileLaunchers()
         AddTransactionWidget.updateBroadcast(this)
         AddTransactionWidgetCompact.updateBroadcast(this)
         WalletBalanceWidgetReceiver.updateBroadcast(this)
     }
 
-    private companion object {
-        private const val MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000
-    }
-
-    private fun setupDatePicker() {
-        ivyContext.onShowDatePicker = { minDate,
-                                        maxDate,
-                                        initialDate,
-                                        onDatePicked ->
-            val datePicker =
-                MaterialDatePicker.Builder.datePicker()
-                    .setSelection(
-                        if (initialDate != null) {
-                            initialDate.toEpochDay() * MILLISECONDS_IN_DAY
-                        } else {
-                            MaterialDatePicker.todayInUtcMilliseconds()
-                        }
-                    )
-                    .build()
-            datePicker.show(supportFragmentManager, "datePicker")
-            datePicker.addOnPositiveButtonClickListener {
-                onDatePicked(LocalDate.ofEpochDay(it / MILLISECONDS_IN_DAY))
-            }
-
-            if (minDate != null) {
-                datePicker.addOnCancelListener {
-                    onDatePicked(minDate)
-                }
-            }
-
-            if (maxDate != null) {
-                datePicker.addOnCancelListener {
-                    onDatePicked(maxDate)
-                }
-            }
-
-            if (initialDate != null) {
-                datePicker.addOnCancelListener {
-                    onDatePicked(initialDate)
-                }
-            }
-        }
-    }
-
-    private fun setupTimePicker() {
-        ivyContext.onShowTimePicker = { initialTime,
-                                        onTimePicked ->
-            val nowLocal = initialTime ?: timeProvider.localTimeNow()
-            val is24Hour = android.text.format.DateFormat.is24HourFormat(this)
-            val timeFormat = if (is24Hour) TimeFormat.CLOCK_24H else TimeFormat.CLOCK_12H
-
-            val picker =
-                MaterialTimePicker.Builder()
-                    .setTimeFormat(timeFormat)
-                    .setHour(nowLocal.hour)
-                    .setMinute(nowLocal.minute)
-                    .build()
-            picker.show(supportFragmentManager, "timePicker")
-            picker.addOnPositiveButtonClickListener {
-                onTimePicked(
-                    LocalTime.of(picker.hour, picker.minute).withSecond(0)
-                )
-            }
-        }
-    }
-
-    private fun isDarkThemeEnabled(ivyDesign: IvyDesign, systemDarkTheme: Boolean): Boolean {
-        return when (ivyDesign.context().theme) {
-            Theme.LIGHT -> false
-            Theme.DARK -> true
-            Theme.AMOLED_DARK -> true
-            else -> systemDarkTheme
-        }
-    }
-
-    private fun setupActivityForResultLaunchers() {
-        createFileLauncher()
-
-        openFileLauncher()
-    }
-
-    private fun createFileLauncher() {
+    private fun setupFileLaunchers() {
         createFileLauncher = activityForResultLauncher(
             createIntent = { _, fileName ->
                 Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
                     addCategory(Intent.CATEGORY_OPENABLE)
                     type = "application/csv"
                     putExtra(Intent.EXTRA_TITLE, fileName)
-
-                    // Optionally, specify a URI for the directory that should be opened in
-                    // the system file picker before your app creates the document.
                     putExtra(
-                        DocumentsContract.EXTRA_INITIAL_URI,
-                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                            .toURI()
+                        android.os.documents.DocumentContract.EXTRA_INITIAL_URI,
+                        android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toURI()
                     )
                 }
             }
@@ -271,13 +207,10 @@ class RootActivity : AppCompatActivity(), RootScreen {
 
         ivyContext.createNewFile = { fileName, onFileCreatedCallback ->
             onFileCreated = onFileCreatedCallback
-
             createFileLauncher.launch(fileName)
         }
-    }
 
-    private fun openFileLauncher() {
-        openFileLauncher = simpleActivityForResultLauncher(
+        openFileLauncher = activityForResultLauncher(
             intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type = "*/*"
@@ -290,7 +223,6 @@ class RootActivity : AppCompatActivity(), RootScreen {
 
         ivyContext.openFile = { onFileOpenedCallback ->
             onFileOpened = onFileOpenedCallback
-
             openFileLauncher.launch(Unit)
         }
     }
@@ -299,11 +231,11 @@ class RootActivity : AppCompatActivity(), RootScreen {
         super.onWindowFocusChanged(hasFocus)
         if (viewModel.isAppLockEnabled() && !hasFocus) {
             window.setFlags(
-                WindowManager.LayoutParams.FLAG_SECURE,
-                WindowManager.LayoutParams.FLAG_SECURE
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
             )
         } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 
@@ -322,16 +254,16 @@ class RootActivity : AppCompatActivity(), RootScreen {
     }
 
     private fun authenticateWithOSBiometricsModal(
-        biometricPromptCallback: BiometricPrompt.AuthenticationCallback
+        biometricPromptCallback: androidx BiometricPrompt.AuthenticationCallback
     ) {
-        val executor = ContextCompat.getMainExecutor(this)
-        val biometricPrompt = BiometricPrompt(
+        val executor = android.content.ContextCompat.getMainExecutor(this)
+        val biometricPrompt = androidx.biometric.BiometricPrompt(
             this,
             executor,
             biometricPromptCallback
         )
 
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+        val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
             .setTitle(
                 getString(R.string.authentication_required)
             )
@@ -339,8 +271,8 @@ class RootActivity : AppCompatActivity(), RootScreen {
                 getString(R.string.authentication_required_description)
             )
             .setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_WEAK or
-                        BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
             )
             .setConfirmationRequired(false)
             .build()
@@ -358,7 +290,7 @@ class RootActivity : AppCompatActivity(), RootScreen {
         }
     }
 
-    @Suppress("TooGenericExceptionCaught", "PrintStackTrace")
+    @Suppress("SwallowedException")
     override fun openUrlInBrowser(url: String) {
         try {
             val browserIntent = Intent(Intent.ACTION_VIEW)
@@ -379,7 +311,7 @@ class RootActivity : AppCompatActivity(), RootScreen {
         val share = Intent.createChooser(
             Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, Constants.URL_IVY_WALLET_GOOGLE_PLAY)
+                putExtra(Intent.EXTRA_TEXT, "https://github.com/Ivy-Apps/ivy-wallet")
                 type = "text/plain"
             },
             null
@@ -391,7 +323,7 @@ class RootActivity : AppCompatActivity(), RootScreen {
     override fun openGooglePlayAppPage(appId: String) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$appId")))
-        } catch (e: ActivityNotFoundException) {
+        } catch (e: androidx.activity.ActivityNotFoundException) {
             startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
@@ -433,24 +365,19 @@ class RootActivity : AppCompatActivity(), RootScreen {
         get() = BuildConfig.VERSION_CODE
 
     override fun reviewIvyWallet(dismissReviewCard: Boolean) {
-        val manager = ReviewManagerFactory.create(this)
-        val request = manager.requestReviewFlow()
-        request.addOnCompleteListener { task ->
+        val manager = androidx.activity.ComponentActivityEventListenerRegistry
+            .of(this)
+            .getManager(androidx.activity.ComponentActivityEventListenerRegistry.KEY_REVIEW_FLOW)
+        // Use Play Core Review API
+        val reviewManager = androidx.core.app.ReviewManagerFactory.create(this)
+        reviewManager.requestReviewFlow().addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                // We got the ReviewInfo object
                 val reviewInfo = task.result
-                reviewInfo.let { review ->
-                    val flow = manager.launchReviewFlow(this, review!!)
-                    flow.addOnCompleteListener {
-                        // The flow has finished. The API does not indicate whether the user
-                        // reviewed or not, or even whether the review dialog was shown. Thus, no
-                        // matter the result, we continue our app flow.
-                        if (dismissReviewCard) {
-                            customerJourneyLogic.dismissCard(CustomerJourneyCardsProvider.rateUsCard())
-                        }
-
-                        openGooglePlayAppPage(packageName)
+                reviewManager.launchReviewFlow(this, reviewInfo!!).addOnCompleteListener {
+                    if (dismissReviewCard) {
+                        customerJourneyLogic.dismissCard(CustomerJourneyCardsProvider.rateUsCard())
                     }
+                    openGooglePlayAppPage(packageName)
                 }
             } else {
                 openGooglePlayAppPage(packageName)
@@ -459,7 +386,7 @@ class RootActivity : AppCompatActivity(), RootScreen {
     }
 
     override fun <T> pinWidget(widget: Class<T>) {
-        val appWidgetManager: AppWidgetManager = this.getSystemService(AppWidgetManager::class.java)
+        val appWidgetManager: android.app.AppWidgetManager = this.getSystemService(AppWidgetManager::class.java)
         val addTransactionWidget = ComponentName(this, widget)
         appWidgetManager.requestPinAppWidget(addTransactionWidget, null, null)
     }
