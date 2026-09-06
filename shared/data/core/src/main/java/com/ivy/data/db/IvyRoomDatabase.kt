@@ -34,7 +34,7 @@ import com.ivy.data.db.entity.LoanEntity
 import com.ivy.data.db.entity.LoanRecordEntity
 import com.ivy.data.db.entity.PlannedPaymentRuleEntity
 import com.ivy.data.db.entity.SettingsEntity
-import com.ivy.data.db.entity.TagEntity
+import com.ivy.data.db.entity.GoalEntity
 import com.ivy.data.db.entity.TagAssociationEntity
 import com.ivy.data.db.entity.TransactionEntity
 import com.ivy.data.db.entity.UserEntity
@@ -69,7 +69,8 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
         AccountEntity::class, TransactionEntity::class, CategoryEntity::class,
         SettingsEntity::class, PlannedPaymentRuleEntity::class,
         UserEntity::class, ExchangeRateEntity::class, BudgetEntity::class,
-        LoanEntity::class, LoanRecordEntity::class, TagEntity::class, TagAssociationEntity::class
+        LoanEntity::class, LoanRecordEntity::class, TagEntity::class, TagAssociationEntity::class,
+        GoalEntity::class  # Phase 10: Goal entity
     ],
     autoMigrations = [
         AutoMigration(
@@ -87,6 +88,7 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao
     abstract val categoryDao: CategoryDao
     abstract val budgetDao: BudgetDao
+    abstract val goalDao: GoalDao
     abstract val plannedPaymentRuleDao: PlannedPaymentRuleDao
     abstract val settingsDao: SettingsDao
     abstract val userDao: UserDao
@@ -100,6 +102,7 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val writeTransactionDao: WriteTransactionDao
     abstract val writeCategoryDao: WriteCategoryDao
     abstract val writeBudgetDao: WriteBudgetDao
+    abstract val writeGoalDao: WriteGoalDao
     abstract val writePlannedPaymentRuleDao: WritePlannedPaymentRuleDao
     abstract val writeSettingsDao: WriteSettingsDao
     abstract val writeExchangeRatesDao: WriteExchangeRatesDao
