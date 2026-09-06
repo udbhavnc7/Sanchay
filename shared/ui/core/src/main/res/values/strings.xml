@@ -400,7 +400,7 @@
     <string name="we_need_your_help">We need your help!</string>
     <string name="we_need_your_help_description">We need your support to continue improving the app. Please share Sanchay with your friends and family, and consider leaving a review on the Google Play Store. Your contributions will help us continue our mission.</string>
     <string name="ivy_wallet_is_opensource">Sanchay is open-source!</string>
-    <string name="ivy_wallet_is_opensource_description">Sanchay's code is open and available to everyone. We believe that transparency and ethics are essential for any software product. If you appreciate our work and want to help improve the app, you can contribute to our public GitHub repository.</string>
+    <string name="ivy_wallet_is_opensource_description">Sanchay\'s code is open and available to everyone. We believe that transparency and ethics are essential for any software product. If you appreciate our work and want to help improve the app, you can contribute to our public GitHub repository.</string>
     <string name="contribute">Contribute</string>
     <string name="adjust_balance">Adjust balance</string>
     <string name="authentication_required">Authentication required</string>
@@ -476,10 +476,10 @@
     <string name="one_contribution">1 contribution</string>
     <string name="contributions_number">%1$s contributions</string>
     <string name="you_can_see_a_piechart">Tap the appropriate card above to view a pie chart of your income and expenses!</string>
-    <string name="it_looks_like_that_you_are_enjoying">It looks like that you're enjoying Sanchay! Feel free join our invite-only Sanchay Telegram Community and make our app better :)</string>
+    <string name="it_looks_like_that_you_are_enjoying">It looks like that you\'re enjoying Sanchay! Feel free join our invite-only Sanchay Telegram Community and make our app better :)</string>
     <string name="ivy_community">Sanchay Community</string>
     <string name="join_now">Join now</string>
-    <string name="it_looks_like_that_you_are_enjoying_telegram">It looks like that you're enjoying Sanchay! If you haven't yet, feel free join our invite-only Sanchay Telegram Community and make our app better :)</string>
+    <string name="it_looks_like_that_you_are_enjoying_telegram">It looks like that you\'re enjoying Sanchay! If you haven\'t yet, feel free join our invite-only Sanchay Telegram Community and make our app better :)</string>
     <string name="please_type_category_name">Please type \"%1$s\" in order to delete your category.</string>
     <string name="releases">Releases</string>
     <string name="enter_with_offline_account">ENTER WITH OFFLINE ACCOUNT</string>

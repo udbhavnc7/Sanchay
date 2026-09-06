@@ -1,15 +1,11 @@
 package com.ivy.data.db.migration
 
-import androidx.room.AutoMigrationSpec
 import androidx.room.migration.Migration
-import com.ivy.data.db.entity.FinancialRuleEntity
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.jvm.internal.ContinuationImpl
-import kotlin.coroutines.jvm.internal.DebugMetadata
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 class Migration130to131_CreateFinancialRules : Migration(130, 131) {
-    override fun migrate(room: androidx.room.RoomDatabase) {
-        room.execSQL("""
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("""
             CREATE TABLE IF NOT EXISTS financial_rules (
                 id TEXT NOT NULL PRIMARY KEY,
                 name TEXT NOT NULL,

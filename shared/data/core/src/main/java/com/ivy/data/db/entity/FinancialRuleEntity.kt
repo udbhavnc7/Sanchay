@@ -18,7 +18,6 @@ data class FinancialRuleEntity(
     @SerialName("name")
     val name: String,
     @SerialName("enabled")
-    @Serializable(with = KSerializerInstant::class)
     val enabled: Boolean,
     @SerialName("triggerType")
     val triggerType: String,

@@ -15,7 +15,7 @@ interface WriteGoalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveMany(value: List<GoalEntity>)
 
-    @Query("UPDATE goals SET isDeleted = 1, isSynced = 0 WHERE accountId = :accountId")
+    @Query("UPDATE goals SET isDeleted = 1, isSynced = 0 WHERE linkedAccountId = :accountId")
     suspend fun deletedByAccountId(accountId: UUID)
 
     @Query("DELETE FROM goals WHERE id = :id")

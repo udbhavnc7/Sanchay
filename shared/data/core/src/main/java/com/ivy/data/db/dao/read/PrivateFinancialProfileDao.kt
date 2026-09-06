@@ -3,8 +3,8 @@ package com.ivy.data.db.dao.read
 import androidx.room.Dao
 import androidx.room.Query
 import com.ivy.data.db.entity.PrivateFinancialProfileEntity
-import com.ivy.data.model.primitive.UUID
-import java.util.*
+import java.time.Instant
+import java.util.UUID
 
 @Dao
 interface PrivateFinancialProfileDao {
@@ -18,10 +18,10 @@ interface PrivateFinancialProfileDao {
     suspend fun findMostRecent(): PrivateFinancialProfileEntity?
 
     @Query("UPDATE private_financial_profile SET visibility = :visibility, updatedAt = :now WHERE id = :id")
-    suspend fun updateVisibility(id: UUID, visibility: String, now: Long)
+    suspend fun updateVisibility(id: UUID, visibility: String, now: Instant)
 
     @Query("UPDATE private_financial_profile SET displayName = :name, bio = :bio, avatarReference = :avatar, updatedAt = :now WHERE id = :id")
-    suspend fun updateProfile(id: UUID, name: String?, bio: String?, avatar: String?, now: Long)
+    suspend fun updateProfile(id: UUID, name: String?, bio: String?, avatar: String?, now: Instant)
 
     @Query("DELETE FROM private_financial_profile WHERE id = :id")
     suspend fun deleteById(id: UUID)

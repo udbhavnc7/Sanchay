@@ -39,7 +39,15 @@ data class GoalEntity(
     val linkedCategoryId: UUID?,
     @SerialName("orderId")
     val orderId: Double,
-    @SerialName("id")
+
+    @Deprecated("Obsolete field used for cloud sync. Can't be deleted because of backwards compatibility")
+    @SerialName("isSynced")
+    val isSynced: Boolean = false,
+    @Deprecated("Obsolete field used for cloud sync. Can't be deleted because of backwards compatibility")
+    @SerialName("isDeleted")
+    val isDeleted: Boolean = false,
+
+    @PrimaryKey
     @SerialName("id")
     @Serializable(with = KSerializerUUID::class)
     val id: UUID = UUID.randomUUID()

@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.ivy.data.db.entity.PurchaseEntity
 import java.util.*
-import kotlinx.coroutines.flow.Flow
+
 
 @Dao
 interface PurchaseDao {
@@ -26,6 +26,4 @@ interface PurchaseDao {
     @Query("SELECT * FROM purchases WHERE warrantyEndDate IS NOT NULL AND warrantyEndDate < :now AND isDeleted = 0")
     suspend fun findExpiredWarranties(now: Long): List<PurchaseEntity>
 
-    @Query("SELECT * FROM purchases WHERE remainingAmountGuard > 0 AND isDeleted = 0")
-    suspend fun findOutstanding(): List<PurchaseEntity>
 }

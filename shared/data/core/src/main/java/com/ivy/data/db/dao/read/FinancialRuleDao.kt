@@ -34,7 +34,7 @@ interface FinancialRuleDao {
     @Query("SELECT * FROM financial_rules WHERE purchaseId = :purchaseId AND isDeleted = 0")
     suspend fun findByPurchaseId(purchaseId: UUID): List<FinancialRuleEntity>
 
-    @Query("SELECT * FROM financial_rules WHERE enabled = :enabled AND isDeleted = 0")
+    @Query("SELECT * FROM financial_rules WHERE enabled = 1 AND isDeleted = 0")
     suspend fun findEnabled(): List<FinancialRuleEntity>
 
     @Query("SELECT * FROM financial_rules WHERE isDeleted = 0")

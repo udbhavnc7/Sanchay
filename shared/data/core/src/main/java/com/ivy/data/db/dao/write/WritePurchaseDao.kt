@@ -29,13 +29,4 @@ interface WritePurchaseDao {
 
     @Query("SELECT * FROM purchases WHERE id = :id AND isDeleted = 0")
     suspend fun findActiveById(id: UUID): PurchaseEntity?
-
-    @Query("UPDATE purchases SET returnDeadline = :deadline, warrantyEndDate = :warrantyEndDate, notes = :notes, updatedAt = :now WHERE id = :id")
-    suspend fun updateProtectionFields(
-        id: UUID,
-        deadline: Instant?,
-        warrantyEndDate: Instant?,
-        notes: String?,
-        now: Long
-    )
 }

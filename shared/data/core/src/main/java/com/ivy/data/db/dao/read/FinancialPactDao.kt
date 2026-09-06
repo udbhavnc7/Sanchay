@@ -4,7 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.ivy.data.db.entity.FinancialPactEntity
 import java.util.*
-import kotlinx.coroutines.flow.Flow
+
 
 @Dao
 interface FinancialPactDao {
@@ -16,9 +16,6 @@ interface FinancialPactDao {
 
     @Query("SELECT * FROM financial_pacts WHERE id = :id")
     suspend fun findById(id: UUID): FinancialPactEntity?
-
-    @Query("SELECT MAX(orderNum) FROM financial_pacts")
-    suspend fun findMaxOrderNum(): Double?
 
     @Query("SELECT * FROM financial_pacts WHERE counterpartyName LIKE :filter")
     suspend fun searchByCounterparty(filter: String): List<FinancialPactEntity>
