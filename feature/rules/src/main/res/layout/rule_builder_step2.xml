@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="When Should It Trigger?"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp">
+
+        <RadioGroup
+            android:id="@+id/triggerTypeGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F5F5F5"
+            android:padding="8dp">
+
+            <RadioButton
+                android:id="@+id/weeklySpendingRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Weekly spending exceeds amount"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/monthlySpendingRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Monthly spending exceeds amount"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/budgetPercentageRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Budget reaches percentage"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/projectedBalanceRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Projected balance falls below amount"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/commitmentDueRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Payment due within X days"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/pactOverdueRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Money becomes overdue"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/goalBehindRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Goal falls behind pace"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/returnDeadlineRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Return deadline approaching"
+                android:textSize="15sp"/>
+
+            <RadioButton
+                android:id="@+id/warrantyExpiryRadio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Warranty expiring soon"
+                android:textSize="15sp"/>
+        </RadioGroup>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/configureBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Configure Values"
+        android:textAllCaps="false"
+        android:background="?attr/colorPrimary"
+        android:textColor="@android:color/white"/>
+</LinearLayout>

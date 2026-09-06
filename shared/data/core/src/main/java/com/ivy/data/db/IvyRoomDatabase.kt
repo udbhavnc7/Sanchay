@@ -7,8 +7,10 @@ import com.ivy.data.db.dao.read.AccountDao
 import com.ivy.data.db.dao.read.BudgetDao
 import com.ivy.data.db.dao.read.CategoryDao
 import com.ivy.data.db.dao.read.ExchangeRatesDao
-import com.ivy.data.db.dao.read.FinancialPactDao
-import com.ivy.data.db.dao.read.PactRepaymentDao
+import com.ivy.data.db.dao.read.CostAssociationDao
+import com.ivy.data.db.dao.read.FinancialRuleDao
+import com.ivy.data.db.dao.write.WriteCostAssociationDao
+import com.ivy.data.db.dao.write.WriteFinancialRuleDao
 import com.ivy.data.db.dao.read.PurchaseDao
 import com.ivy.data.db.dao.write.WriteFinancialPactDao
 import com.ivy.data.db.dao.write.WritePactRepaymentDao
@@ -79,7 +81,7 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
         SettingsEntity::class, PlannedPaymentRuleEntity::class,
         UserEntity::class, ExchangeRateEntity::class, BudgetEntity::class,
         LoanEntity::class, LoanRecordEntity::class, TagEntity::class, TagAssociationEntity::class,
-        FinancialPactEntity::class, PurchaseEntity::class, GoalEntity::class
+        FinancialPactEntity::class, PurchaseEntity::class, CostAssociationEntity::class, FinancialRuleEntity::class, GoalEntity::class
     ],
     autoMigrations = [
         AutoMigration(
@@ -88,7 +90,7 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
             spec = IvyRoomDatabase.DeleteSEMigration::class
         )
     ],
-    version = 130,
+    version = 131,
     exportSchema = true
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -99,6 +101,8 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val budgetDao: BudgetDao
     abstract val financialPactDao: FinancialPactDao
     abstract val pactRepaymentDao: PactRepaymentDao
+    abstract val costAssociationDao: CostAssociationDao
+    abstract val financialRuleDao: FinancialRuleDao
     abstract val purchaseDao: PurchaseDao
     abstract val goalDao: GoalDao
     abstract val plannedPaymentRuleDao: PlannedPaymentRuleDao
@@ -116,6 +120,8 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val writeBudgetDao: WriteBudgetDao
     abstract val writeFinancialPactDao: WriteFinancialPactDao
     abstract val writePactRepaymentDao: WritePactRepaymentDao
+    abstract val writeCostAssociationDao: WriteCostAssociationDao
+    abstract val writeFinancialRuleDao: WriteFinancialRuleDao
     abstract val writePurchaseDao: WritePurchaseDao
     abstract val writeGoalDao: WriteGoalDao
     abstract val writePlannedPaymentRuleDao: WritePlannedPaymentRuleDao
@@ -153,7 +159,8 @@ abstract class IvyRoomDatabase : RoomDatabase() {
             Migration126to127_LoanRecordType(),
             Migration127to128_PaidForDateRecord(),
             Migration128to129_DeleteIsDeleted(),
-            Migration129to130_LoanIncludeNote()
+            Migration129to130_LoanIncludeNote(),
+            Migration130to131_CreateFinancialRules()
         )
 
         @Suppress("SpreadOperator")
