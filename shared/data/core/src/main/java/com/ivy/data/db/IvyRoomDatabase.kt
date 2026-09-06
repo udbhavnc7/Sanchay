@@ -81,7 +81,7 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
         SettingsEntity::class, PlannedPaymentRuleEntity::class,
         UserEntity::class, ExchangeRateEntity::class, BudgetEntity::class,
         LoanEntity::class, LoanRecordEntity::class, TagEntity::class, TagAssociationEntity::class,
-        FinancialPactEntity::class, PurchaseEntity::class, CostAssociationEntity::class, FinancialRuleEntity::class, GoalEntity::class
+        FinancialPactEntity::class, PurchaseEntity::class, CostAssociationEntity::class, FinancialRuleEntity::class, GoalEntity::class, PrivateFinancialProfileEntity::class
     ],
     autoMigrations = [
         AutoMigration(
@@ -90,7 +90,7 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
             spec = IvyRoomDatabase.DeleteSEMigration::class
         )
     ],
-    version = 131,
+    version = 132,
     exportSchema = true
 )
 @TypeConverters(RoomTypeConverters::class)
@@ -103,6 +103,7 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val pactRepaymentDao: PactRepaymentDao
     abstract val costAssociationDao: CostAssociationDao
     abstract val financialRuleDao: FinancialRuleDao
+    abstract val privateFinancialProfileDao: PrivateFinancialProfileDao
     abstract val purchaseDao: PurchaseDao
     abstract val goalDao: GoalDao
     abstract val plannedPaymentRuleDao: PlannedPaymentRuleDao
@@ -122,6 +123,7 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val writePactRepaymentDao: WritePactRepaymentDao
     abstract val writeCostAssociationDao: WriteCostAssociationDao
     abstract val writeFinancialRuleDao: WriteFinancialRuleDao
+    abstract val writePrivateFinancialProfileDao: WritePrivateFinancialProfileDao
     abstract val writePurchaseDao: WritePurchaseDao
     abstract val writeGoalDao: WriteGoalDao
     abstract val writePlannedPaymentRuleDao: WritePlannedPaymentRuleDao
@@ -160,7 +162,8 @@ abstract class IvyRoomDatabase : RoomDatabase() {
             Migration127to128_PaidForDateRecord(),
             Migration128to129_DeleteIsDeleted(),
             Migration129to130_LoanIncludeNote(),
-            Migration130to131_CreateFinancialRules()
+            Migration130to131_CreateFinancialRules(),
+            Migration131to132_CreatePrivateFinancialProfile()
         )
 
         @Suppress("SpreadOperator")

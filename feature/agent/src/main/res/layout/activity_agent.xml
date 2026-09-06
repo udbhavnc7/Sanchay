@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/agentTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sanchay Agent"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/agentSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ask me about your financial position"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:layoutMarginBottom="16dp"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/conversationRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#F5F5F5"
+        android:clipToPadding="false"
+        android:padding="8dp"
+        android:scrollbars="vertical"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layoutmarginTop="8dp">
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/messageEt"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:hint="Ask Sanchay..."
+            android:maxLines="1"/>
+
+        <Button
+            android:id="@+id/sendBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send"
+            android:background="?attr/colorPrimary"
+            android:textColor="@android:color/white"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layoutmarginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/suggest1Btn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Where did my money go?"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/suggest2Btn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="What's coming up?"
+            android:textAllCaps="false"/>
+
+        <Button
+            android:id="@+id/suggest3Btn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Can I afford ₹10,000?"
+            android:textAllCaps="false"/>
+    </LinearLayout>
+</LinearLayout>
