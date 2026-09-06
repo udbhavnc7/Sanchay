@@ -7,6 +7,12 @@ import com.ivy.data.db.dao.read.AccountDao
 import com.ivy.data.db.dao.read.BudgetDao
 import com.ivy.data.db.dao.read.CategoryDao
 import com.ivy.data.db.dao.read.ExchangeRatesDao
+import com.ivy.data.db.dao.read.FinancialPactDao
+import com.ivy.data.db.dao.read.PactRepaymentDao
+import com.ivy.data.db.dao.read.PurchaseDao
+import com.ivy.data.db.dao.write.WriteFinancialPactDao
+import com.ivy.data.db.dao.write.WritePactRepaymentDao
+import com.ivy.data.db.dao.write.WritePurchaseDao
 import com.ivy.data.db.dao.read.LoanDao
 import com.ivy.data.db.dao.read.LoanRecordDao
 import com.ivy.data.db.dao.read.PlannedPaymentRuleDao
@@ -19,6 +25,8 @@ import com.ivy.data.db.dao.write.WriteAccountDao
 import com.ivy.data.db.dao.write.WriteBudgetDao
 import com.ivy.data.db.dao.write.WriteCategoryDao
 import com.ivy.data.db.dao.write.WriteExchangeRatesDao
+import com.ivy.data.db.dao.write.WriteFinancialPactDao
+import com.ivy.data.db.dao.write.WritePactRepaymentDao
 import com.ivy.data.db.dao.write.WriteLoanDao
 import com.ivy.data.db.dao.write.WriteLoanRecordDao
 import com.ivy.data.db.dao.write.WritePlannedPaymentRuleDao
@@ -30,11 +38,12 @@ import com.ivy.data.db.entity.AccountEntity
 import com.ivy.data.db.entity.BudgetEntity
 import com.ivy.data.db.entity.CategoryEntity
 import com.ivy.data.db.entity.ExchangeRateEntity
+import com.ivy.data.db.entity.FinancialPactEntity
+import com.ivy.data.db.entity.GoalEntity
 import com.ivy.data.db.entity.LoanEntity
 import com.ivy.data.db.entity.LoanRecordEntity
 import com.ivy.data.db.entity.PlannedPaymentRuleEntity
 import com.ivy.data.db.entity.SettingsEntity
-import com.ivy.data.db.entity.GoalEntity
 import com.ivy.data.db.entity.TagAssociationEntity
 import com.ivy.data.db.entity.TransactionEntity
 import com.ivy.data.db.entity.UserEntity
@@ -70,7 +79,7 @@ import com.ivy.domain.db.migration.Migration125to126_Tags
         SettingsEntity::class, PlannedPaymentRuleEntity::class,
         UserEntity::class, ExchangeRateEntity::class, BudgetEntity::class,
         LoanEntity::class, LoanRecordEntity::class, TagEntity::class, TagAssociationEntity::class,
-        GoalEntity::class  # Phase 10: Goal entity
+        FinancialPactEntity::class, PurchaseEntity::class, GoalEntity::class
     ],
     autoMigrations = [
         AutoMigration(
@@ -88,6 +97,9 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val transactionDao: TransactionDao
     abstract val categoryDao: CategoryDao
     abstract val budgetDao: BudgetDao
+    abstract val financialPactDao: FinancialPactDao
+    abstract val pactRepaymentDao: PactRepaymentDao
+    abstract val purchaseDao: PurchaseDao
     abstract val goalDao: GoalDao
     abstract val plannedPaymentRuleDao: PlannedPaymentRuleDao
     abstract val settingsDao: SettingsDao
@@ -102,6 +114,9 @@ abstract class IvyRoomDatabase : RoomDatabase() {
     abstract val writeTransactionDao: WriteTransactionDao
     abstract val writeCategoryDao: WriteCategoryDao
     abstract val writeBudgetDao: WriteBudgetDao
+    abstract val writeFinancialPactDao: WriteFinancialPactDao
+    abstract val writePactRepaymentDao: WritePactRepaymentDao
+    abstract val writePurchaseDao: WritePurchaseDao
     abstract val writeGoalDao: WriteGoalDao
     abstract val writePlannedPaymentRuleDao: WritePlannedPaymentRuleDao
     abstract val writeSettingsDao: WriteSettingsDao
