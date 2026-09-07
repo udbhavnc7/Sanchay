@@ -64,10 +64,10 @@ fun ChartBudgetProgress(
 
             // Progress bar
             val progressColor = when {
-                progress > 0.9 -> SanchayColors.Warning primary
-                progress > 0.75 -> SanchayColors.Primary primary
-                progress > 0.5 -> SanchayColors.Income primary
-                else -> SanchayColors.Neutral primary
+                progress > 0.9 -> SanchayColors.Warning.primary
+                progress > 0.75 -> SanchayColors.Primary.primary
+                progress > 0.5 -> SanchayColors.Income.primary
+                else -> SanchayColors.Neutral.primary
             }
 
             androidx.compose.material3.CircularProgressIndicator(
@@ -126,9 +126,9 @@ fun ChartSpendingProgress(
 
             // Progress bar
             val progressColor = when {
-                progress > 0.9 -> SanchayColors.Error primary
-                progress > 0.75 -> SanchayColors.Warning primary
-                else -> SanchayColors.Primary primary
+                progress > 0.9 -> SanchayColors.Error.primary
+                progress > 0.75 -> SanchayColors.Warning.primary
+                else -> SanchayColors.Primary.primary
             }
 
             androidx.compose.material3.CircularProgressIndicator(
@@ -188,9 +188,9 @@ fun ChartGoalProgress(
 
             // Progress bar
             val progressColor = when {
-                progress > 0.9 -> SanchayColors.Income primary
-                progress > 0.75 -> SanchayColors.Warning primary
-                else -> SanchayColors.Primary primary
+                progress > 0.9 -> SanchayColors.Income.primary
+                progress > 0.75 -> SanchayColors.Warning.primary
+                else -> SanchayColors.Primary.primary
             }
 
             androidx.compose.material3.CircularProgressIndicator(
@@ -289,8 +289,8 @@ private fun goalDescription(progress: Float): String {
 
 private fun goalProgressColor(progress: Float): Color {
     return when {
-        progress > 0.9 -> SanchayColors.Income primary
-        progress > 0.75 -> SanchayColors.Warning primary
-        else -> SanchayColors.Primary primary
+        progress > 0.9 -> SanchayColors.Income.primary
+        progress > 0.75 -> SanchayColors.Warning.primary
+        else -> SanchayColors.Primary.primary
     }
 }

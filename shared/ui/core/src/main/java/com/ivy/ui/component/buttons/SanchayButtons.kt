@@ -65,13 +65,13 @@ fun SanchayPrimaryButton(
         style = ButtonStyle.FilledCopy(
             enabled = enabled,
             colors = ButtonStyle.FilledButtonColors(
-                backgroundColor = if (enabled) SanchayColors.Primary.primary else SanchayColors.Muted extraLight,
-                contentColor = if (enabled) SanchayColors.White else SanchayColors.Muted light,
+                backgroundColor = if (enabled) SanchayColors.Primary.primary else SanchayColors.Muted.extraLight,
+                contentColor = if (enabled) SanchayColors.White else SanchayColors.Muted.light,
             ),
             elevation = if (enabled && elevation) {
                 elevationDirection -> elevationDirection
                     .provideShadow(
-                        color = SanchayColors.Neutral extraLight.copy(alpha = 0.15f),
+                        color = SanchayColors.Neutral.extraLight.copy(alpha = 0.15f),
                         elevation = SanchaySpacing.ShadowMd
                     )
             } else None,
@@ -117,8 +117,8 @@ fun SanchaySecondaryButton(
         style = ButtonStyle.OutlineCopy(
             enabled = enabled,
             backgroundColor = SanchayColors.Transparent,
-            contentColor = if (enabled) SanchayColors.TextPrimaryLight else SanchayColors.Muted light,
-            borderColor = if (enabled) SanchayColors.OutlineLight else SanchayColors.Muted light,
+            contentColor = if (enabled) SanchayColors.TextPrimaryLight else SanchayColors.Muted.light,
+            borderColor = if (enabled) SanchayColors.OutlineLight else SanchayColors.Muted.light,
             shape = SanchayShapes.ButtonRadius,
         ),
         interactionSource = rememberInteractionSource(),
@@ -151,7 +151,7 @@ fun SanchayTextButton(
         enabled = enabled,
         colors = ButtonStyle.TextButtonColors(
             backgroundColor = SanchayColors.Transparent,
-            contentColor = if (enabled) SanchayColors.Primary primary else SanchayColors.Muted primary,
+            contentColor = if (enabled) SanchayColors.Primary.primary else SanchayColors.Muted.primary,
         ),
         interactionSource = rememberInteractionSource(),
         onClick = if (enabled) onClick else {}
@@ -207,10 +207,10 @@ fun SanchayTransactionTypeButton(
     modifier: Modifier = Modifier,
 ) {
     val (textColor, bgColor) = when (transactionType) {
-        is TransactionType.Income -> (SanchayColors.IncomePrimary, SanchayColors.Income extraLight)
-        is TransactionType.Expense -> (SanchayColors.ExpensePrimary, SanchayColors.Expense extraLight)
-        is TransactionType.Transfer -> (SanchayColors.Neutral primary, SanchayColors.Neutral extraLight)
-        else -> (SanchayColors.TextPrimaryLight, SanchayColors.SurfaceLight)
+        is TransactionType.Income -> SanchayColors.Income.primary to SanchayColors.Income.extraLight
+        is TransactionType.Expense -> SanchayColors.Expense.primary to SanchayColors.Expense.extraLight
+        is TransactionType.Transfer -> SanchayColors.Neutral.primary to SanchayColors.Neutral.extraLight
+        else -> SanchayColors.TextPrimaryLight to SanchayColors.SurfaceLight
     }
 
     SanchayPrimaryButton(

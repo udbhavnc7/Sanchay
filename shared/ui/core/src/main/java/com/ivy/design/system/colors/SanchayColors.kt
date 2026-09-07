@@ -140,6 +140,8 @@ object SanchayColors {
     val ExpenseNegative = Color(0xEF4444)
     val BudgetWarning = Color(0xF59E0B)
     val GoalProgress = Color(0x3B82F6)
+    val IncomePrimary = Income.primary
+    val ExpensePrimary = Expense.primary
 
     /** Surface colors */
     val LightBackground = Color(0xFFFFFFFF)

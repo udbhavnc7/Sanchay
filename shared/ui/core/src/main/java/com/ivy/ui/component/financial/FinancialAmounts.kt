@@ -40,23 +40,19 @@ fun FinancialAmount(
     showSign: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val (amountText, textColor, iconVector) = when (style) {
-        is FinancialAmountStyle.Income -> {
-            val display = if (showSign && amount.toDoubleOrNull() ?: 0 >= 0) amount else "+$amount"
-            (display, SanchayColors.IncomePrimary,
-                androidx.compose.material3.icons.filled.TrendingUp)
-        }
-        is FinancialAmountStyle.Expense -> {
-            val display = if (showSign && amount.toDoubleOrNull() ?: 0 <= 0) amount else "$amount"
-            (display, SanchayColors.ExpensePrimary,
-                androidx.compose.material3.icons.filled.TrendingDown)
-        }
-        is FinancialAmountStyle.Neutral -> (amount, SanchayColors.TextPrimaryLight,
-            androidx.compose.material3.icons.filled.Equalizer)
-        is FinancialAmountStyle.Pending -> (amount, SanchayColors.Warning primary,
-            androidx.compose.material3.icons.filled.HourglassEmpty)
-        is FinancialAmountStyle.Overdue -> (amount, SanchayColors.Error primary,
-            androidx.compose.material3.icons.filled.Close)
+    // Compute amount display text based on sign and style
+    val displayText = when (style) {
+        FinancialAmountStyle.Income -> if (showSign && amount.toDoubleOrNull() ?: 0 >= 0) amount else "+$amount"
+        FinancialAmountStyle.Expense -> if (showSign && amount.toDoubleOrNull() ?: 0 <= 0) amount else "$amount"
+        FinancialAmountStyle.Neutral, FinancialAmountStyle.Pending, FinancialAmountStyle.Overdue -> amount
+    }
+
+    val (textColor, iconVector) = when (style) {
+        FinancialAmountStyle.Income -> SanchayColors.IncomePrimary to androidx.compose.material3.icons.filled.TrendingUp
+        FinancialAmountStyle.Expense -> SanchayColors.ExpensePrimary to androidx.compose.material3.icons.filled.TrendingDown
+        FinancialAmountStyle.Neutral -> SanchayColors.TextPrimaryLight to androidx.compose.material3.icons.filled.Equalizer
+        FinancialAmountStyle.Pending -> SanchayColors.Warning.primary to androidx.compose.material3.icons.filled.HourglassEmpty
+        FinancialAmountStyle.Overdue -> SanchayColors.Error.primary to androidx.compose.material3.icons.filled.Close
     }
 
     Row(
@@ -66,7 +62,7 @@ fun FinancialAmount(
         verticalAlignment = Alignment.CenterVertically
     ) {
         text(
-            text = amountText,
+            text = displayText,
             style = if (showSign) SanchayTypography.Numerical else SanchayTypography.Body,
             color = textColor,
             textAlign = TextAlign.Start
@@ -216,10 +212,10 @@ fun FinancialProgress(
 
             // Progress bar
             val progressColor = when {
-                progress > 0.9 -> SanchayColors.Warning primary
-                progress > 0.75 -> SanchayColors.Primary primary
-                progress > 0.5 -> SanchayColors.Income primary
-                else -> SanchayColors.Neutral primary
+                progress > 0.9 -> SanchayColors.Warning.primary
+                progress > 0.75 -> SanchayColors.Primary.primary
+                progress > 0.5 -> SanchayColors.Income.primary
+                else -> SanchayColors.Neutral.primary
             }
 
             androidx.compose.material3.CircularProgressIndicator(

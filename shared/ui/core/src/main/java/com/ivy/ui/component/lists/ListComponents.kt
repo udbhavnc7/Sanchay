@@ -11,7 +11,7 @@ import androidx.compose.material3.icons.filled.ArrowDropDown
 import androidx.compose.material3.icons.filled.Money
 import androidx.compose.material3.icons.filled.TrendingUp
 import androidx.compose.material3.icons.filled.TrendingDown
-import androidx.compose.material3 outlinetextfield
+import androidx.compose.material3.outlinetextfield.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Chip
 import androidx.compose.runtime.Composable
@@ -39,10 +39,10 @@ fun TransactionRow(
 ) {
     var selected by remember { mutableStateOf(false) }
 
-    val (amountStyle, amountColor, amountIcon) = when (transaction.type) {
-        TransactionType.Income -> (FinancialAmountStyle.Income, SanchayColors.IncomePrimary, TrendingUp)
-        TransactionType.Expense -> (FinancialAmountStyle.Expense, SanchayColors.ExpensePrimary, TrendingDown)
-        TransactionType.Transfer -> (FinancialAmountStyle.Neutral, SanchayColors.Neutral primary, AccountBalance)
+    val (amountStyle, amountColor, amountIcon) = when (transaction) {
+        is Income -> (FinancialAmountStyle.Income, SanchayColors.IncomePrimary, TrendingUp)
+        is Expense -> (FinancialAmountStyle.Expense, SanchayColors.ExpensePrimary, TrendingDown)
+        is Transfer -> (FinancialAmountStyle.Neutral, SanchayColors.Neutral.primary, AccountBalance)
         else -> (FinancialAmountStyle.Neutral, SanchayColors.TextMutedLight, Money)
     }
 

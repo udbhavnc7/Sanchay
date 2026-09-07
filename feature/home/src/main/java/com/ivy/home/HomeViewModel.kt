@@ -12,7 +12,6 @@ import com.ivy.base.legacy.Transaction
 import com.ivy.base.legacy.TransactionHistoryItem
 import com.ivy.base.time.TimeConverter
 import com.ivy.base.time.TimeProvider
-import com.ivy.data.model.IntervalType
 import com.ivy.data.model.primitive.AssetCode
 import com.ivy.data.repository.CategoryRepository
 import com.ivy.data.repository.mapper.TransactionMapper
@@ -21,10 +20,6 @@ import com.ivy.domain.usecase.exchange.SyncExchangeRatesUseCase
 import com.ivy.frp.fixUnit
 import com.ivy.frp.then
 import com.ivy.frp.thenInvokeAfter
-import com.ivy.home.RecurringPatternDetector
-import com.ivy.home.RecurringPatternDetector.SuggestionConfidence
-import com.ivy.home.RecurringPatternDetector.CommitmentCandidate
-import com.ivy.home.RecurringPatternDetector.DetectionResult
 import com.ivy.home.customerjourney.CustomerJourneyCardModel
 import com.ivy.home.customerjourney.CustomerJourneyCardsProvider
 import com.ivy.legacy.IvyWalletCtx
@@ -39,10 +34,12 @@ import com.ivy.legacy.datamodel.Settings
 import com.ivy.legacy.datamodel.temp.toLegacyDomain
 import com.ivy.legacy.domain.action.settings.UpdateSettingsAct
 import com.ivy.legacy.domain.action.viewmodel.home.ShouldHideIncomeAct
-import com.ivy.legacy.domain.action.viewmodel.home.ShouldHideBalanceAct
-import com.ivy.legacy.domain.action.viewmodel.home.UpcomingAct
-import com.ivy.legacy.domain.action.viewmodel.home.UpdateAccCacheAct
-import com.ivy.legacy.domain.action.viewmodel.home.UpdateCategoriesCacheAct
+import com.ivy.legacy.utils.dateNowUTC
+import com.ivy.legacy.utils.ioThread
+import com.ivy.navigation.BalanceScreen
+import com.ivy.navigation.MainScreen
+import com.ivy.navigation.Navigation
+import com.ivy.ui.ComposeViewModel
 import com.ivy.wallet.domain.action.account.AccountsAct
 import com.ivy.wallet.domain.action.global.StartDayOfMonthAct
 import com.ivy.wallet.domain.action.settings.CalcBufferDiffAct
@@ -62,6 +59,7 @@ import com.ivy.wallet.domain.pure.data.IncomeExpensePair
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -94,8 +92,7 @@ class HomeViewModel @Inject constructor(
     private val transactionMapper: TransactionMapper,
     private val timeProvider: TimeProvider,
     private val timeConverter: TimeConverter,
-    private val features: Features,
-    private val recurringPatternDetector: RecurringPatternDetector = RecurringPatternDetector()
+    private val features: Features
 ) : ComposeViewModel<HomeState, HomeEvent>() {
     private var currentTheme by mutableStateOf(Theme.AUTO)
     private var name by mutableStateOf("")
@@ -130,8 +127,6 @@ class HomeViewModel @Inject constructor(
             expanded = false,
         )
     )
-    private var detectedCommitments by mutableStateOf<ImmutableList<RecurringPatternDetector.CommitmentCandidate>>(persistentListOf())
-    private var monthlyCommittedAmount by mutableStateOf(0.0)
     private var customerJourneyCards by
     mutableStateOf<ImmutableList<CustomerJourneyCardModel>>(persistentListOf())
     private var hideBalance by mutableStateOf(false)
@@ -155,8 +150,6 @@ class HomeViewModel @Inject constructor(
             buffer = getBuffer(),
             upcoming = getUpcoming(),
             overdue = getOverdue(),
-            detectedCommitments = getDetectedCommitments(),
-            monthlyCommittedAmount = getMonthlyCommittedAmount(),
             customerJourneyCards = getCustomerJourneyCards(),
             hideBalance = getHideBalance(),
             expanded = getExpanded(),
@@ -221,16 +214,6 @@ class HomeViewModel @Inject constructor(
     }
 
     @Composable
-    private fun getDetectedCommitments(): ImmutableList<RecurringPatternDetector.CommitmentCandidate> {
-        return detectedCommitments
-    }
-
-    @Composable
-    private fun getMonthlyCommittedAmount(): Double {
-        return monthlyCommittedAmount
-    }
-
-    @Composable
     private fun getCustomerJourneyCards(): ImmutableList<CustomerJourneyCardModel> {
         return customerJourneyCards
     }
@@ -274,43 +257,12 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun start() {
-        viewModelScope.launch {
-            val settings = ioThread { settingsDao.findFirst() }
-            currency = settings.currency
-
-            categories = categoriesRepository.findAll().toImmutableList()
-            accounts = accountsAct(Unit)
-
-            oneTimePlannedPayment =
-                ioThread { plannedPaymentsLogic.oneTime() }.toImmutableList()
-            oneTimeIncome = ioThread { plannedPaymentsLogic.oneTimeIncome() }
-            oneTimeExpenses = ioThread { plannedPaymentsLogic.oneTimeExpenses() }
-
-            recurringPlannedPayment =
-                ioThread { plannedPaymentsLogic.recurring() }.toImmutableList()
-            recurringIncome = ioThread { plannedPaymentsLogic.recurringIncome() }
-            recurringExpenses = ioThread { plannedPaymentsLogic.recurringExpenses() }
-
-            // Detect recurring commitments from transaction history
-            val allTransactions = history.map { it.toLegacyDomain() }
-            detectedCommitments =
-                ioThread {
-                    recurringPatternDetector.detectRecurringPatterns(allTransactions)
-                        .toImmutableList()
-                }
-                .flowOn(Dispatchers.Main)
-                .collect { detectedCommitments = it }
-
-            // Calculate monthly committed amount from detected commitments
-            val totalMonthly = ioThread {
-                detectedCommitments
-                    .asSequence()
-                    .filter { it.frequency == RecurringPatternDetector.IntervalType.MONTH }
-                    .sumOf { it.amount }
-            }
-            .flowOn(Dispatchers.Main)
-            .collect { monthlyCommittedAmount = it }
-        }
+        suspend {
+            val startDay = startDayOfMonthAct(Unit)
+            ivyContext.initSelectedPeriodInMemory(
+                startDayOfMonth = startDay
+            )
+        } thenInvokeAfter ::reload
     }
 
     // -----------------------------------------------------------------------------------

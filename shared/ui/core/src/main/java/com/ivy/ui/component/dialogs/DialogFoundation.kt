@@ -76,33 +76,33 @@ fun SanchayConfirmationDialog(
                     text = confirmText,
                     confirguration = ButtonConfiguration(
                         containsFocus = true,
-                        focusColor = SanchayColors.Primary primary,
+                        focusColor = SanchayColors.Primary.primary,
                         enabled = true,
                         elevation = {
                             if (confirmColor) {
                                 elevationDirection -> elevationDirection
                                     .provideShadow(
-                                        color = SanchayColors.Neutral extraLight.copy(alpha = 0.15f),
+                                        color = SanchayColors.Neutral.extraLight.copy(alpha = 0.15f),
                                         elevation = SanchaySpacing.ShadowMd
                                     )
                             } else {
                 elevationDirection -> elevationDirection
                     .provideShadow(
-                        color = SanchayColors.Error extraLight.copy(alpha = 0.15f),
+                        color = SanchayColors.Error.extraLight.copy(alpha = 0.15f),
                         elevation = SanchaySpacing.ShadowMd
                     )
                         }
                     ),
                     colors = if (confirmColor) {
                         ButtonStyle.FilledButtonColors(
-                            backgroundColor = SanchayColors.Primary primary,
+                            backgroundColor = SanchayColors.Primary.primary,
                             contentColor = SanchayColors.White,
                         )
                     } else {
                         ButtonStyle.OutlineButtonColors(
                             backgroundColor = SanchayColors.Transparent,
-                            contentColor = SanchayColors.Error primary,
-                            borderColor = SanchayColors.Error primary,
+                            contentColor = SanchayColors.Error.primary,
+                            borderColor = SanchayColors.Error.primary,
                         )
                     }
                 )
@@ -231,7 +231,7 @@ fun SanchaySelectionBottomSheet(
                         .padding(bottom = if (index < options.size - 1) SanchaySpacing.ListItemSpacing else 0.dp),
                     configuration = ButtonConfiguration(
                         containsFocus = true,
-                        focusColor = SanchayColors.Primary primary
+                        focusColor = SanchayColors.Primary.primary
                     )
                 )
             }

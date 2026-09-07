@@ -216,7 +216,7 @@ fun SanchayBudgetProgressCard(
                     text(
                         text = progressPercent,
                         style = SanchayTypography.NumericalLarge,
-                        color = if (progress > 0.9) SanchayColors.Warning primary else SanchayColors.Primary primary,
+                        color = if (progress > 0.9) SanchayColors.Warning.primary else SanchayColors.Primary.primary,
                     )
                 }
             }

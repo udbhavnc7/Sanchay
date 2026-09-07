@@ -57,7 +57,7 @@ android {
 
             signingConfig = signingConfigs.getByName("release")
 
-            resValue("string", "app_name", "Sanchay")
+            resValue("string", "app_name", "Ivy Wallet")
         }
 
         debug {
@@ -70,7 +70,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
 
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "Sanchay Debug")
+            resValue("string", "app_name", "Ivy Wallet Debug")
         }
 
         create("demo") {
@@ -89,7 +89,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
 
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "Sanchay")
+            resValue("string", "app_name", "Ivy Wallet")
         }
     }
 
