@@ -1,0 +1,377 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Configuration on demand is an incubating feature.
+Reusing configuration cache.
+> Task :shared:ui:core:preBuild UP-TO-DATE
+> Task :shared:data:model:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:base:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:ui:core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :temp:old-design:preBuild UP-TO-DATE
+> Task :shared:domain:preBuild UP-TO-DATE
+> Task :feature:budgets:preBuild UP-TO-DATE
+> Task :shared:base:preBuild UP-TO-DATE
+> Task :shared:data:model:preBuild UP-TO-DATE
+> Task :temp:old-design:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :feature:budgets:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :temp:legacy-code:preBuild UP-TO-DATE
+> Task :shared:data:core:preBuild UP-TO-DATE
+> Task :temp:legacy-code:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:data:core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:domain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:base:preDebugBuild UP-TO-DATE
+> Task :shared:domain:preDebugBuild UP-TO-DATE
+> Task :feature:budgets:preDebugBuild UP-TO-DATE
+> Task :temp:old-design:preDebugBuild UP-TO-DATE
+> Task :shared:ui:core:preDebugBuild UP-TO-DATE
+> Task :shared:data:core:preDebugBuild UP-TO-DATE
+> Task :shared:data:model:preDebugBuild UP-TO-DATE
+> Task :temp:legacy-code:preDebugBuild UP-TO-DATE
+> Task :shared:ui:navigation:preBuild UP-TO-DATE
+> Task :shared:ui:navigation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :shared:ui:navigation:preDebugBuild UP-TO-DATE
+> Task :shared:domain:javaPreCompileDebug UP-TO-DATE
+> Task :shared:data:model:generateDebugResValues UP-TO-DATE
+> Task :shared:ui:core:generateDebugResValues UP-TO-DATE
+> Task :shared:domain:generateDebugResValues UP-TO-DATE
+> Task :temp:old-design:generateDebugResValues UP-TO-DATE
+> Task :shared:ui:navigation:generateDebugResValues UP-TO-DATE
+> Task :shared:base:generateDebugResValues UP-TO-DATE
+> Task :shared:data:core:javaPreCompileDebug UP-TO-DATE
+> Task :temp:old-design:javaPreCompileDebug UP-TO-DATE
+> Task :temp:legacy-code:generateDebugResValues UP-TO-DATE
+> Task :shared:data:model:javaPreCompileDebug UP-TO-DATE
+> Task :shared:data:core:generateDebugResValues UP-TO-DATE
+> Task :shared:base:javaPreCompileDebug UP-TO-DATE
+> Task :feature:budgets:generateDebugResValues UP-TO-DATE
+> Task :shared:ui:navigation:javaPreCompileDebug UP-TO-DATE
+> Task :shared:ui:core:javaPreCompileDebug UP-TO-DATE
+> Task :temp:legacy-code:javaPreCompileDebug UP-TO-DATE
+> Task :feature:budgets:generateDebugResources UP-TO-DATE
+> Task :shared:data:core:generateDebugResources UP-TO-DATE
+> Task :shared:domain:generateDebugResources UP-TO-DATE
+> Task :temp:legacy-code:generateDebugResources UP-TO-DATE
+> Task :shared:base:generateDebugResources UP-TO-DATE
+> Task :shared:data:model:generateDebugResources UP-TO-DATE
+> Task :shared:ui:navigation:generateDebugResources UP-TO-DATE
+> Task :temp:old-design:generateDebugResources UP-TO-DATE
+> Task :shared:data:model:packageDebugResources UP-TO-DATE
+> Task :shared:data:core:packageDebugResources UP-TO-DATE
+> Task :shared:ui:navigation:packageDebugResources UP-TO-DATE
+> Task :temp:old-design:packageDebugResources UP-TO-DATE
+> Task :shared:domain:packageDebugResources UP-TO-DATE
+> Task :feature:budgets:packageDebugResources UP-TO-DATE
+> Task :shared:base:packageDebugResources UP-TO-DATE
+> Task :temp:legacy-code:packageDebugResources UP-TO-DATE
+> Task :shared:ui:core:generateDebugResources UP-TO-DATE
+> Task :shared:ui:navigation:parseDebugLocalResources UP-TO-DATE
+> Task :shared:domain:parseDebugLocalResources UP-TO-DATE
+> Task :temp:legacy-code:parseDebugLocalResources UP-TO-DATE
+> Task :shared:base:parseDebugLocalResources UP-TO-DATE
+> Task :temp:old-design:parseDebugLocalResources UP-TO-DATE
+> Task :feature:budgets:parseDebugLocalResources UP-TO-DATE
+> Task :shared:data:core:parseDebugLocalResources UP-TO-DATE
+> Task :shared:data:model:parseDebugLocalResources UP-TO-DATE
+> Task :shared:ui:core:packageDebugResources UP-TO-DATE
+> Task :temp:legacy-code:generateDebugRFile UP-TO-DATE
+> Task :temp:old-design:generateDebugRFile UP-TO-DATE
+> Task :shared:data:core:generateDebugRFile UP-TO-DATE
+> Task :shared:base:generateDebugRFile UP-TO-DATE
+> Task :feature:budgets:generateDebugRFile UP-TO-DATE
+> Task :shared:domain:generateDebugRFile UP-TO-DATE
+> Task :shared:ui:navigation:generateDebugRFile UP-TO-DATE
+> Task :shared:data:model:generateDebugRFile UP-TO-DATE
+> Task :shared:ui:core:parseDebugLocalResources UP-TO-DATE
+> Task :shared:ui:core:generateDebugRFile UP-TO-DATE
+> Task :shared:data:model:kspDebugKotlin UP-TO-DATE
+> Task :shared:base:kspDebugKotlin UP-TO-DATE
+> Task :shared:data:model:compileDebugKotlin UP-TO-DATE
+> Task :shared:base:compileDebugKotlin UP-TO-DATE
+> Task :shared:data:model:compileDebugJavaWithJavac NO-SOURCE
+> Task :shared:base:compileDebugJavaWithJavac UP-TO-DATE
+> Task :shared:base:transformDebugClassesWithAsm UP-TO-DATE
+> Task :shared:data:model:transformDebugClassesWithAsm UP-TO-DATE
+> Task :shared:base:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :shared:data:model:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :shared:base:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :shared:data:model:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :shared:data:core:kspDebugKotlin UP-TO-DATE
+> Task :shared:data:core:compileDebugKotlin UP-TO-DATE
+> Task :shared:data:core:compileDebugJavaWithJavac UP-TO-DATE
+> Task :shared:data:core:copyRoomSchemas NO-SOURCE
+> Task :shared:data:core:transformDebugClassesWithAsm UP-TO-DATE
+> Task :shared:data:core:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :shared:data:core:bundleLibRuntimeToJarDebug UP-TO-DATE
+> Task :shared:domain:kspDebugKotlin UP-TO-DATE
+> Task :shared:domain:compileDebugKotlin UP-TO-DATE
+> Task :shared:domain:compileDebugJavaWithJavac UP-TO-DATE
+> Task :shared:domain:copyRoomSchemas NO-SOURCE
+> Task :shared:domain:transformDebugClassesWithAsm UP-TO-DATE
+> Task :shared:domain:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :shared:domain:bundleLibRuntimeToJarDebug UP-TO-DATE
+
+> Task :shared:ui:core:kspDebugKotlin
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/design/system/IvyMaterial3Theme.kt:72:47 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:68:113 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:69:95 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:74:65 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:120:102 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:121:97 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:154:71 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:154:89 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:210:66 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:210:66 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:210:99 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:210:99 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:210:100 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:211:68 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:211:68 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:211:102 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:211:102 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:211:103 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:212:70 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:212:70 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:212:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:212:104 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:212:105 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:213:48 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:213:48 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:213:76 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/buttons/SanchayButtons.kt:213:77 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/cards/SanchayCards.kt:219:83 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/cards/SanchayCards.kt:219:101 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:68:33 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:69:32 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:69:63 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:70:54 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:130:33 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:130:65 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:131:54 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:192:33 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:192:65 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:193:54 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:293:25 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:293:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/charts/ChartFoundation.kt:294:46 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:79:67 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:85:81 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:91:63 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:95:21 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:95:22 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:98:76 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:104:71 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:105:70 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:108:17 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:109:14 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:111:5 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:112:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:131:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:150:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:191:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:234:67 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/dialogs/DialogFoundation.kt:240:2 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:46:21 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:46:21 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:47:67 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:51:21 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:51:21 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:52:69 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:54:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:54:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:55:62 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:55:63 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:56:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:56:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:56:82 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:57:67 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:57:68 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:58:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:58:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:58:80 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:59:58 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:59:59 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:220:33 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:221:32 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:221:63 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/financial/FinancialAmounts.kt:222:54 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:14:35 Expecting a top level declaration
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:14:51 imports are only allowed in the beginning of file
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:43:63 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:43:63 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:43:104 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:44:33 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:44:65 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:44:65 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:44:109 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:34 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:66 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:66 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:97 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:113 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:45:114 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:46:46 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:46:46 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:46:83 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:46:84 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:106:61 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:135:67 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:59 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:69 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:77 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:80 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:89 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/lists/ListComponents.kt:222:96 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:68:69 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:89:90 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:89:108 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:89:127 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:101:94 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:101:112 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:101:131 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:113:69 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:125:93 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:125:111 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:125:130 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:132:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:134:5 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:139:68 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:152:56 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:157:61 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:180:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:187:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/NavigationFoundation.kt:192:2 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:97:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:97:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:97:123 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:106:18 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:107:73 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:109:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:117:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:117:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:117:123 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:126:18 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:127:81 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:129:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:137:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:137:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:137:123 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:146:18 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:147:74 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:149:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:157:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:157:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:157:123 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:166:18 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:167:77 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:169:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:177:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:177:104 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:177:123 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:186:18 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:187:73 Unexpected tokens (use ';' to separate expressions on the same line)
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:189:13 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:204:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:241:25 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:241:43 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:247:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:258:21 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:267:21 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:303:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:314:21 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:378:2 Expecting ','
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/navigation/SanchayBottomNavigation.kt:383:2 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/states/SanchayErrorStates.kt:56:47 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/states/SanchayErrorStates.kt:147:45 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/states/SanchayLoadingStates.kt:49:50 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/states/SanchayLoadingStates.kt:125:50 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/LoadingErrorSuccess.kt:51:49 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/LoadingErrorSuccess.kt:83:47 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:74:49 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:100:47 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:126:49 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:152:47 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:178:49 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:199:49 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:199:49 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:199:85 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:199:86 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:200:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:200:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:200:88 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:200:89 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:201:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:201:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:201:82 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:201:88 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:201:89 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:202:51 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:202:51 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:202:80 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:202:87 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:202:88 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:203:53 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:203:53 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:203:84 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:203:91 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:203:92 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:204:55 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:204:55 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:204:91 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:204:92 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:205:55 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:205:55 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:205:84 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:205:91 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:205:92 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:206:27 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:206:27 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:206:63 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:206:64 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:246:45 Expecting ')'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:246:45 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:246:63 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:247:15 Expecting an expression, is-condition or in-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:247:46 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:247:46 Expecting a when-condition
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:247:66 Expecting '->'
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/status/StatusComponents.kt:247:67 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:96:59 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:97:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:98:64 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:103:61 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:104:55 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:105:62 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:175:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:176:53 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:177:60 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:230:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:231:53 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:232:60 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:288:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:289:53 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayAmountInput.kt:290:60 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:92:61 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:93:57 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:94:64 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:99:61 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:100:55 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:101:62 Expecting an element
+e: file:///C:/Users/LENOVO/Sanchay/Sanchay/shared/ui/core/src/main/java/com/ivy/ui/component/textfields/SanchayTextFields.kt:119:6 Expecting '}'
+
+> Task :shared:ui:core:kspDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':shared:ui:core:kspDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 11s
+77 actionable tasks: 1 executed, 76 up-to-date
+Configuration cache entry reused.
