@@ -71,10 +71,10 @@ fun SanchayConfirmationDialog(
                     modifier = Modifier.padding(end = SanchaySpacing.ContentInset)
                 )
 
-                Button(
+Button(
                     onClick = onConfirm,
                     text = confirmText,
-                    confirguration = ButtonConfiguration(
+                    configuration = ButtonConfiguration(
                         containsFocus = true,
                         focusColor = SanchayColors.Primary.primary,
                         enabled = true,
@@ -86,11 +86,12 @@ fun SanchayConfirmationDialog(
                                         elevation = SanchaySpacing.ShadowMd
                                     )
                             } else {
-                elevationDirection -> elevationDirection
-                    .provideShadow(
-                        color = SanchayColors.Error.extraLight.copy(alpha = 0.15f),
-                        elevation = SanchaySpacing.ShadowMd
-                    )
+                                elevationDirection -> elevationDirection
+                                    .provideShadow(
+                                        color = SanchayColors.Error.extraLight.copy(alpha = 0.15f),
+                                        elevation = SanchaySpacing.ShadowMd
+                                    )
+                            }
                         }
                     ),
                     colors = if (confirmColor) {

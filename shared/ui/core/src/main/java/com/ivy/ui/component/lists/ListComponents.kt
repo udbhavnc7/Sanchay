@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.ivy.design.system.colors.SanchayColors
 import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
-import com.ivy.model.core.Transaction
+import com.ivy.data.model.Transaction
 
 /** Transaction row for lists */
 @Composable
@@ -39,12 +39,23 @@ fun TransactionRow(
 ) {
     var selected by remember { mutableStateOf(false) }
 
-    val (amountStyle, amountColor, amountIcon) = when (transaction) {
-        is Income -> (FinancialAmountStyle.Income, SanchayColors.IncomePrimary, TrendingUp)
-        is Expense -> (FinancialAmountStyle.Expense, SanchayColors.ExpensePrimary, TrendingDown)
-        is Transfer -> (FinancialAmountStyle.Neutral, SanchayColors.Neutral.primary, AccountBalance)
-        else -> (FinancialAmountStyle.Neutral, SanchayColors.TextMutedLight, Money)
-    }
+    var amountStyle = FinancialAmountStyle.Neutral
+var amountColor = SanchayColors.TextMutedLight
+var amountIcon = Money
+
+if (transaction is Income) {
+    amountStyle = FinancialAmountStyle.Income
+    amountColor = SanchayColors.IncomePrimary
+    amountIcon = TrendingUp
+} else if (transaction is Expense) {
+    amountStyle = FinancialAmountStyle.Expense
+    amountColor = SanchayColors.ExpensePrimary
+    amountIcon = TrendingDown
+} else if (transaction is Transfer) {
+    amountStyle = FinancialAmountStyle.Neutral
+    amountColor = SanchayColors.Neutral.primary
+    amountIcon = AccountBalance
+}
 
     Column(
         modifier = modifier
@@ -103,7 +114,7 @@ fun TransactionRow(
                     Icon(
                         imageVector = Check,
                         contentDescription = "Selected",
-                        tint = SanchayColors.Primary primary,
+                        tint = SanchayColors.Primary.primary,
                         modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
                     )
                 }
@@ -132,7 +143,7 @@ fun TransactionRow(
                     onClick = onDelete,
                     text = "Delete",
                     colors = androidx.compose.material3.ButtonStyle.TextButtonColors(
-                        contentColor = SanchayColors.Error primary
+                        contentColor = SanchayColors.Error.primary
                     )
                 )
             }
