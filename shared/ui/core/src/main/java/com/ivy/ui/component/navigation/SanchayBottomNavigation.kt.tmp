@@ -98,6 +98,11 @@ fun SanchayBottomNavigation(
                         modifier = Modifier
                             .size(SanchaySpacing.BottomNavItemSize)
                             .scale(if (0 == selectedIndex) 1.2f else 1f)
+                            .animateScaleAsState(
+                                initialScale = animateSelection,
+                                targetScale = 1f,
+                                animationSpec = tween(200, easing = androidx.compose.animation.easing.LinearOutSlowIn)
+                            )
                 ),
                 label = { Text("Home", style = SanchayTypography.Body) },
                 selected = 0 == selectedIndex
@@ -232,8 +237,8 @@ fun SanchayBottomNavigationWithSelection(
                     .align(Alignment.TopEnd)
                     .padding(4.dp)
                     .background(
-                        if (isSelected) SanchayColors.Warning.primary
-                        else SanchayColors.Error.primary
+                        if (isSelected) SanchayColors.Warning primary
+                        else SanchayColors.Error primary
                     ),
                         shape = SanchayShapes.Small
                     )
@@ -361,3 +366,18 @@ fun SanchayTopAppBarWithSubtitle(
                     trailingAction()
                 }
             }
+        )
+    }
+}
+
+/** Check if can go back using back navigation */
+private var canGoBackInner by remember { mutableStateOf(false) }
+
+private fun canGoBack(): Boolean {
+    return canGoBackInner
+}
+
+/** Set can go back state from outside */
+fun setCanGoBack(value: Boolean) {
+    canGoBackInner = value
+}

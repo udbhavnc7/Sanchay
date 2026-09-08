@@ -230,7 +230,7 @@ fun CategoryRow(
         ) {
             if (icon != null) {
                 androidx.compose.ui.Image(
-                    painter = androidx.compose.ui painter = androidx.compose.ui.graphics.vector.VectorPainter(icon),
+                    painter = androidx.compose.ui.graphics.vector.VectorPainter(icon),
                     contentDescription = categoryName,
                     contentScale = androidx.compose.ui.unit.ContentScale.Fill,
                     modifier = Modifier

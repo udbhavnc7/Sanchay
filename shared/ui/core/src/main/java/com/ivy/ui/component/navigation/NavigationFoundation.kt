@@ -65,7 +65,7 @@ fun SanchayTopAppBar(
                 elevation = {
                     elevationDirection -> elevationDirection
                         .provideShadow(
-                            color = SanchayColors.Neutral extraLight.copy(alpha = 0.1f),
+                            color = SanchayColors.Neutral.extraLight.copy(alpha = 0.1f),
                             elevation = SanchaySpacing.ShadowXS
                         )
                 },
@@ -86,7 +86,7 @@ fun SanchayTopAppBar(
                             androidx.compose.material3.Icon(
                                 imageVector = androidx.compose.material3.icons.filled.Home,
                                 contentDescription = "Home",
-                                tint = if (isHomeSelected) SanchayColors.Primary primary else SanchayColors.TextSecondaryLight
+                                tint = if (isHomeSelected) SanchayColors.Primary.primary else SanchayColors.TextSecondaryLight
                             )
                         },
                         label = { text("Home", style = SanchayTypography.Body) },
@@ -98,7 +98,7 @@ fun SanchayTopAppBar(
                             androidx.compose.material3.Icon(
                                 imageVector = androidx.compose.material3.icons.filled.Insights,
                                 contentDescription = "Insights",
-                                tint = if (isInsightsSelected) SanchayColors.Primary primary else SanchayColors.TextSecondaryLight
+                                tint = if (isInsightsSelected) SanchayColors.Primary.primary else SanchayColors.TextSecondaryLight
                             )
                         },
                         label = { text("Insights", style = SanchayTypography.Body) },
@@ -110,7 +110,7 @@ fun SanchayTopAppBar(
                             androidx.compose.material3.Icon(
                                 imageVector = androidx.compose.material3.icons.filled.Add,
                                 contentDescription = "Add",
-                                tint = SanchayColors.Primary primary
+                                tint = SanchayColors.Primary.primary
                             )
                         },
                         label = { text("Add", style = SanchayTypography.Body) },
@@ -122,7 +122,7 @@ fun SanchayTopAppBar(
                             androidx.compose.material3.Icon(
                                 imageVector = androidx.compose.material3.icons.filled.AccountCircle,
                                 contentDescription = "Account",
-                                tint = if (isAccountSelected) SanchayColors.Primary primary else SanchayColors.TextSecondaryLight
+                                tint = if (isAccountSelected) SanchayColors.Primary.primary else SanchayColors.TextSecondaryLight
                             )
                         },
                         label = { text("Account", style = SanchayTypography.Body) },
@@ -149,12 +149,12 @@ fun SanchayFloatingActionButton(
         modifier = modifier
             .align(Alignment.BottomEnd)
             .padding(SanchaySpacing.ContentInset),
-        backgroundColor = SanchayColors.Primary primary,
+        backgroundColor = SanchayColors.Primary.primary,
         color = SanchayColors.White,
         elevation = {
             elevationDirection -> elevationDirection
                 .provideShadow(
-                    color = SanchayColors.Neutral extraLight.copy(alpha = 0.15f),
+                    color = SanchayColors.Neutral.extraLight.copy(alpha = 0.15f),
                     elevation = SanchaySpacing.ShadowLg
                 )
         },
