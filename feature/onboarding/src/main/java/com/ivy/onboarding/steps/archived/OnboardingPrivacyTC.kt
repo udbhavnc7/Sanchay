@@ -74,9 +74,9 @@ fun OnboardingPrivacyTC(
                     width = 56.dp,
                     height = 48.dp
                 ),
-            painter = painterResource(id = R.drawable.ivy_wallet_logo),
-            contentScale = ContentScale.FillBounds,
-            contentDescription = "Ivy Wallet logo"
+            painter = painterResource(id = R.drawable.sanchay_logo),
+            contentScale = ContentScale.Fit,
+            contentDescription = "Sanchay logo"
         )
 
         Spacer(Modifier.height(40.dp))

@@ -26,6 +26,7 @@ sealed interface HomeEvent {
     data class SkipAllPlanned(val transactions: List<Transaction>) : HomeEvent
 
     data class DismissCustomerJourneyCard(val card: CustomerJourneyCardModel) : HomeEvent
+    data class DismissSignal(val dedupKey: String) : HomeEvent
 
     data object SelectNextMonth : HomeEvent
     data object SelectPreviousMonth : HomeEvent

@@ -16,6 +16,8 @@ import com.ivy.data.model.primitive.AssetCode
 import com.ivy.data.repository.CategoryRepository
 import com.ivy.data.repository.mapper.TransactionMapper
 import com.ivy.domain.features.Features
+import com.ivy.domain.intelligence.FinancialIntelligenceEngine
+import com.ivy.domain.intelligence.FinancialSignal
 import com.ivy.domain.usecase.exchange.SyncExchangeRatesUseCase
 import com.ivy.frp.fixUnit
 import com.ivy.frp.then
@@ -92,7 +94,8 @@ class HomeViewModel @Inject constructor(
     private val transactionMapper: TransactionMapper,
     private val timeProvider: TimeProvider,
     private val timeConverter: TimeConverter,
-    private val features: Features
+    private val features: Features,
+    private val intelligenceEngine: FinancialIntelligenceEngine
 ) : ComposeViewModel<HomeState, HomeEvent>() {
     private var currentTheme by mutableStateOf(Theme.AUTO)
     private var name by mutableStateOf("")
@@ -129,6 +132,8 @@ class HomeViewModel @Inject constructor(
     )
     private var customerJourneyCards by
     mutableStateOf<ImmutableList<CustomerJourneyCardModel>>(persistentListOf())
+    private var intelligenceSignals by
+    mutableStateOf<ImmutableList<FinancialSignal>>(persistentListOf())
     private var hideBalance by mutableStateOf(false)
     private var hideIncome by mutableStateOf(false)
     private var expanded by mutableStateOf(true)
@@ -154,7 +159,8 @@ class HomeViewModel @Inject constructor(
             hideBalance = getHideBalance(),
             expanded = getExpanded(),
             hideIncome = getHideIncome(),
-            shouldShowAccountSpecificColorInTransactions = getShouldShowAccountSpecificColorInTransactions()
+            shouldShowAccountSpecificColorInTransactions = getShouldShowAccountSpecificColorInTransactions(),
+            intelligenceSignals = getIntelligenceSignals()
         )
     }
 
@@ -219,6 +225,11 @@ class HomeViewModel @Inject constructor(
     }
 
     @Composable
+    private fun getIntelligenceSignals(): ImmutableList<FinancialSignal> {
+        return intelligenceSignals
+    }
+
+    @Composable
     private fun getHideBalance(): Boolean {
         return hideBalance
     }
@@ -251,6 +262,10 @@ class HomeViewModel @Inject constructor(
                 is HomeEvent.SetCurrency -> setCurrency(event.currency).fixUnit()
                 HomeEvent.SwitchTheme -> switchTheme()
                 is HomeEvent.DismissCustomerJourneyCard -> dismissCustomerJourneyCard(event.card)
+                is HomeEvent.DismissSignal -> {
+                    intelligenceEngine.dismissSignal(event.dedupKey)
+                    loadIntelligence()
+                }
                 is HomeEvent.SetExpanded -> setExpanded(event.expanded)
             }
         }
@@ -402,6 +417,30 @@ class HomeViewModel @Inject constructor(
     private suspend fun loadCustomerJourney(unit: Unit) {
         customerJourneyCards = ioThread {
             customerJourneyLogic.loadCards().toImmutableList()
+        }
+        loadIntelligence()
+    }
+
+    private suspend fun loadIntelligence() {
+        intelligenceSignals = ioThread {
+            try {
+                intelligenceEngine.evaluateSignals().toImmutableList()
+            } catch (e: Exception) {
+                persistentListOf()
+            }
+        }
+    }
+
+    fun dismissSignal(signal: FinancialSignal) {
+        viewModelScope.launch {
+            ioThread { intelligenceEngine.dismissSignal(signal.dedupKey) }
+            intelligenceSignals = ioThread {
+                try {
+                    intelligenceEngine.evaluateSignals().toImmutableList()
+                } catch (e: Exception) {
+                    persistentListOf()
+                }
+            }
         }
     }
 // -----------------------------------------------------------------

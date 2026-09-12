@@ -66,6 +66,18 @@ private fun BoxWithConstraintsScope.UI(
                 )
             )
 
+            if (state.timelineSummary.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp),
+                    text = state.timelineSummary,
+                    style = UI.typo.b2.style(
+                        fontWeight = FontWeight.Medium,
+                        color = UI.colors.pureInverse.copy(alpha = 0.65f)
+                    )
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
         },
         currency = state.currency,

@@ -14,10 +14,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ivy.domain.intelligence.FinancialSignal
+import com.ivy.domain.intelligence.SignalSeverity
 import com.ivy.base.legacy.TransactionHistoryItem
 import com.ivy.design.system.colors.SanchayColors
 import com.ivy.design.system.spacing.SanchaySpacing
@@ -73,10 +81,9 @@ fun SanchayHomeDashboard() {
         baseCurrency = uiState.baseData.baseCurrency
     )
 
-    InsightPreviewSection(
-        stats = uiState.stats,
-        upcoming = uiState.upcoming,
-        baseCurrency = uiState.baseData.baseCurrency
+    SanchayIntelligenceSection(
+        signals = uiState.intelligenceSignals,
+        onDismiss = { viewModel.onEvent(HomeEvent.DismissSignal(it.dedupKey)) }
     )
 }
 
@@ -324,45 +331,85 @@ fun GoalsSnapshotSection(
 }
 
 @Composable
-fun InsightPreviewSection(
-    stats: IncomeExpensePair,
-    upcoming: LegacyDueSection,
-    baseCurrency: String
+fun SanchayIntelligenceSection(
+    signals: ImmutableList<FinancialSignal>,
+    onDismiss: (FinancialSignal) -> Unit
 ) {
-    val insights = mutableListOf<String>()
+    if (signals.isEmpty()) return
 
-    if (stats.income > BigDecimal.ZERO && stats.expense.toDouble() / stats.income.toDouble() > 0.7) {
-        insights.add("Dining is higher than usual this month")
-    }
-
-    if (upcoming.trns.isNotEmpty()) {
-        insights.add("${upcoming.trns.size} payment${if (upcoming.trns.size > 1) "s" else ""} coming due")
-    }
-
-    if (insights.isEmpty()) return
-
-    SanchayCard(
+    Column(
         modifier = Modifier
             .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.SectionSpacing)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Text(
-                text = "Insight",
-                style = SanchayTypography.Heading3,
-                color = SanchayColors.TextPrimaryLight
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = insights.first(),
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextPrimaryLight
-            )
-            Spacer(Modifier.height(SanchaySpacing.ListItemSpacing))
-            Text(
-                text = "\u2014 View all insights",
-                style = SanchayTypography.Caption,
-                color = SanchayColors.TextSecondaryLight
-            )
+        Text(
+            text = "Sanchay Intelligence",
+            style = SanchayTypography.Heading3,
+            color = SanchayColors.TextPrimaryLight
+        )
+        Spacer(Modifier.height(8.dp))
+
+        for (signal in signals.take(3)) {
+            val indicatorColor: androidx.compose.ui.graphics.Color = when (signal.severity) {
+                SignalSeverity.CRITICAL -> SanchayColors.ExpenseNegative
+                SignalSeverity.HIGH -> SanchayColors.BudgetWarning
+                SignalSeverity.MEDIUM -> SanchayColors.TextSecondaryLight
+                SignalSeverity.LOW -> SanchayColors.TextMutedLight
+                SignalSeverity.POSITIVE -> SanchayColors.IncomePositive
+            }
+
+            SanchayCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(color = indicatorColor, shape = CircleShape)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = signal.title,
+                                style = SanchayTypography.Heading3,
+                                color = SanchayColors.TextPrimaryLight
+                            )
+                        }
+
+                        Text(
+                            text = "Dismiss",
+                            style = SanchayTypography.Caption,
+                            color = SanchayColors.TextMutedLight,
+                            modifier = Modifier
+                                .clickable { onDismiss(signal) }
+                                .padding(4.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = signal.explanation,
+                        style = SanchayTypography.BodySecondary,
+                        color = SanchayColors.TextSecondaryLight
+                    )
+
+                    val action = signal.recommendedAction
+                    if (action != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "→ " + action.label,
+                            style = SanchayTypography.Body,
+                            color = SanchayColors.GoalProgress
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -20,32 +20,32 @@ object SanchayColors {
     /** Light mode background - clean, crisp white */
     val White = Color(0xFFFFFFFF)
 
-    /** Dark mode background - soft black that's easier on eyes than true black */
-    val Dark = Color(0xFF0B0B0C)
+    /** Dark mode background - luxury deep black matching logo */
+    val Dark = Color(0xFF0A0A0C)
 
     /** AMOLED-friendly true black */
     val TrueBlack = Color(0xFF000000)
 
-    /** Primary color - sophisticated blue-teal communicating trust and intelligence */
+    /** Primary color - radiant imperial gold matching Sanchay emblem */
     val Primary = ColorShades(
-        extraLight = Color(0xFFE8EEF5),
-        light = Color(0xFFCBDDE8),
-        kindaLight = Color(0xFF98ABCC),
-        primary = Color(0xFF3B82F6),
-        kindaDark = Color(0xFF2563EB),
-        dark = Color(0xFF1D4ED8),
-        extraDark = Color(0xFF1E40AF),
+        extraLight = Color(0xFFFAF3AA),
+        light = Color(0xFFF5E5AD),
+        kindaLight = Color(0xFFE5C875),
+        primary = Color(0xFFD4AF37),
+        kindaDark = Color(0xFFB89228),
+        dark = Color(0xFF94721A),
+        extraDark = Color(0xFF6E520F),
     )
 
-    /** Secondary color - complementary accent for depth and action */
+    /** Secondary color - warm champagne gold accent for depth and action */
     val Secondary = ColorShades(
-        extraLight = Color(0xFFF0F4FF),
-        light = Color(0xFFE2E8F5),
-        kindaLight = Color(0xFF93C5FD),
-        primary = Color(0xFF6366F1),
-        kindaDark = Color(0xFF4F46E5),
-        dark = Color(0xFF4338CA),
-        extraDark = Color(0xFF3730A3),
+        extraLight = Color(0xFFFFFDF5),
+        light = Color(0xFFFCEFC7),
+        kindaLight = Color(0xFFF7DE8A),
+        primary = Color(0xFFE5B842),
+        kindaDark = Color(0xFFC7982B),
+        dark = Color(0xFFA67B18),
+        extraDark = Color(0xFF7A570C),
     )
 
     /** Income / positive financial movement - calm, trustworthy green */
@@ -140,31 +140,31 @@ object SanchayColors {
     val IncomePositive = Color(0xFF22C55E)
     val ExpenseNegative = Color(0xFFEF4444)
     val BudgetWarning = Color(0xFFF59E0B)
-    val GoalProgress = Color(0xFF3B82F6)
+    val GoalProgress = Color(0xFFD4AF37)
     val IncomePrimary = Income.primary
     val ExpensePrimary = Expense.primary
 
     /** Surface colors */
     val LightBackground = Color(0xFFFFFFFF)
-    val DarkBackground = Color(0xFF0B0B0C)
+    val DarkBackground = Color(0xFF0A0A0C)
     val SurfaceLight = Color(0xFFFFFFFF)
-    val SurfaceDark = Color(0xFF0B0B0C)
+    val SurfaceDark = Color(0xFF121215)
     val SurfaceVariantLight = Color(0xFFFBFDFF)
-    val SurfaceVariantDark = Color(0xFF18181B)
+    val SurfaceVariantDark = Color(0xFF1C1C20)
 
     /** Outline and border colors */
     val OutlineLight = Color(0xFFE5E7EB)
-    val OutlineDark = Color(0xFF3F3F46)
+    val OutlineDark = Color(0xFF2E2A20)
 
     /** Text colors */
     val TextPrimaryLight = Color(0xFF111827)
-    val TextPrimaryDark = Color(0xFFF8FAFC)
+    val TextPrimaryDark = Color(0xFFFDFBF7)
     val TextSecondaryLight = Color(0xFF6B7280)
-    val TextSecondaryDark = Color(0xFF9CA3AF)
+    val TextSecondaryDark = Color(0xFFC7BAA0)
     val TextMutedLight = Color(0xFF9CA3AF)
-    val TextMutedDark = Color(0xFF737373)
+    val TextMutedDark = Color(0xFF8C8270)
 
     /** Border and separator colors */
     val DividerLight = Color(0xFFE5E7EB)
-    val DividerDark = Color(0xFF3F3F46)
+    val DividerDark = Color(0xFF2E2A20)
 }

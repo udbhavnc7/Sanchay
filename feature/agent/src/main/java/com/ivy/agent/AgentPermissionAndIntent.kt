@@ -48,6 +48,8 @@ enum class AgentIntentType : String {
     AFFORDABILITY_QUERY("affordability_query"),
     @SerialName("help_query")
     HELP_QUERY("help_query"),
+    @SerialName("intelligence_query")
+    INTELLIGENCE_QUERY("intelligence_query"),
     @SerialName("draft_transaction")
     DRAFT_TRANSACTION("draft_transaction");
 

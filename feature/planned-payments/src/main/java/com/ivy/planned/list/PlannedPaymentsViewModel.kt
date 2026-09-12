@@ -64,8 +64,19 @@ class PlannedPaymentsViewModel @Inject constructor(
             recurringPlannedPayment = getRecurringPlannedPayment(),
             oneTimePlannedPayment = getOneTimePlannedPayment(),
             isOneTimePaymentsExpanded = getOneTimePaymentsExpanded(),
-            isRecurringPaymentsExpanded = getRecurringPaymentsExpanded()
+            isRecurringPaymentsExpanded = getRecurringPaymentsExpanded(),
+            timelineSummary = getTimelineSummary()
         )
+    }
+
+    private fun getTimelineSummary(): String {
+        val totalUpcoming = oneTimeExpenses + recurringExpenses
+        val count = oneTimePlannedPayment.size + recurringPlannedPayment.size
+        return if (count > 0) {
+            "$count commitments totaling ${String.format("%.2f", totalUpcoming)} scheduled"
+        } else {
+            "No upcoming commitments scheduled"
+        }
     }
 
     @Composable

@@ -90,8 +90,26 @@ class BudgetViewModel @Inject constructor(
             totalRemainingBudgetText = getTotalRemainingBudgetText(),
             timeRange = getTimeRange(),
             reorderModalVisible = getReorderModalVisible(),
-            budgetModalData = getBudgetModalData()
+            budgetModalData = getBudgetModalData(),
+            pacingHealth = calculatePacingHealth()
         )
+    }
+
+    private fun calculatePacingHealth(): String {
+        val totalMax = appBudgetMax.doubleValue
+        val totalSpent = categoryBudgetsTotal.doubleValue
+        if (totalMax <= 0.0) return ""
+        val percent = (totalSpent / totalMax * 100).toInt()
+        val dayOfMonth = java.time.LocalDate.now().dayOfMonth
+        val daysInMonth = java.time.LocalDate.now().lengthOfMonth()
+        val expectedPercent = (dayOfMonth.toDouble() / daysInMonth.toDouble() * 100).toInt()
+        return if (percent > expectedPercent + 15) {
+            "Pacing faster than expected ($percent% spent, expected ~$expectedPercent%)"
+        } else if (percent < expectedPercent - 15) {
+            "Pacing well under plan ($percent% spent, expected ~$expectedPercent%)"
+        } else {
+            "Budget pacing on track ($percent% spent on day $dayOfMonth of $daysInMonth)"
+        }
     }
 
     @Composable

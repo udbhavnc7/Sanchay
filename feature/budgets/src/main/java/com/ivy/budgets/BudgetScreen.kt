@@ -70,6 +70,7 @@ private fun BoxWithConstraintsScope.UI(
             baseCurrency = state.baseCurrency,
             appBudgetMax = state.appBudgetMax,
             categoryBudgetsTotal = state.categoryBudgetsTotal,
+            pacingHealth = state.pacingHealth,
             setReorderModalVisible = {
                 onEvent(BudgetScreenEvent.OnReorderModalVisible(it))
             }
@@ -170,6 +171,7 @@ private fun Toolbar(
     baseCurrency: String,
     appBudgetMax: Double,
     categoryBudgetsTotal: Double,
+    pacingHealth: String,
     setReorderModalVisible: (Boolean) -> Unit
 ) {
     Row(
@@ -188,6 +190,17 @@ private fun Toolbar(
                     fontWeight = FontWeight.ExtraBold
                 )
             )
+
+            if (pacingHealth.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = pacingHealth,
+                    style = UI.typo.b2.style(
+                        color = UI.colors.pureInverse.copy(alpha = 0.7f),
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
 
             if (timeRange != null) {
                 Spacer(Modifier.height(4.dp))

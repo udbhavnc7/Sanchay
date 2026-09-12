@@ -85,8 +85,8 @@ fun BoxWithConstraintsScope.OnboardingSplashLogin(
         label = "logoWidth"
     ) {
         when (it) {
-            OnboardingState.SPLASH -> 113.dp
-            else -> 76.dp
+            OnboardingState.SPLASH -> 100.dp
+            else -> 64.dp
         }
     }
 
@@ -97,7 +97,7 @@ fun BoxWithConstraintsScope.OnboardingSplashLogin(
         label = "logoHeight"
     ) {
         when (it) {
-            OnboardingState.SPLASH -> 96.dp
+            OnboardingState.SPLASH -> 100.dp
             else -> 64.dp
         }
     }
@@ -174,9 +174,9 @@ fun BoxWithConstraintsScope.OnboardingSplashLogin(
                 .clickableNoIndication(rememberInteractionSource()) {
                     internalSwitch = !internalSwitch
                 },
-            painter = painterResource(id = R.drawable.ivy_wallet_logo),
-            contentScale = ContentScale.FillBounds,
-            contentDescription = "Ivy Wallet logo"
+            painter = painterResource(id = R.drawable.sanchay_logo),
+            contentScale = ContentScale.Fit,
+            contentDescription = "Sanchay logo"
         )
 
         Spacer(Modifier.height(marginTextTop))
@@ -186,7 +186,7 @@ fun BoxWithConstraintsScope.OnboardingSplashLogin(
                 ivyContext = ivyContext,
                 percentTransition = percentTransition
             ),
-            text = "Ivy Wallet",
+            text = "Sanchay",
             style = UI.typo.h2.style(
                 color = UI.colors.pureInverse,
                 fontWeight = FontWeight.ExtraBold
@@ -200,7 +200,7 @@ fun BoxWithConstraintsScope.OnboardingSplashLogin(
                 ivyContext = ivyContext,
                 percentTransition = percentTransition
             ),
-            text = stringResource(R.string.your_personal_money_manager),
+            text = "Personal Financial Operating System",
             style = UI.typo.b2.style(
                 color = UI.colors.pureInverse,
                 fontWeight = FontWeight.SemiBold

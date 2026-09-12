@@ -59,15 +59,16 @@ object IvyColors {
         dark = Color(0xFF24598F),
         extraDark = Color(0xFF153352),
     )
-    val Purple = ColorShades(
-        extraLight = Color(0xFFB8ABF5),
-        light = Color(0xFF9987F5),
-        kindaLight = Color(0xFF7B62F5),
-        primary = Color(0xFF5C3DF5),
-        kindaDark = Color(0xFF4D33CC),
-        dark = Color(0xFF36248F),
-        extraDark = Color(0xFF1F1452),
+    val Gold = ColorShades(
+        extraLight = Color(0xFFFAF3AA),
+        light = Color(0xFFF5E5AD),
+        kindaLight = Color(0xFFE5C875),
+        primary = Color(0xFFD4AF37),
+        kindaDark = Color(0xFFB89228),
+        dark = Color(0xFF94721A),
+        extraDark = Color(0xFF6E520F),
     )
+    val Purple = Gold
     val Pink = ColorShades(
         extraLight = Color(0xFFF5ABD0),
         light = Color(0xFFF587BE),

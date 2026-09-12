@@ -152,6 +152,11 @@ class AgentViewModel(
                 queryText = text,
                 permissionLevel = AgentPermissionLevel.READ
             )
+            lower.contains("attention") || lower.contains("briefing") || lower.contains("intelligence") || lower.contains("what's happening") -> AgentIntent(
+                intent = AgentIntentType.INTELLIGENCE_QUERY,
+                queryText = text,
+                permissionLevel = AgentPermissionLevel.READ
+            )
             lower.contains("help") || lower.contains("what can") -> AgentIntent(
                 intent = AgentIntentType.HELP_QUERY,
                 queryText = text,

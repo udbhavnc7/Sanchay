@@ -9,6 +9,8 @@ import com.ivy.base.legacy.TransactionHistoryItem
 import com.ivy.data.model.primitive.NotBlankTrimmedString
 import com.ivy.ui.ComposeViewModel
 import com.ivy.data.model.Category
+import com.ivy.data.model.getFromAccount
+import com.ivy.data.model.getFromValue
 import com.ivy.data.repository.CategoryRepository
 import com.ivy.domain.features.Features
 import com.ivy.legacy.datamodel.Account
@@ -75,28 +77,72 @@ class SearchViewModel @Inject constructor(
         val normalizedQuery = query.lowercase().trim()
 
         viewModelScope.launch {
+            val loadedAccounts = accountsAct(Unit)
+            val loadedCategories = categoryRepository.findAll()
+            val baseCurr = baseCurrencyAct(Unit)
+
             val queryResult = ioThread {
+                val accountMap = loadedAccounts.associateBy { it.id }
+                val categoryMap = loadedCategories.associateBy { it.id.value }
+
+                // Parse amount filter if present
+                val greaterThan = when {
+                    normalizedQuery.startsWith(">") -> normalizedQuery.removePrefix(">").trim().toDoubleOrNull()
+                    normalizedQuery.startsWith("above ") -> normalizedQuery.removePrefix("above ").trim().toDoubleOrNull()
+                    else -> null
+                }
+                val lessThan = when {
+                    normalizedQuery.startsWith("<") -> normalizedQuery.removePrefix("<").trim().toDoubleOrNull()
+                    normalizedQuery.startsWith("below ") -> normalizedQuery.removePrefix("below ").trim().toDoubleOrNull()
+                    else -> null
+                }
+                val exactAmount = normalizedQuery.toDoubleOrNull()
+
                 val filteredTransactions = allTrnsAct(Unit)
                     .filter { transaction ->
-                        transaction.title.matchesQuery(normalizedQuery) ||
-                                transaction.description.matchesQuery(normalizedQuery)
+                        if (normalizedQuery.isBlank()) return@filter true
+
+                        val amount = transaction.getFromValue().amount.value
+
+                        // Check amount comparison
+                        if (greaterThan != null && amount > greaterThan) return@filter true
+                        if (lessThan != null && amount < lessThan) return@filter true
+                        if (exactAmount != null && Math.abs(amount - exactAmount) < 0.01) return@filter true
+
+                        // Check title and description
+                        if (transaction.title?.value?.lowercase()?.contains(normalizedQuery) == true) return@filter true
+                        if (transaction.description?.value?.lowercase()?.contains(normalizedQuery) == true) return@filter true
+
+                        // Check category name
+                        val categoryName = transaction.category?.let { categoryMap[it.value]?.name?.value?.lowercase() }
+                        if (categoryName?.contains(normalizedQuery) == true) return@filter true
+
+                        // Check account name
+                        val accountName = accountMap[transaction.getFromAccount().value]?.name?.lowercase()
+                        if (accountName?.contains(normalizedQuery) == true) return@filter true
+
+                        // Check transaction type
+                        val typeName = when (transaction) {
+                            is com.ivy.data.model.Expense -> "expense"
+                            is com.ivy.data.model.Income -> "income"
+                            is com.ivy.data.model.Transfer -> "transfer"
+                        }
+                        if (typeName.contains(normalizedQuery)) return@filter true
+
+                        false
                     }
                 trnsWithDateDivsAct(
                     TrnsWithDateDivsAct.Input(
-                        baseCurrency = baseCurrencyAct(Unit),
+                        baseCurrency = baseCurr,
                         transactions = filteredTransactions
                     )
                 ).toImmutableList()
             }
 
             transactions.value = queryResult
-            baseCurrency.value = baseCurrencyAct(Unit)
-            accounts.value = accountsAct(Unit)
-            categories.value = categoryRepository.findAll().toImmutableList()
+            baseCurrency.value = baseCurr
+            accounts.value = loadedAccounts
+            categories.value = loadedCategories.toImmutableList()
         }
-    }
-
-    private fun NotBlankTrimmedString?.matchesQuery(query: String): Boolean {
-        return this?.value?.lowercase()?.contains(query) == true
     }
 }
