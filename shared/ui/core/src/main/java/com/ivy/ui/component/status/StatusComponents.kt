@@ -1,58 +1,44 @@
 package com.ivy.ui.component.status
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.icons.filled.Check
-import androidx.compose.material3.icons.filled.Error
-import androidx.compose.material3.icons.filled.Warning
-import androidx.compose.material3.icons.filled.Info
-import androidx.compose.material3.icons.filled.Close
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.GraphicsLayer
-import androidx.compose.ui.Unit
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivy.design.system.colors.SanchayColors
 import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
 
-/**
- * Status components for Sanchay financial app.
- * 
- * Each component provides visual status indication without relying
- * exclusively on color. Uses appropriate text, icons, and semantics.
- * 
- * Principle: Never rely exclusively on color to communicate meaning.
- */
 @Composable
 fun StatusSuccess(
     message: String,
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Check,
+            imageVector = Icons.Filled.Check,
             contentDescription = "Success",
             tint = SanchayColors.IncomePrimary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
@@ -63,22 +49,20 @@ fun StatusWarning(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Warning,
+            imageVector = Icons.Filled.Warning,
             contentDescription = "Warning",
-            tint = SanchayColors.Warning primary,
+            tint = SanchayColors.Warning.primary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
@@ -89,22 +73,20 @@ fun StatusError(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Error,
+            imageVector = Icons.Filled.Close,
             contentDescription = "Error",
-            tint = SanchayColors.Error primary,
+            tint = SanchayColors.Error.primary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
@@ -115,22 +97,20 @@ fun StatusPending(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Info,
+            imageVector = Icons.Filled.Info,
             contentDescription = "Pending",
-            tint = SanchayColors.Warning primary,
+            tint = SanchayColors.Warning.primary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
@@ -141,22 +121,20 @@ fun StatusOverdue(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Close,
+            imageVector = Icons.Filled.Close,
             contentDescription = "Overdue",
-            tint = SanchayColors.Error primary,
+            tint = SanchayColors.Error.primary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
@@ -167,65 +145,24 @@ fun StatusNeutral(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
-        arrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = SanchaySpacing.ContentInset, vertical = SanchaySpacing.ListItemSpacing),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Check,
+            imageVector = Icons.Filled.Check,
             contentDescription = "Neutral",
-            tint = SanchayColors.Neutral primary,
+            tint = SanchayColors.Neutral.primary,
             modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
         )
-
-        text(
+        Text(
             text = message,
             style = SanchayTypography.Body,
-            color = SanchayColors.TextPrimaryLight
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
         )
     }
 }
 
-/** Transaction status chip */
-@Composable
-fun TransactionStatusChip(
-    status: TransactionStatus,
-    modifier: Modifier = Modifier,
-) {
-    var isSelected by remember { mutableStateOf(false) }
-
-    val (text, color, icon) = when (status) {
-        is TransactionStatus.Income -> ("Income", SanchayColors.IncomePrimary, Check)
-        is TransactionStatus.Expense -> ("Expense", SanchayColors.ExpensePrimary, Close)
-        is TransactionStatus.Pending -> ("Pending", SanchayColors.Warning primary, Info)
-        is TransactionStatus.Overdue -> ("Overdue", SanchayColors.Error primary, Close)
-        is TransactionStatus.Transfer -> ("Transfer", SanchayColors.Neutral primary, Check)
-        is TransactionStatus.Completed -> ("Completed", SanchayColors.IncomePrimary, Check)
-        is TransactionStatus.Cancelled -> ("Cancelled", SanchayColors.Muted primary, Close)
-        else -> ("Unknown", SanchayColors.TextMutedLight, Info)
-    }
-
-    Chip(
-        modifier = modifier
-            .padding(horizontal = SanchaySpacing.ListItemSpacing, vertical = SanchaySpacing.ListItemSpacing),
-        backgroundColor = color.copy(alpha = if (isSelected) 0.15f else 0.08f),
-        label = text,
-        onClick = { isSelected = !isSelected },
-        avatar = if (!isSelected) {
-            Icon(
-                imageVector = icon,
-                contentDescription = status.toString(),
-                tint = color,
-                modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
-            )
-        } else {
-            androidx.compose.ui.unit.Null
-        }
-    )
-}
-
-/** Enum for transaction status */
 enum class TransactionStatus {
     Income,
     Expense,
@@ -236,28 +173,60 @@ enum class TransactionStatus {
     Cancelled
 }
 
-/** Account status indicator */
+@Composable
+fun TransactionStatusChip(
+    status: TransactionStatus,
+    modifier: Modifier = Modifier,
+) {
+    val label = when (status) {
+        TransactionStatus.Income -> "Income"
+        TransactionStatus.Expense -> "Expense"
+        TransactionStatus.Pending -> "Pending"
+        TransactionStatus.Overdue -> "Overdue"
+        TransactionStatus.Transfer -> "Transfer"
+        TransactionStatus.Completed -> "Completed"
+        TransactionStatus.Cancelled -> "Cancelled"
+    }
+    val icon = when (status) {
+        TransactionStatus.Income -> Icons.Filled.Check
+        TransactionStatus.Expense -> Icons.Filled.Close
+        TransactionStatus.Pending -> Icons.Filled.Info
+        TransactionStatus.Overdue -> Icons.Filled.Close
+        TransactionStatus.Transfer -> Icons.Filled.Check
+        TransactionStatus.Completed -> Icons.Filled.Check
+        TransactionStatus.Cancelled -> Icons.Filled.Close
+    }
+    AssistChip(
+        onClick = {},
+        modifier = modifier,
+        label = { Text(text = label, style = SanchayTypography.Caption) },
+        leadingIcon = {
+            Icon(imageVector = icon, contentDescription = label)
+        }
+    )
+}
+
 @Composable
 fun AccountStatusIndicator(
     isActive: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val (color, description) = when (isActive) {
-        true -> (SanchayColors.IncomePrimary, "Active account")
-        false -> (SanchayColors.Muted primary, "Inactive account")
+    val description = if (isActive) "Active account" else "Inactive account"
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isActive) Icons.Filled.Check else Icons.Filled.Close,
+            contentDescription = description,
+            tint = if (isActive) SanchayColors.IncomePrimary else SanchayColors.Muted.primary,
+            modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
+        )
+        Text(
+            text = description,
+            style = SanchayTypography.Caption,
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
-
-    Icon(
-        imageVector = if (isActive) Check else Close,
-        contentDescription = description,
-        tint = color,
-        modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
-    )
-
-    text(
-        text = description,
-        style = SanchayTypography.Caption,
-        color = color,
-        modifier = Modifier.padding(start = SanchaySpacing.XS)
-    )
 }

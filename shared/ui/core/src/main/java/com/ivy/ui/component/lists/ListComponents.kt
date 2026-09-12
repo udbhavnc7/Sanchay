@@ -1,157 +1,86 @@
 package com.ivy.ui.component.lists
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.icons.filled.AccountBalance
-import androidx.compose.material3.icons.filled.ArrowDropDown
-import androidx.compose.material3.icons.filled.Money
-import androidx.compose.material3.icons.filled.TrendingUp
-import androidx.compose.material3.icons.filled.TrendingDown
-import androidx.compose.material3.outlinetextfield.OutlinedTextField
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Chip
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.GraphicsLevel
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Unit
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.ivy.design.system.colors.SanchayColors
 import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
-import com.ivy.data.model.Transaction
 
-/** Transaction row for lists */
 @Composable
 fun TransactionRow(
-    transaction: Transaction,
+    title: String,
+    subtitle: String,
+    amount: String,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    var selected by remember { mutableStateOf(false) }
-
-    var amountStyle = FinancialAmountStyle.Neutral
-var amountColor = SanchayColors.TextMutedLight
-var amountIcon = Money
-
-if (transaction is Income) {
-    amountStyle = FinancialAmountStyle.Income
-    amountColor = SanchayColors.IncomePrimary
-    amountIcon = TrendingUp
-} else if (transaction is Expense) {
-    amountStyle = FinancialAmountStyle.Expense
-    amountColor = SanchayColors.ExpensePrimary
-    amountIcon = TrendingDown
-} else if (transaction is Transfer) {
-    amountStyle = FinancialAmountStyle.Neutral
-    amountColor = SanchayColors.Neutral.primary
-    amountIcon = AccountBalance
-}
-
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = SanchaySpacing.ListItemSpacing),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = SanchaySpacing.ListItemSpacing)
     ) {
         Row(
-            modifier = Modifier.padding(start = SanchaySpacing.ContentInset),
-            verticalAlignment = Alignment.CenterVertically,
-            arrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side - description and amount
+            Icon(
+                imageVector = Icons.Filled.Home,
+                contentDescription = "Transaction",
+                tint = SanchayColors.TextSecondaryLight,
+                modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
+            )
             Column(
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = SanchaySpacing.ListItemSpacing)
             ) {
-                text(
-                    text = transaction.description,
+                Text(
+                    text = title,
                     style = SanchayTypography.Body,
                     color = SanchayColors.TextPrimaryLight,
-                    overflow = TextOverflow.Ellipsis,
                     maxLines = 1
                 )
-
-                text(
-                    text = transaction.date,
+                Text(
+                    text = subtitle,
                     style = SanchayTypography.Caption,
                     color = SanchayColors.TextSecondaryLight,
-                    overflow = TextOverflow.Ellipsis,
                     maxLines = 1
                 )
             }
-
-            // Amount on right
-            FinancialAmount(
-                amount = transaction.amount,
-                style = amountStyle,
-                modifier = Modifier.padding(end = SanchaySpacing.ContentInset)
+            Text(
+                text = amount,
+                style = SanchayTypography.Numerical,
+                color = SanchayColors.TextPrimaryLight
             )
-
-            // Right side - status indicators
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                arrangement = Arrangement.End
-            ) {
-                Icon(
-                    imageVector = amountIcon,
-                    contentDescription = "Amount type",
-                    tint = amountColor,
-                    modifier = Modifier.size(SanchaySpacing.AvatarSizeTiny)
-                )
-
-                if (selected) {
-                    Icon(
-                        imageVector = Check,
-                        contentDescription = "Selected",
-                        tint = SanchayColors.Primary.primary,
-                        modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
-                    )
-                }
-            }
         }
-
-        // Divider or action buttons
-        if (onEdit || onDelete) {
-            androidx.compose.material3.Divider(
-                color = SanchayColors.DividerLight,
-                thickness = SanchaySpacing.DividerHeight
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(end = SanchaySpacing.ContentInset)
-            ) {
-                TextButton(
-                    onClick = onEdit,
-                    text = "Edit",
-                    modifier = Modifier.padding(end = SanchaySpacing.ListItemSpacing)
-                )
-
-                TextButton(
-                    onClick = onDelete,
-                    text = "Delete",
-                    colors = androidx.compose.material3.ButtonStyle.TextButtonColors(
-                        contentColor = SanchayColors.Error.primary
-                    )
-                )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onEdit) {
+                Text(text = "Edit")
+            }
+            TextButton(onClick = onDelete) {
+                Text(text = "Delete")
             }
         }
     }
 }
 
-/** Account row for list displays */
 @Composable
 fun AccountRow(
     accountName: String,
@@ -165,55 +94,38 @@ fun AccountRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = SanchaySpacing.ListItemSpacing),
-        verticalAlignment = Alignment.CenterVertically,
-        arrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left side - account info
-        Column(
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
                 text = accountName,
                 style = SanchayTypography.Body,
                 color = SanchayColors.TextPrimaryLight,
-                overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
-
-            text(
+            Text(
                 text = accountType,
                 style = SanchayTypography.Caption,
                 color = SanchayColors.TextSecondaryLight,
-                overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
         }
-
-        // Balance on right
-        Column(
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
                 text = "$balance $currency",
                 style = SanchayTypography.NumericalLarge,
                 color = SanchayColors.TextPrimaryLight
             )
-
-            AccountStatusIndicator(
-                isActive = accountName != "Inactive",
-                modifier = Modifier.padding(top = SanchaySpacing.XS)
-            )
+            TextButton(onClick = onToggle) {
+                Text(text = "Toggle")
+            }
         }
     }
 }
 
-/** Category row */
 @Composable
 fun CategoryRow(
     categoryName: String,
-    icon: androidx.compose.ui.graphics.Bitmap?,
     transactionCount: Int,
     modifier: Modifier = Modifier,
 ) {
@@ -221,44 +133,24 @@ fun CategoryRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = SanchaySpacing.ListItemSpacing),
-        verticalAlignment = Alignment.CenterVertically,
-        arrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Category with icon
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (icon != null) {
-                androidx.compose.ui.Image(
-                    painter = androidx.compose.ui.graphics.vector.VectorPainter(icon),
-                    contentDescription = categoryName,
-                    contentScale = androidx.compose.ui.unit.ContentScale.Fill,
-                    modifier = Modifier
-                        .size(SanchaySpacing.AvatarSizeSmall)
-                        .padding(end = SanchaySpacing.ListItemSpacing)
-                )
-            } else {
-                androidx.compose.material3.Icon(
-                    imageVector = AccountBalance,
-                    contentDescription = categoryName,
-                    tint = SanchayColors.TextMutedLight,
-                    modifier = Modifier
-                        .size(SanchaySpacing.AvatarSizeSmall)
-                        .padding(end = SanchaySpacing.ListItemSpacing)
-                )
-            }
-
-            text(
-                text = categoryName,
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextPrimaryLight,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1
-            )
-        }
-
-        // Transaction count
-        text(
+        Icon(
+            imageVector = Icons.Filled.Home,
+            contentDescription = categoryName,
+            tint = SanchayColors.TextSecondaryLight,
+            modifier = Modifier.size(SanchaySpacing.AvatarSizeSmall)
+        )
+        Text(
+            text = categoryName,
+            style = SanchayTypography.Body,
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = SanchaySpacing.ListItemSpacing),
+            maxLines = 1
+        )
+        Text(
             text = "$transactionCount transactions",
             style = SanchayTypography.Caption,
             color = SanchayColors.TextSecondaryLight
@@ -266,7 +158,6 @@ fun CategoryRow(
     }
 }
 
-/** Upcoming payment row */
 @Composable
 fun UpcomingPaymentRow(
     payee: String,
@@ -278,41 +169,30 @@ fun UpcomingPaymentRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = SanchaySpacing.ListItemSpacing),
-        verticalAlignment = Alignment.CenterVertically,
-        arrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left - payee and date
-        Column(
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
                 text = payee,
                 style = SanchayTypography.Body,
                 color = SanchayColors.TextPrimaryLight,
-                overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
-
-            text(
+            Text(
                 text = dueDate,
                 style = SanchayTypography.Caption,
                 color = SanchayColors.TextSecondaryLight,
-                overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
         }
-
-        // Amount on right
-        FinancialAmount(
-            amount = amount,
-            style = FinancialAmountStyle.Expense,
-            modifier = Modifier.padding(end = SanchaySpacing.ContentInset)
+        Text(
+            text = amount,
+            style = SanchayTypography.Numerical,
+            color = SanchayColors.TextPrimaryLight
         )
     }
 }
 
-/** Goal row */
 @Composable
 fun GoalRow(
     goalName: String,
@@ -325,41 +205,33 @@ fun GoalRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = SanchaySpacing.ListItemSpacing),
-        verticalAlignment = Alignment.CenterVertically,
-        arrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left - goal info
-        Column(
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
                 text = goalName,
                 style = SanchayTypography.Body,
                 color = SanchayColors.TextPrimaryLight,
-                overflow = TextOverflow.Ellipsis,
                 maxLines = 1
             )
-
-            FinancialProgress(
-                progress = progress,
-                label = "Progress",
-                target = targetAmount,
-                showPercentage = true,
-                modifier = Modifier.padding(top = SanchaySpacing.XS)
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = SanchaySpacing.ListItemSpacing),
+            )
+            Text(
+                text = targetAmount,
+                style = SanchayTypography.Caption,
+                color = SanchayColors.TextSecondaryLight,
+                modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
             )
         }
-
-        // Right - current amount
-        Column(
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = currentAmount,
-                style = SanchayTypography.NumericalLarge,
-                color = SanchayColors.TextPrimaryLight
-            )
-        }
+        Text(
+            text = currentAmount,
+            style = SanchayTypography.NumericalLarge,
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(start = SanchaySpacing.ListItemSpacing)
+        )
     }
 }

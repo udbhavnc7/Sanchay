@@ -1,24 +1,23 @@
 package com.ivy.ui.component.states
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FillViewport
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivy.design.system.colors.SanchayColors
+import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
 
-/**
- * Sanchay Loading State
- * 
- * Feel intentional and lightweight - doesn't steal focus or create anxiety.
- * Supports dynamic font scaling and accessibility.
- * 
- * Principle: Motion has meaning - loading indicates the system is working,
- * not that something is wrong.
- */
 @Composable
 fun SanchayLoadingState(
     modifier: Modifier = Modifier,
@@ -32,73 +31,65 @@ fun SanchayLoadingState(
                 vertical = SanchaySpacing.SectionSpacing,
                 horizontal = SanchaySpacing.ContentInset
             ),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (showBackground) {
-            // Subtle background to anchor the loading state
-            androidx.compose.foundation.layout.background(
-                color = SanchayColors.SurfaceLight
-            )(Modifier.size(width = 64.dp, height = 64.dp))
-        }
-
-        // Spinner/indicators
-        androidx.compose.material3.CircularProgressIndicator(
+        CircularProgressIndicator(
             modifier = Modifier.size(32.dp),
-            strokeWidth = 3.dp,
-            color = SanchayColors.Primary primary
+            color = SanchayColors.Primary.primary
         )
-
-        // Optional text below the spinner
         if (text != null) {
-            text(
+            Text(
                 text = text,
-                style = SanchayTypography.Body.copy(
-                    textAlign = androidx.compose.ui.text.style.TextAlignment.Center
-                ),
-                margin = androidx.compose.ui.platform.SpacerScope padding SanchaySpacing.ListItemSpacing,
-                color = SanchayColors.TextSecondaryLight
+                style = SanchayTypography.Body,
+                color = SanchayColors.TextSecondaryLight,
+                modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
             )
         }
     }
 }
 
-/** Loading state for list items */
 @Composable
 fun SanchayLoadingListItem(
     modifier: Modifier = Modifier,
     height: Dp = 72.dp
 ) {
-    modifier
-        .height(height)
-        .padding(vertical = SanchaySpacing.ListItemSpacing / 2)
-    {
-        SanchayLoadingState(
-            showBackground = false,
-            text = null
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(32.dp),
+            color = SanchayColors.Primary.primary
         )
     }
 }
 
-/** Loading state inside a card */
 @Composable
 fun SanchayLoadingCard(
     modifier: Modifier = Modifier,
     height: Dp = 120.dp
 ) {
-    SanchayCard(
+    Card(
         modifier = modifier
+            .fillMaxWidth()
             .height(height)
-            .padding(vertical = SanchaySpacing.SectionSpacing / 2)
     ) {
-        SanchayLoadingState(
-            showBackground = false,
-            text = null
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(32.dp),
+                color = SanchayColors.Primary.primary
+            )
+        }
     }
 }
 
-/** Loading state for empty state */
 @Composable
 fun SanchayLoadingEmptyState(
     modifier: Modifier = Modifier,
@@ -111,28 +102,18 @@ fun SanchayLoadingEmptyState(
                 vertical = SanchaySpacing.SectionSpacing,
                 horizontal = SanchaySpacing.ContentInset
             ),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            androidx.compose.material3.CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
-                strokeWidth = 3.dp,
-                color = SanchayColors.Muted light
-            )
-        }
-
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            color = SanchayColors.Muted.primary
+        )
         if (title != null) {
-            text(
+            Text(
                 text = title,
                 style = SanchayTypography.Body,
                 color = SanchayColors.TextSecondaryLight,
-                textAlign = androidx.compose.ui.text.style.TextAlignment.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding SanchaySpacing.ListItemSpacing
+                modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
             )
         }
     }

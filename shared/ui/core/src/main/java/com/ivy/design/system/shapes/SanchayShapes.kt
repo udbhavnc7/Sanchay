@@ -1,6 +1,6 @@
 package com.ivy.design.system.shapes
 
-import androidx.compose.ui.graphics.RoundedCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import com.ivy.design.system.spacing.SanchayRadius
 
 /**

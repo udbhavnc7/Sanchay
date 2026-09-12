@@ -1,331 +1,143 @@
 package com.ivy.ui.component.states
 
-import androidx.compose.foundation.Arrangement
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Arrangement.Center
-import androidx.compose.material3.Icon
-import androidx.compose.material3.icons.filled.ContentAdd
-import androidx.compose.material3.icons.filled.Budget
-import androidx.compose.material3.icons.filled.Category
-import androidx.compose.material3.icons.filled.Loan
-import androidx.compose.material3.icons.filled.AccountBalance
-import androidx.compose.material3.icons.filled.Target
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Unit
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ivy.design.system.colors.SanchayColors
-import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
 
-/**
- * Sanchay Empty State components
- * 
- * Displayed when no data exists for a given section.
- * Principle: Clarity over decoration - users should immediately
- * understand the state and take action if needed.
- */
 @Composable
-fun SanchayEmptyTransactionsState(
-    onAddTransaction: () -> Unit,
-    modifier: Modifier = Modifier
+private fun SanchayEmptyBase(
+    title: String,
+    message: String?,
+    actionLabel: String?,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = ContentAdd,
-                contentDescription = "Add transaction",
-                tint = SanchayColors.TextMutedLight
+        Text(
+            text = title,
+            style = SanchayTypography.Heading2,
+            textAlign = TextAlign.Center,
+        )
+        if (message != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = message,
+                style = SanchayTypography.Body,
+                textAlign = TextAlign.Center,
             )
         }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No transactions yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Your financial journey starts with your first transaction.\nRecord income, expenses, or transfers to get started.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddTransaction,
-                text = "Add First Transaction"
-            )
+        if (onAction != null && actionLabel != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(onClick = onAction) {
+                Text(text = actionLabel)
+            }
         }
     }
+}
+
+@Composable
+fun SanchayEmptyTransactionsState(
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
+) {
+    SanchayEmptyBase(
+        title = "No transactions yet",
+        message = message ?: "Your financial journey starts with your first transaction.",
+        actionLabel = "Add First Transaction",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }
 
 @Composable
 fun SanchayEmptyBudgetsState(
-    onAddBudget: () -> Unit,
-    modifier: Modifier = Modifier
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = Budget,
-                contentDescription = "Add budget",
-                tint = SanchayColors.TextMutedLight
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No budgets yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Set a budget to track your spending limits.\nDefine amounts and categories to stay on track financially.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddBudget,
-                text = "Add First Budget"
-            )
-        }
-    }
+    SanchayEmptyBase(
+        title = "No budgets yet",
+        message = message ?: "Set a budget to track your spending limits.",
+        actionLabel = "Add First Budget",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }
 
 @Composable
 fun SanchayEmptyCategoriesState(
-    onAddCategory: () -> Unit,
-    modifier: Modifier = Modifier
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = Category,
-                contentDescription = "Add category",
-                tint = SanchayColors.TextMutedLight
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No categories yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Organize your transactions with categories.\nCreate categories for income, expenses, and transfers.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddCategory,
-                text = "Add First Category"
-            )
-        }
-    }
+    SanchayEmptyBase(
+        title = "No categories yet",
+        message = message ?: "Organize your transactions with categories.",
+        actionLabel = "Add First Category",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }
 
 @Composable
 fun SanchayEmptyLoansState(
-    onAddLoan: () -> Unit,
-    modifier: Modifier = Modifier
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = Loan,
-                contentDescription = "Add loan",
-                tint = SanchayColors.TextMutedLight
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No loans yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Manage debt and lending with loan tracking.\nAdd loans to monitor balances and interest over time.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddLoan,
-                text = "Add First Loan"
-            )
-        }
-    }
+    SanchayEmptyBase(
+        title = "No loans yet",
+        message = message ?: "Manage debt and lending with loan tracking.",
+        actionLabel = "Add First Loan",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }
 
 @Composable
 fun SanchayEmptyAccountsState(
-    onAddAccount: () -> Unit,
-    modifier: Modifier = Modifier
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = AccountBalance,
-                contentDescription = "Add account",
-                tint = SanchayColors.TextMutedLight
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No accounts yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Add accounts to track your money across different currencies.\nSet up accounts for cash, bank, crypto, and more.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddAccount,
-                text = "Add First Account"
-            )
-        }
-    }
+    SanchayEmptyBase(
+        title = "No accounts yet",
+        message = message ?: "Add accounts to track your money.",
+        actionLabel = "Add First Account",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }
 
 @Composable
 fun SanchayEmptyGoalState(
-    onAddGoal: () -> Unit,
-    modifier: Modifier = Modifier
+    message: String? = null,
+    modifier: Modifier = Modifier,
+    onAction: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
-        ) {
-            Icon(
-                imageVector = Target,
-                contentDescription = "Add goal",
-                tint = SanchayColors.TextMutedLight
-            )
-        }
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalArrangement = Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "No goals yet",
-                style = SanchayTypography.Heading2,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center
-            )
-
-            text(
-                text = "Set financial goals to work toward.\nCreate savings goals, investment targets, or debt payoff objectives.",
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextSecondaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
-            )
-
-            androidx.compose.material3.TextButton(
-                onClick = onAddGoal,
-                text = "Add First Goal"
-            )
-        }
-    }
+    SanchayEmptyBase(
+        title = "No goals yet",
+        message = message ?: "Set financial goals to work toward.",
+        actionLabel = "Add First Goal",
+        modifier = modifier,
+        onAction = onAction,
+    )
 }

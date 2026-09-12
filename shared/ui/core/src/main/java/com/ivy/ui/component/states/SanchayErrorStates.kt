@@ -1,36 +1,21 @@
 package com.ivy.ui.component.states
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.icons.filled.Error
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Unit
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.fillMaxWidth
-import androidx.compose.ui.layout.padding
-import androidx.compose.ui.platform.context
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semanticsProperties
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.setOverflow
-import androidx.compose.ui.text.size
+import androidx.compose.ui.Modifier
 import com.ivy.design.system.colors.SanchayColors
 import com.ivy.design.system.spacing.SanchaySpacing
 import com.ivy.design.system.typography.SanchayTypography
 
-/**
- * Sanchay Error State
- * 
- * Explain what happened and what the user can do next.
- * Clear but not alarming - follows the principle of calm over anxiety.
- * Never relies exclusively on color to communicate meaning.
- */
 @Composable
 fun SanchayErrorState(
     message: String,
@@ -46,46 +31,29 @@ fun SanchayErrorState(
                 vertical = SanchaySpacing.SectionSpacing,
                 horizontal = SanchaySpacing.ContentInset
             ),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Error icon
         Icon(
-            imageVector = Error,
+            imageVector = Icons.Filled.Warning,
             contentDescription = "Error state",
-            tint = SanchayColors.Error primary,
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
+            tint = SanchayColors.Error.primary,
+            modifier = Modifier.size(SanchaySpacing.AvatarSizeLarge)
         )
-
-        // Content
-        Column(
-            modifier = Modifier
-                .padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = message,
-                style = SanchayTypography.Body,
-                color = SanchayColors.TextPrimaryLight,
-                textAlign = TextAlign.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp,
-                style = setOverflow(TextStyle)(setTextOverflow = androidx.compose.ui.unit.TextOverflow.Clip)
-            )
-        }
-
-        // Action button
-        SanchayPrimaryButton(
+        Text(
+            text = message,
+            style = SanchayTypography.Body,
+            color = SanchayColors.TextPrimaryLight,
+            modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
+        )
+        Button(
             onClick = onAction,
-            text = actionLabel,
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing)
-        )
+            modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
+        ) {
+            Text(text = actionLabel)
+        }
     }
 }
 
-/** Error state for failed transactions */
 @Composable
 fun SanchayErrorTransactionState(
     errorMessage: String,
@@ -100,31 +68,21 @@ fun SanchayErrorTransactionState(
     )
 }
 
-/** Error state for failed imports */
 @Composable
 fun SanchayErrorImportState(
     errorMessage: String,
     onRetry: () -> Unit,
-    onDismiss: () -> Unit? = null,
+    onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var showDismiss by remember { mutableStateOf(false) }
-
     SanchayErrorState(
         message = errorMessage,
         actionLabel = if (onDismiss != null) "Retry" else "Try Again",
-        onAction = {
-            if (onDismiss != null) {
-                showDismiss = true
-            }
-            onRetry()
-        },
-        modifier = modifier,
-        showDismiss = showDismiss
+        onAction = onRetry,
+        modifier = modifier
     )
 }
 
-/** Error state for failed network requests */
 @Composable
 fun SanchayErrorNetworkState(
     onRetry: () -> Unit,
@@ -138,51 +96,37 @@ fun SanchayErrorNetworkState(
                 vertical = SanchaySpacing.SectionSpacing,
                 horizontal = SanchaySpacing.ContentInset
             ),
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Error,
+            imageVector = Icons.Filled.Warning,
             contentDescription = "Network error",
-            tint = SanchayColors.Muted light,
-            modifier = Modifier
-                .size(SanchaySpacing.AvatarSizeLarge)
-                .align(Alignment.Center)
+            tint = SanchayColors.Muted.primary,
+            modifier = Modifier.size(SanchaySpacing.AvatarSizeLarge)
         )
-
-        Column(
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            text(
-                text = "Connection unavailable",
-                style = SanchayTypography.Body,
+        Text(
+            text = "Connection unavailable",
+            style = SanchayTypography.Body,
+            color = SanchayColors.TextSecondaryLight,
+            modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
+        )
+        if (showOfflineInfo) {
+            Text(
+                text = "The app will work when you're back online.",
+                style = SanchayTypography.Caption,
                 color = SanchayColors.TextSecondaryLight,
-                textAlign = androidx.compose.ui.text.style.TextAlignment.Center,
-                margin = androidx.compose.ui.platform.SpacerScope padding 8.dp
+                modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
             )
-
-            if (showOfflineInfo) {
-                text(
-                    text = "The app will work when you're back online.",
-                    style = SanchayTypography.Caption,
-                    color = SanchayColors.TextMutedLight,
-                    textAlign = androidx.compose.ui.text.style.TextAlignment.Center,
-                    margin = androidx.compose.ui.platform.SpacerScope padding 4.dp
-                )
-            }
         }
-
-        SanchayPrimaryButton(
+        Button(
             onClick = onRetry,
-            text = "Retry",
-            modifier = Modifier.padding(vertical = SanchaySpacing.ListItemSpacing)
-        )
+            modifier = Modifier.padding(top = SanchaySpacing.ListItemSpacing)
+        ) {
+            Text(text = "Retry")
+        }
     }
 }
 
-/** Error state for failed budget operations */
 @Composable
 fun SanchayErrorBudgetState(
     errorMessage: String,
