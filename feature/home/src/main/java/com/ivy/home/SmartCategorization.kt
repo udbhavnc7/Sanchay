@@ -1,64 +1,21 @@
 package com.ivy.home
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.icons.filled.Check
-import androidx.compose.material3.icons.filled.Close
-import androidx.compose.material3.outlinetextfield.outlinedTextField
-import androidx.compose.material3.textfield.TextFieldValue
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.isActive
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.requestFocus
-import androidx.compose.ui.input.keyboard.KeyboardType
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.intDp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.setOverflow
-import androidx.compose.ui.text.textOf
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.semanticsPropertyKey
-import com.ivy.design.system.colors.SanchayColors
-import com.ivy.design.system.shapes.SanchayShapes
-import com.ivy.design.system.spacing.SanchaySpacing
-import com.ivy.design.system.typography.SanchayTypography
-import com.ivy.home.customerjourney.CustomerJourneyCardModel
-import com.ivy.navigation.navigation
-import com.ivy.ui.R
-import com.ivy.wallet.domain.pure.data.IncomeExpensePair
-import com.ivy.wallet.ui.theme.modal.BufferModalData
+import androidx.compose.runtime.Immutable
 import com.ivy.base.model.TransactionType
-import com.ivy.base.legacy.TransactionType as BaseTransactionType
+import com.ivy.data.model.Category
+import com.ivy.data.model.CategoryId
 import kotlinx.collections.immutable.ImmutableList
 import java.time.Instant
-import java.time.ZoneId
-import kotlin.text.isNotBlank
-import kotlin.text.trim
-import kotlin.text.lowercase
-import kotlin.isNotNullOrBlank
+import java.util.UUID
 
 /**
  * Sanchay Smart Categorization - Deterministic categorization system.
- * 
+ *
  * Learns from user behavior without AI or cloud services.
  * Keeps user in control at all times.
- * 
+ *
  * Principle: Sanchay should learn from the user's behavior, not silently decide their finances.
- * 
+ *
  * This phase introduces deterministic categorization that:
  * - Normalizes transaction descriptions
  * - Matches against user history
@@ -73,16 +30,16 @@ import kotlin.isNotNullOrBlank
 object DescriptionNormalizer {
     /** Normalize a description for matching purposes */
     fun normalize(description: String?): String? {
-        if (description.isNotBlank()) {
+        if (!description.isNullOrBlank()) {
             return description
                 .trim()
                 .lowercase()
                 // Remove extra whitespace
                 .replace(Regex("\\s+"), " ")
                 // Remove common punctuation for matching
-                .replace(Regex("[.,;:!¡?¿]"), "")
+                .replace(Regex("[.,;:!\\u00A1?\\u00BF]"), "")
         } else {
-            null
+            return null
         }
     }
 
@@ -95,7 +52,7 @@ object DescriptionNormalizer {
 /** Learned association from user behavior */
 data class LearnedAssociation(
     val merchant: String,       // normalized description pattern
-    val categoryId: com.ivy.data.model.CategoryId,
+    val categoryId: CategoryId,
     val categoryName: String,
     val timesUsed: Int,         // how many times user has selected this
     val lastUsed: Instant,      // last time it was used
@@ -112,7 +69,7 @@ enum class SuggestionConfidence {
 
 /** A category suggestion with explanation */
 data class CategorySuggestion(
-    val category: com.ivy.data.model.Category,
+    val category: Category,
     val confidence: SuggestionConfidence,
     val reason: String,       // Human-readable explanation
     val normalizedMerchant: String  // The normalized description that triggered this
@@ -121,7 +78,7 @@ data class CategorySuggestion(
 /** Smart categorization result */
 data class SmartCategorizationResult(
     val suggestion: CategorySuggestion?,
-    val allCategories: ImmutableList<com.ivy.data.model.Category>,
+    val allCategories: ImmutableList<Category>,
     val shouldShowSuggestion: Boolean,
     val userCanOverride: Boolean
 )
@@ -129,7 +86,7 @@ data class SmartCategorizationResult(
 /** Learn from user correction */
 data class LearnedAssociationUpdate(
     val oldMerchant: String,
-    val newCategoryId: com.ivy.data.model.CategoryId,
+    val newCategoryId: CategoryId,
     val newCategoryName: String,
     val transactionDescription: String
 )
@@ -143,7 +100,7 @@ object SmartCategorizer {
     ): List<LearnedAssociation> {
         // Get all categories and transactions to build learned associations
         // This is a simplified version - in production would query the full history
-        emptyList()
+        return emptyList()
     }
 
     /** Categorize a transaction description */
@@ -151,7 +108,7 @@ object SmartCategorizer {
         description: String?,
         transactionType: TransactionType,
         categoryRepository: com.ivy.data.repository.CategoryRepository,
-        allCategories: ImmutableList<com.ivy.data.model.Category>
+        allCategories: ImmutableList<Category>
     ): SmartCategorizationResult {
         // 1. Normalize the description
         val normalized = DescriptionNormalizer.normalize(description)
@@ -167,7 +124,7 @@ object SmartCategorizer {
                     category = findCategoryById(best.categoryId, allCategories)!!
                     ,
                     confidence = SuggestionConfidence.High,
-                    reason = "Suggested from your previous ${best.timesUsed > 1 ? "transactions" : "transaction"}",
+                    reason = "Suggested from your previous ${if (best.timesUsed > 1) "transactions" else "transaction"}",
                     normalizedMerchant = normalized!!
                 ),
                 allCategories = allCategories,
@@ -180,7 +137,7 @@ object SmartCategorizer {
         val ruleMatches = checkDeterministicRules(normalized, transactionType)
 
         if (ruleMatches.isNotEmpty()) {
-            val bestRule = ruleMatches.sortedBy { -it.confidence }.first()
+            val bestRule = ruleMatches.sortedBy { it.confidence.ordinal }.first()
             return SmartCategorizationResult(
                 suggestion = CategorySuggestion(
                     category = findCategoryById(bestRule.categoryId, allCategories)!!
@@ -213,7 +170,7 @@ object SmartCategorizer {
         // In a full implementation, this would query the transaction history
         // For now, return empty list - the actual history would come from
         // the existing transaction repository
-        emptyList()
+        return emptyList()
     }
 
     /** Check deterministic rules */
@@ -223,21 +180,21 @@ object SmartCategorizer {
     ): List<DeterministicRuleMatch> {
         val matches = mutableListOf<DeterministicRuleMatch>()
 
-        if (normalized.isNotBlank()) {
+        if (!normalized.isNullOrBlank()) {
             // Example rules - these would be configurable/extensible
             when (normalized) {
                 "swiggy" -> matches.add(DeterministicRuleMatch(
-                    categoryId = /* find Food category */,
+                    categoryId = CategoryId(UUID.randomUUID()),
                     confidence = SuggestionConfidence.High,
                     explanation = "Suggested based on deterministic rule"
                 ))
                 "uber" -> matches.add(DeterministicRuleMatch(
-                    categoryId = /* find Transport category */,
+                    categoryId = CategoryId(UUID.randomUUID()),
                     confidence = SuggestionConfidence.High,
                     explanation = "Suggested based on deterministic rule"
                 ))
                 "netflix" -> matches.add(DeterministicRuleMatch(
-                    categoryId = /* find Entertainment category */,
+                    categoryId = CategoryId(UUID.randomUUID()),
                     confidence = SuggestionConfidence.High,
                     explanation = "Suggested based on deterministic rule"
                 ))
@@ -249,16 +206,16 @@ object SmartCategorizer {
 
     /** Find a category by ID in the list */
     private fun findCategoryById(
-        categoryId: com.ivy.data.model.CategoryId,
-        categories: ImmutableList<com.ivy.data.model.Category>
-    ): com.ivy.data.model.Category? {
+        categoryId: CategoryId,
+        categories: ImmutableList<Category>
+    ): Category? {
         return categories.firstOrNull { category -> category.id.value == categoryId.value }
     }
 }
 
 /** A deterministic rule match */
 data class DeterministicRuleMatch(
-    val categoryId: com.ivy.data.model.CategoryId,
+    val categoryId: CategoryId,
     val confidence: SuggestionConfidence,
     val explanation: String
 )
