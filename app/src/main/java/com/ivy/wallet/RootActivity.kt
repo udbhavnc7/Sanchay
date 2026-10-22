@@ -129,17 +129,7 @@ class RootActivity : AppCompatActivity(), RootScreen {
                 }
 
                 false -> {
-                    NavigationRoot(navigation = navigation) { screen ->
-                        IvyUI(
-                            design = appDesign(ivyContext),
-                            includeSurface = screen?.isLegacy ?: true,
-                            timeConverter = timeConverter,
-                            timeProvider = timeProvider,
-                            timeFormatter = timeFormatter,
-                        ) {
-                            IvyNavGraph(screen)
-                        }
-                    }
+                    com.ivy.wallet.ui.SanchayModernUI()
                 }
             }
 
