@@ -1,40 +1,232 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import type { Account, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
-  TrendingUp,
+  ArrowDownLeft,
+  ArrowUpRight,
+  BarChart3,
   Download,
-  CheckCircle2,
+  PiggyBank,
+  ReceiptText,
+  TrendingUp,
 } from 'lucide-react';
+import { formatDate, formatMoney, monthKey, shortMonth, startOfMonth, startOfYear } from '../utils/money';
 
-export const ReportsTab: React.FC = () => {
-  const [activeRange, setActiveRange] = useState<'Q1' | 'Q2' | 'YTD'>('Q2');
+interface ReportsTabProps {
+  transactions: Transaction[];
+  accounts: Account[];
+}
 
-  const handleExportStatement = () => {
+type RangeKey = 'month' | 'quarter' | 'year';
+
+const RANGE_LABELS: Record<RangeKey, string> = {
+  month: 'This month',
+  quarter: 'This quarter',
+  year: 'This year',
+};
+
+const CHART_COLORS = ['#ff5722', '#38bdf8', '#10b981', '#f59e0b', '#a855f7', '#64748b'];
+
+function rangeStart(range: RangeKey): Date {
+  if (range === 'year') return startOfYear();
+  if (range === 'quarter') {
+    const now = new Date();
+    return new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  }
+  return startOfMonth();
+}
+
+function csvCell(value: string | number): string {
+  const text = String(value ?? '');
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }) => {
+  const [range, setRange] = useState<RangeKey>('month');
+
+  const start = useMemo(() => rangeStart(range), [range]);
+  const currentMonth = useMemo(() => startOfMonth(), []);
+
+  const accountNames = useMemo(
+    () => new Map(accounts.map((account) => [account.id, `${account.name} (${account.currency})`])),
+    [accounts]
+  );
+
+  const filtered = useMemo(
+    () =>
+      transactions
+        .filter((tx) => new Date(tx.date) >= start && tx.status !== 'Failed')
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [transactions, start]
+  );
+
+  const totals = useMemo(() => {
+    let income = 0;
+    let spending = 0;
+    let saved = 0;
+    filtered.forEach((tx) => {
+      if (tx.status !== 'Completed') return;
+      if (tx.kind === 'transfer') {
+        if (tx.type === 'debit') saved += tx.amount;
+        return;
+      }
+      if (tx.type === 'credit') income += tx.amount;
+      else spending += tx.amount;
+    });
+    return { income, spending, saved, net: income - spending - saved };
+  }, [filtered]);
+
+  const categories = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered
+      .filter(
+        (tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer'
+      )
+      .forEach((tx) => {
+        map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amount);
+      });
+    const total = Array.from(map.values()).reduce((sum, value) => sum + value, 0);
+    return Array.from(map.entries())
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6)
+      .map((row, index) => ({ ...row, color: CHART_COLORS[index % CHART_COLORS.length] }));
+  }, [filtered]);
+
+  const payees = useMemo(() => {
+    const map = new Map<string, { amount: number; count: number }>();
+    filtered
+      .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer' && tx.status === 'Completed')
+      .forEach((tx) => {
+        const name = tx.counterparty ?? tx.title;
+        const current = map.get(name) ?? { amount: 0, count: 0 };
+        map.set(name, { amount: current.amount + tx.amount, count: current.count + 1 });
+      });
+    return Array.from(map.entries())
+      .map(([name, value]) => ({ name, ...value }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+  }, [filtered]);
+
+  const trend = useMemo(() => {
+    const months = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - (5 - index),
+        1
+      );
+      return { key: monthKey(date), label: shortMonth(date), income: 0, spending: 0 };
+    });
+    const byKey = new Map(months.map((month) => [month.key, month]));
+    transactions
+      .filter((tx) => tx.status === 'Completed')
+      .forEach((tx) => {
+        const bucket = byKey.get(monthKey(new Date(tx.date)));
+        if (!bucket || tx.kind === 'transfer') return;
+        if (tx.type === 'credit') bucket.income += tx.amount;
+        else bucket.spending += tx.amount;
+      });
+    return months;
+  }, [transactions, currentMonth]);
+
+  const maxTrend = Math.max(1, ...trend.map((month) => Math.max(month.income, month.spending)));
+
+  const handleExport = () => {
     sound.success();
-    alert('Generating Sanchay Apex Certified Audit Statement (PDF). Downloading...');
+    const header = [
+      'Date',
+      'Title',
+      'Category',
+      'Direction',
+      'Status',
+      'Amount',
+      'Currency',
+      'Account',
+      'Reference',
+      'Counterparty',
+      'Note',
+    ];
+    const rows = filtered.map((tx) => {
+      const account = tx.accountId ? accounts.find((item) => item.id === tx.accountId) : undefined;
+      return [
+        formatDate(tx.date),
+        tx.title,
+        tx.category,
+        tx.type,
+        tx.status,
+        tx.amount.toFixed(2),
+        account?.currency ?? 'INR',
+        tx.accountId ? accountNames.get(tx.accountId) ?? '' : '',
+        tx.reference ?? '',
+        tx.counterparty ?? '',
+        tx.note ?? '',
+      ]
+        .map(csvCell)
+        .join(',');
+    });
+    const csv = [header.map(csvCell).join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sanchay-${range}-statement.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+    <div
+      className="animate-fade-in"
+      style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--text-main)' }}>
-            Treasury & Audit Reports
+          <h1
+            style={{
+              fontSize: '32px',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.15,
+              color: 'var(--text-main)',
+            }}
+          >
+            Reports
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Enterprise compliance, cash burn runway, tax provisions, and fiscal statements.
+            Your own numbers, calculated from this device. Export a clean statement any time.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', padding: '3px', borderRadius: '9999px', background: 'var(--bg-pill)', border: '1px solid var(--border-subtle)' }}>
-            {(['Q1', 'Q2', 'YTD'] as const).map((r) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              padding: '3px',
+              borderRadius: '9999px',
+              background: 'var(--bg-pill)',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            {(['month', 'quarter', 'year'] as RangeKey[]).map((key) => (
               <button
-                key={r}
+                key={key}
                 onClick={() => {
                   sound.click();
-                  setActiveRange(r);
+                  setRange(key);
                 }}
                 style={{
                   padding: '5px 14px',
@@ -43,127 +235,488 @@ export const ReportsTab: React.FC = () => {
                   fontWeight: 700,
                   border: 'none',
                   cursor: 'pointer',
-                  background: activeRange === r ? '#111317' : 'transparent',
-                  color: activeRange === r ? '#ffffff' : 'var(--text-muted)',
+                  background: range === key ? '#111317' : 'transparent',
+                  color: range === key ? '#ffffff' : 'var(--text-muted)',
                 }}
               >
-                {r}
+                {RANGE_LABELS[key]}
               </button>
             ))}
           </div>
 
-          <button onClick={handleExportStatement} className="btn-action-dark" style={{ padding: '8px 16px', fontSize: '12px' }}>
+          <button
+            onClick={handleExport}
+            className="btn-action-dark"
+            style={{ padding: '8px 16px', fontSize: '12px' }}
+          >
             <Download size={14} />
-            <span>Export Statement</span>
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
-      {/* 4 Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="s-card">
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Cash Runway
-          </span>
-          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
-            22.4 Mo
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '16px',
+        }}
+      >
+        <MetricCard
+          label="Money in"
+          value={formatMoney(totals.income)}
+          hint={`${filtered.filter((tx) => tx.type === 'credit').length} incoming entries`}
+          icon={ArrowDownLeft}
+          tone="#10b981"
+        />
+        <MetricCard
+          label="Money out"
+          value={formatMoney(totals.spending)}
+          hint={`${filtered.filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer').length} payments`}
+          icon={ArrowUpRight}
+          tone="#ef4444"
+        />
+        <MetricCard
+          label="Moved to goals"
+          value={formatMoney(totals.saved)}
+          hint="Savings transfers, not spending"
+          icon={PiggyBank}
+          tone="#a855f7"
+        />
+        <MetricCard
+          label="Net cash flow"
+          value={formatMoney(totals.net)}
+          hint={totals.net >= 0 ? 'You kept more than you spent' : 'Spending outpaced income'}
+          icon={TrendingUp}
+          tone={totals.net >= 0 ? '#10b981' : '#ef4444'}
+        />
+      </div>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+          gap: '24px',
+        }}
+      >
+        <div className="s-card" style={{ gridColumn: 'span 2' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '18px',
+            }}
+          >
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Spending by category
+            </h2>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              {RANGE_LABELS[range]}
+            </span>
           </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-            <TrendingUp size={12} /> +3.2 mo runway added
-          </div>
+
+          {categories.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              No completed spending in this range.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {categories.map((row) => (
+                <div
+                  key={row.category}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '16px',
+                    background: 'var(--bg-pill)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '12px',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                      {row.category}
+                    </span>
+                    <span
+                      className="font-mono-numbers"
+                      style={{ fontWeight: 800, color: 'var(--text-main)' }}
+                    >
+                      {formatMoney(row.amount)} · {row.pct}%
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      height: '8px',
+                      borderRadius: '9999px',
+                      background: 'var(--bg-card)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${row.pct}%`,
+                        height: '100%',
+                        borderRadius: '9999px',
+                        background: row.color,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="s-card">
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Net Cash Burn
-          </span>
-          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
-            $24,650<span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>/mo</span>
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Stable within Q2 threshold
-          </div>
-        </div>
+          <h2
+            style={{
+              fontSize: '15px',
+              fontWeight: 800,
+              color: 'var(--text-main)',
+              marginBottom: '16px',
+            }}
+          >
+            Top payees
+          </h2>
 
-        <div className="s-card">
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Tax Provision Reserve
-          </span>
-          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
-            $118,400
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-            100% Fully collateralized
-          </div>
-        </div>
-
-        <div className="s-card">
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Gross Margin (EBITDA)
-          </span>
-          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--accent-orange)', marginTop: '6px' }}>
-            68.4%
-          </div>
-          <div className="font-mono-numbers" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            +4.2% vs target
-          </div>
+          {payees.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              No outgoing payments in this range.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {payees.map((payee, index) => (
+                <div
+                  key={payee.name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    paddingBottom: index === payees.length - 1 ? 0 : '12px',
+                    borderBottom:
+                      index === payees.length - 1 ? 'none' : '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '10px',
+                      background: 'var(--bg-pill)',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {payee.name.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {payee.name}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {payee.count} payment{payee.count === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                  <div
+                    className="font-mono-numbers"
+                    style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}
+                  >
+                    {formatMoney(payee.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Breakdown Panels */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
-        <div className="s-card" style={{ gridColumn: 'span 2' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
-            Expense Allocation Matrix
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {[
-              { label: 'Engineering & Cloud Infrastructure (AWS / GCP / Cloudflare)', pct: 42, amt: '$104,200', color: '#ff5722' },
-              { label: 'Core Team Payroll & Executive Retainers', pct: 28, amt: '$69,400', color: '#38bdf8' },
-              { label: 'Marketing, Growth & User Acquisition', pct: 16, amt: '$39,600', color: '#10b981' },
-              { label: 'Legal, Compliance & Banking Reserve', pct: 14, amt: '$34,700', color: '#f59e0b' },
-            ].map((row) => (
-              <div key={row.label} style={{ padding: '14px', borderRadius: '16px', background: 'var(--bg-pill)', border: '1px solid var(--border-subtle)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.label}</span>
-                  <span className="font-mono-numbers" style={{ fontWeight: 800, color: 'var(--text-main)' }}>{row.amt} ({row.pct}%)</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', borderRadius: '9999px', background: 'var(--bg-card)', overflow: 'hidden' }}>
-                  <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: '9999px', backgroundColor: row.color, transition: 'width 0.6s ease' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="s-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div className="s-card">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+            gap: '10px',
+          }}
+        >
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>Audit Certifications</h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Cryptographically verified by Sanchay Decentralized Trust Node.
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Income vs spending
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Savings transfers are excluded so the comparison stays honest.
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
-                <CheckCircle2 size={16} />
-                <span>SOC 2 Type II Certified</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
-                <CheckCircle2 size={16} />
-                <span>PCI-DSS Level 1 Compliant</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
-                <CheckCircle2 size={16} />
-                <span>Automated Form 1099 & W8-BEN Generator</span>
-              </div>
-            </div>
           </div>
-
-          <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
-            Last audited: Today at 04:30 PM UTC
+          <div style={{ display: 'flex', gap: '14px', fontSize: '10px', fontWeight: 700 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}
+              />
+              Income
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <span
+                style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff5722' }}
+              />
+              Spending
+            </span>
           </div>
         </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+            gap: '12px',
+            height: '180px',
+          }}
+        >
+          {trend.map((month) => {
+            const incomeHeight = (month.income / maxTrend) * 100;
+            const spendingHeight = (month.spending / maxTrend) * 100;
+            return (
+              <div
+                key={month.key}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    gap: '4px',
+                    height: '130px',
+                    width: '100%',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '30%',
+                      maxWidth: '22px',
+                      height: `${Math.max(2, incomeHeight)}%`,
+                      borderRadius: '6px 6px 0 0',
+                      background: '#10b981',
+                    }}
+                    title={`Income ${formatMoney(month.income)}`}
+                  />
+                  <div
+                    style={{
+                      width: '30%',
+                      maxWidth: '22px',
+                      height: `${Math.max(2, spendingHeight)}%`,
+                      borderRadius: '6px 6px 0 0',
+                      background: '#ff5722',
+                    }}
+                    title={`Spending ${formatMoney(month.spending)}`}
+                  />
+                </div>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                  {month.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="s-card">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '14px',
+          }}
+        >
+          <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+            Statement preview
+          </h2>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            {filtered.length} entries · CSV
+          </span>
+        </div>
+
+        {filtered.length === 0 ? (
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            Nothing to export in this range yet.
+          </p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
+                  {['Date', 'Description', 'Category', 'Account', 'Status', 'Amount'].map(
+                    (heading) => (
+                      <th
+                        key={heading}
+                        style={{
+                          padding: '8px 10px',
+                          fontWeight: 700,
+                          borderBottom: '1px solid var(--border-subtle)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {heading}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.slice(0, 12).map((tx) => {
+                  const account = tx.accountId
+                    ? accounts.find((item) => item.id === tx.accountId)
+                    : undefined;
+                  return (
+                    <tr key={tx.id}>
+                      <td
+                        style={{
+                          padding: '9px 10px',
+                          color: 'var(--text-muted)',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {formatDate(tx.date)}
+                      </td>
+                      <td style={{ padding: '9px 10px', fontWeight: 600 }}>{tx.title}</td>
+                      <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
+                        {tx.category}
+                      </td>
+                      <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
+                        {account?.name ?? '—'}
+                      </td>
+                      <td style={{ padding: '9px 10px' }}>
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '9999px',
+                            background:
+                              tx.status === 'Completed'
+                                ? 'rgba(16,185,129,0.12)'
+                                : 'rgba(245,158,11,0.12)',
+                            color: tx.status === 'Completed' ? '#10b981' : '#b45309',
+                          }}
+                        >
+                          {tx.status}
+                        </span>
+                      </td>
+                      <td
+                        className="font-mono-numbers"
+                        style={{
+                          padding: '9px 10px',
+                          fontWeight: 800,
+                          textAlign: 'right',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tx.type === 'credit' ? '+' : '−'}
+                        {formatMoney(tx.amount, account?.currency ?? 'INR')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '11px',
+          color: 'var(--text-muted)',
+          padding: '0 4px',
+        }}
+      >
+        <ReceiptText size={13} />
+        <span>Reports are generated locally from the transactions in this prototype.</span>
       </div>
     </div>
   );
 };
+
+const MetricCard: React.FC<{
+  label: string;
+  value: string;
+  hint: string;
+  icon: typeof BarChart3;
+  tone: string;
+}> = ({ label, value, hint, icon: Icon, tone }) => (
+  <div className="s-card">
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '10px',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </span>
+      <div
+        style={{
+          width: '30px',
+          height: '30px',
+          borderRadius: '10px',
+          background: 'var(--bg-pill)',
+          color: tone,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon size={14} />
+      </div>
+    </div>
+    <div
+      className="font-mono-numbers"
+      style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-main)' }}
+    >
+      {value}
+    </div>
+    <div style={{ fontSize: '11px', color: tone, marginTop: '4px', fontWeight: 600 }}>{hint}</div>
+  </div>
+);

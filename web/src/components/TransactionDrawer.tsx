@@ -46,7 +46,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(transaction.reference);
+      await navigator.clipboard.writeText(transaction.reference ?? transaction.id);
       setCopied(true);
       sound.click();
       window.setTimeout(() => setCopied(false), 2000);

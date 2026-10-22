@@ -4,6 +4,8 @@ export const CURRENCY_SYMBOL: Record<Currency, string> = {
   INR: '₹',
   USD: '$',
   EUR: '€',
+  GBP: '£',
+  JPY: '¥',
 };
 
 interface FormatOptions {

@@ -312,10 +312,10 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                     </div>
                     <div
                       className={`text-[10px] font-mono-numbers ${
-                        account.change >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                        Number(account.change) >= 0 ? 'text-emerald-500' : 'text-rose-500'
                       }`}
                     >
-                      {formatPercent(account.change)}
+                      {formatPercent(Number(account.change))}
                     </div>
                   </div>
                 </div>

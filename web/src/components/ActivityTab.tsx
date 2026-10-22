@@ -56,7 +56,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
 
       if (!query) return true;
 
-      const account = accountById.get(tx.accountId);
+      const account = tx.accountId ? accountById.get(tx.accountId) : undefined;
       return [tx.title, tx.counterparty, tx.category, tx.reference, tx.note ?? '', account?.name ?? '']
         .join(' ')
         .toLowerCase()
@@ -250,7 +250,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {filtered.map((tx) => {
-                  const account = accountById.get(tx.accountId);
+                  const account = tx.accountId ? accountById.get(tx.accountId) : undefined;
                   return (
                     <tr
                       key={tx.id}
