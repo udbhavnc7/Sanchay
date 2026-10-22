@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --bg-primary: #f2f4f8;
   --bg-chassis: #ffffff;
@@ -370,3 +372,331 @@ body {
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ============================================================
+   SANCHAY DESIGN SYSTEM — LAYOUT & COMPONENT CLASSES
+   ============================================================ */
+
+/* Metric box */
+.activity-metric-box {
+  padding: 14px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  min-width: 130px;
+  transition: all 0.2s ease;
+}
+
+/* Filter Capsule & Buttons */
+.pill-group {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 3px;
+}
+
+.pill-option {
+  padding: 7px 16px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.pill-option:hover {
+  color: var(--text-main);
+}
+
+.pill-option.active {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark .pill-option.active {
+  background-color: #ffffff;
+  color: #090a0d;
+}
+
+.pill-select {
+  appearance: none;
+  background-color: var(--bg-pill);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.pill-select:focus {
+  border-color: var(--accent-orange);
+}
+
+/* Search Box */
+.search-pill-input {
+  width: 100%;
+  background-color: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  padding: 10px 18px 10px 42px;
+  font-size: 13px;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.search-pill-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-pill-input:focus {
+  border-color: var(--accent-orange);
+  background-color: var(--bg-card);
+  box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15);
+}
+
+/* Activity Table */
+.activity-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.activity-th {
+  padding: 14px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+}
+
+.activity-tr {
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.activity-tr:hover {
+  background-color: var(--bg-pill);
+}
+
+.activity-td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+/* Category Badges */
+.badge-category {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--bg-pill);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+/* Status Badges */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badge-status-completed {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.dark .badge-status-completed {
+  color: #34d399;
+}
+
+.badge-status-pending {
+  background-color: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dark .badge-status-pending {
+  color: #fbbf24;
+}
+
+.badge-status-failed {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.dark .badge-status-failed {
+  color: #f87171;
+}
+
+/* Transaction Kind Icon */
+.tx-kind-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tx-kind-income {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.tx-kind-transfer {
+  background-color: rgba(255, 87, 34, 0.12);
+  color: #ff5722;
+}
+
+.tx-kind-expense {
+  background-color: var(--bg-pill);
+  color: var(--text-muted);
+}
+
+/* Card Studio Controls */
+.card-action-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border-radius: 18px;
+  background-color: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-action-tile:hover {
+  background-color: var(--border-subtle);
+  transform: translateY(-2px);
+}
+
+.card-action-tile.frozen {
+  background-color: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.35);
+  color: #0891b2;
+}
+
+.dark .card-action-tile.frozen {
+  color: #22d3ee;
+}
+
+/* Account Row Card */
+.account-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background-color: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.account-card-item:hover {
+  border-color: var(--border-focus);
+}
+
+/* Control Row */
+.control-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background-color: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 12px;
+}
+
+/* Modal System */
+.modal-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+}
+
+.modal-dialog-panel {
+  width: 100%;
+  max-width: 500px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 30px;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.4);
+  padding: 32px;
+  position: relative;
+}
+
+/* Sleek Toggle Switch */
+.switch-track {
+  width: 48px;
+  height: 26px;
+  border-radius: 9999px;
+  background-color: var(--border-focus);
+  padding: 2px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.switch-track.checked {
+  background-color: var(--accent-orange);
+}
+
+.switch-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(0);
+}
+
+.switch-track.checked .switch-thumb {
+  transform: translateX(22px);
+}
+

@@ -94,60 +94,67 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      {/* Top Title & Metrics Header */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '20px' }}>
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.03em' }}>
             Activity
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Every payment, deposit and transfer in one searchable ledger.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
-          <div className="px-3 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-600 dark:text-emerald-400">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="activity-metric-box">
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, color: '#10b981' }}>
               In
             </div>
-            <div className="text-sm font-black font-mono-numbers text-emerald-600 dark:text-emerald-400">
-              {formatMoney(totals.income, 'INR', { decimals: false })}
+            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
+              +{formatMoney(totals.income, 'INR', { decimals: false })}
             </div>
           </div>
-          <div className="px-3 py-2 rounded-2xl bg-slate-500/10 border border-slate-500/20">
-            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+
+          <div className="activity-metric-box">
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, color: 'var(--text-muted)' }}>
               Out
             </div>
-            <div className="text-sm font-black font-mono-numbers text-slate-700 dark:text-slate-200">
-              {formatMoney(totals.expense, 'INR', { decimals: false })}
+            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
+              −{formatMoney(totals.expense, 'INR', { decimals: false })}
             </div>
           </div>
-          <div className="px-3 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/20">
-            <div className="text-[10px] uppercase tracking-wider font-bold text-orange-600 dark:text-orange-400">
+
+          <div className="activity-metric-box">
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, color: 'var(--accent-orange)' }}>
               Saved
             </div>
-            <div className="text-sm font-black font-mono-numbers text-orange-600 dark:text-orange-400">
+            <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-orange)', marginTop: '2px' }}>
               {formatMoney(totals.saved, 'INR', { decimals: false })}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="glass-panel p-5">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Filter & Search Bar */}
+      <div className="s-card" style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', flex: '1', minWidth: '280px', maxWidth: '420px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
               placeholder="Search by name, account, note or reference…"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 text-xs rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+              className="search-pill-input"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center rounded-full bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200 dark:border-white/10 text-xs">
+          {/* Filter Pills Row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+            {/* Direction Filter */}
+            <div className="pill-group">
               {(['All', 'In', 'Out', 'Saved'] as const).map((value) => (
                 <button
                   key={value}
@@ -155,18 +162,15 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
                     sound.click();
                     setDirectionFilter(value);
                   }}
-                  className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
-                    directionFilter === value
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }`}
+                  className={`pill-option ${directionFilter === value ? 'active' : ''}`}
                 >
                   {value}
                 </button>
               ))}
             </div>
 
-            <div className="flex items-center rounded-full bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200 dark:border-white/10 text-xs">
+            {/* Status Filter */}
+            <div className="pill-group">
               {(['All', 'Completed', 'Pending', 'Failed'] as const).map((value) => (
                 <button
                   key={value}
@@ -174,24 +178,21 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
                     sound.click();
                     setStatusFilter(value);
                   }}
-                  className={`px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
-                    statusFilter === value
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }`}
+                  className={`pill-option ${statusFilter === value ? 'active' : ''}`}
                 >
                   {value}
                 </button>
               ))}
             </div>
 
+            {/* Category Select */}
             <select
               value={categoryFilter}
               onChange={(event) => {
                 sound.click();
                 setCategoryFilter(event.target.value as 'All' | Category);
               }}
-              className="appearance-none bg-slate-100 dark:bg-slate-800/80 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none"
+              className="pill-select"
             >
               <option value="All">All categories</option>
               {categories.map((category) => (
@@ -204,9 +205,20 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
             {hasFilters && (
               <button
                 onClick={resetFilters}
-                className="px-3 py-1.5 rounded-full text-xs font-bold text-slate-500 hover:text-orange-500 flex items-center gap-1.5 cursor-pointer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--accent-orange)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                }}
               >
-                <Filter size={12} />
+                <Filter size={13} />
                 Clear
               </button>
             )}
@@ -214,43 +226,48 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
         </div>
       </div>
 
-      <div className="glass-panel p-3 md:p-5">
+      {/* Transaction Table Card */}
+      <div className="s-card" style={{ padding: '8px 12px', overflow: 'hidden' }}>
         {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 mx-auto flex items-center justify-center text-slate-400">
-              <Search size={20} />
+          <div style={{ padding: '64px 20px', textAlign: 'center' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--bg-pill)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+              <Search size={22} />
             </div>
-            <div className="mt-3 text-sm font-bold text-slate-900 dark:text-white">
+            <div style={{ marginTop: '14px', fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
               No transactions match
             </div>
-            <div className="mt-1 text-xs text-slate-400">
-              Try a different search term or clear the filters.
+            <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Try a different search term or clear the active filters.
             </div>
             {hasFilters && (
               <button
                 onClick={resetFilters}
-                className="mt-4 btn-secondary py-1.5 px-4 text-xs"
+                className="btn-action-light"
+                style={{ marginTop: '16px', padding: '8px 20px', fontSize: '12px' }}
               >
                 Clear filters
               </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            <table className="activity-table">
               <thead>
-                <tr className="border-b border-slate-200/60 dark:border-white/5 text-slate-400">
-                  <th className="py-3 px-3 font-semibold">Transaction</th>
-                  <th className="py-3 px-3 font-semibold">Account</th>
-                  <th className="py-3 px-3 font-semibold">Category</th>
-                  <th className="py-3 px-3 font-semibold">Amount</th>
-                  <th className="py-3 px-3 font-semibold">Status</th>
-                  <th className="py-3 px-3 font-semibold">Date</th>
+                <tr>
+                  <th className="activity-th">Transaction</th>
+                  <th className="activity-th">Account</th>
+                  <th className="activity-th">Category</th>
+                  <th className="activity-th">Amount</th>
+                  <th className="activity-th">Status</th>
+                  <th className="activity-th">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              <tbody>
                 {filtered.map((tx) => {
                   const account = tx.accountId ? accountById.get(tx.accountId) : undefined;
+                  const isIncome = tx.kind === 'income';
+                  const isTransfer = tx.kind === 'transfer';
+
                   return (
                     <tr
                       key={tx.id}
@@ -258,78 +275,83 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
                         sound.click();
                         onSelectTransaction(tx);
                       }}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors cursor-pointer group"
+                      className="activity-tr"
                     >
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-3">
+                      <td className="activity-td">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                              tx.kind === 'income'
-                                ? 'bg-emerald-500/10 text-emerald-500'
-                                : tx.kind === 'transfer'
-                                  ? 'bg-orange-500/10 text-orange-500'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                            className={`tx-kind-icon ${
+                              isIncome
+                                ? 'tx-kind-income'
+                                : isTransfer
+                                ? 'tx-kind-transfer'
+                                : 'tx-kind-expense'
                             }`}
                           >
-                            {tx.kind === 'income' ? (
-                              <ArrowDownLeft size={16} />
-                            ) : tx.kind === 'transfer' ? (
-                              <ArrowLeftRight size={16} />
+                            {isIncome ? (
+                              <ArrowDownLeft size={18} />
+                            ) : isTransfer ? (
+                              <ArrowLeftRight size={18} />
                             ) : (
-                              <ArrowUpRight size={16} />
+                              <ArrowUpRight size={18} />
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors truncate">
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                               {tx.title}
                             </div>
-                            <div className="text-[11px] text-slate-400 truncate">
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                               {tx.counterparty} · {tx.reference}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+
+                      <td className="activity-td" style={{ color: 'var(--text-muted)', fontSize: '12px', whiteSpace: 'nowrap' }}>
                         {account?.name ?? 'Unknown account'}
                       </td>
-                      <td className="py-3.5 px-3">
-                        <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+
+                      <td className="activity-td">
+                        <span className="badge-category">
                           {tx.category}
                         </span>
                       </td>
-                      <td className="py-3.5 px-3 font-mono-numbers font-bold whitespace-nowrap">
+
+                      <td className="activity-td font-mono-numbers" style={{ whiteSpace: 'nowrap' }}>
                         <span
-                          className={
-                            tx.kind === 'income'
-                              ? 'text-emerald-500'
-                              : 'text-slate-900 dark:text-slate-200'
-                          }
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            color: isIncome ? '#10b981' : 'var(--text-main)',
+                          }}
                         >
-                          {tx.kind === 'income' ? '+' : '−'}
+                          {isIncome ? '+' : '−'}
                           {formatMoney(tx.amount, account?.currency ?? 'INR')}
                         </span>
                       </td>
-                      <td className="py-3.5 px-3">
+
+                      <td className="activity-td">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                          className={`badge-status ${
                             tx.status === 'Completed'
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              ? 'badge-status-completed'
                               : tx.status === 'Pending'
-                                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                              ? 'badge-status-pending'
+                              : 'badge-status-failed'
                           }`}
                         >
                           {tx.status === 'Completed' ? (
-                            <CheckCircle2 size={11} />
+                            <CheckCircle2 size={12} />
                           ) : tx.status === 'Pending' ? (
-                            <Clock size={11} />
+                            <Clock size={12} />
                           ) : (
-                            <XCircle size={11} />
+                            <XCircle size={12} />
                           )}
                           {tx.status}
                         </span>
                       </td>
-                      <td className="py-3.5 px-3 text-slate-400 text-[11px] font-mono-numbers whitespace-nowrap">
+
+                      <td className="activity-td font-mono-numbers" style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                         {relativeDay(tx.date)}
                       </td>
                     </tr>
@@ -343,3 +365,4 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
     </div>
   );
 };
+

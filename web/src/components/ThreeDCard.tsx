@@ -537,48 +537,58 @@ export const ThreeDCard: React.FC<ThreeDCardProps> = ({
         {/* Quick Flip Button */}
         <button
           onClick={handleFlipCard}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-white/10 transition-all hover:scale-105 active:scale-95 shadow-sm"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12px',
+            fontWeight: 700,
+            padding: '7px 16px',
+            borderRadius: '9999px',
+            backgroundColor: 'var(--bg-pill)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-main)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
         >
           <RotateCw size={13} className={isFlipped ? 'rotate-180 transition-transform' : ''} />
-          {isFlipped ? 'Show Front' : 'Flip Card'}
+          <span>{isFlipped ? 'Show Front' : 'Flip Card'}</span>
         </button>
       </div>
 
       {/* Primary Action Buttons */}
-      <div className="grid grid-cols-3 gap-2 mt-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '18px' }}>
         <button
           onClick={handleToggleFreezeAction}
-          className={`flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl border transition-all duration-200 ${
-            isFrozen
-              ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-              : 'bg-slate-800/60 hover:bg-slate-800 border-white/5 text-slate-300 hover:border-white/15'
-          }`}
+          className={`card-action-tile ${isFrozen ? 'frozen' : ''}`}
         >
           <Snowflake
             size={18}
             className={`transition-transform ${isFrozen ? 'text-cyan-400 rotate-180' : 'text-slate-400'}`}
           />
-          <span className="text-[11px] font-semibold">{isFrozen ? 'Unfreeze' : 'Freeze Card'}</span>
+          <span style={{ fontSize: '12px', fontWeight: 700 }}>{isFrozen ? 'Unfreeze' : 'Freeze Card'}</span>
         </button>
 
         <button
           onClick={handleToggleCvv}
-          className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-white/5 text-slate-300 hover:border-white/15 transition-all"
+          className="card-action-tile"
         >
-          {showCvv ? <EyeOff size={18} className="text-amber-400" /> : <Eye size={18} className="text-slate-400" />}
-          <span className="text-[11px] font-semibold">{showCvv ? 'Hide CVV' : 'Reveal CVV'}</span>
+          {showCvv ? <EyeOff size={18} style={{ color: 'var(--accent-orange)' }} /> : <Eye size={18} style={{ color: 'var(--text-muted)' }} />}
+          <span style={{ fontSize: '12px', fontWeight: 700 }}>{showCvv ? 'Hide CVV' : 'Reveal CVV'}</span>
         </button>
 
         <button
           onClick={() => {
             sound.click();
             navigator.clipboard.writeText('4532 8921 6782 9014');
+            sound.success();
             alert('Card number copied to clipboard securely!');
           }}
-          className="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-white/5 text-slate-300 hover:border-white/15 transition-all"
+          className="card-action-tile"
         >
-          <CreditCard size={18} className="text-slate-400" />
-          <span className="text-[11px] font-semibold">Copy Number</span>
+          <CreditCard size={18} style={{ color: 'var(--text-muted)' }} />
+          <span style={{ fontSize: '12px', fontWeight: 700 }}>Copy Number</span>
         </button>
       </div>
     </div>

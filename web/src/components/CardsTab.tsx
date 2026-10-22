@@ -61,29 +61,32 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+      {/* Title Header */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.03em' }}>
             Accounts
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             See every account, freeze your card, and keep spending on track.
           </p>
         </div>
 
-        <button onClick={onOpenPlan} className="btn-primary">
+        <button onClick={onOpenPlan} className="btn-action-dark" style={{ padding: '10px 22px', fontSize: '13px' }}>
           <span>Review budgets</span>
           <ChevronRight size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-6 flex flex-col gap-6">
-          <div className="glass-panel p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Your card</h2>
-              <span className="text-xs text-slate-400 font-semibold">{cardsList.length} cards</span>
+      {/* Main 2-Column Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '28px' }}>
+        {/* Left Column: 3D Card Studio + Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="s-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>Your card</h2>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>{cardsList.length} cards</span>
             </div>
 
             <ThreeDCard
@@ -93,8 +96,8 @@ export const CardsTab: React.FC<CardsTabProps> = ({
               monthlySpent={monthlySpent}
             />
 
-            <div className="mt-6 pt-5 border-t border-slate-200/60 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+            <div style={{ marginTop: '22px', paddingTop: '18px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {cardsList.map((card, index) => (
                   <button
                     key={card.id}
@@ -102,16 +105,28 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       sound.click();
                       setActiveCardIndex(index);
                     }}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold font-mono-numbers transition-all cursor-pointer ${
-                      activeCardIndex === index
-                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-md scale-105'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 16px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: activeCardIndex === index ? 'var(--text-main)' : 'var(--bg-pill)',
+                      color: activeCardIndex === index ? 'var(--bg-chassis)' : 'var(--text-muted)',
+                      transition: 'all 0.2s',
+                    }}
                   >
                     <span
-                      className={`w-2.5 h-2.5 rounded-sm ${
-                        index === 0 ? 'bg-slate-800 border border-slate-600' : 'bg-orange-500'
-                      }`}
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '2px',
+                        backgroundColor: index === 0 ? '#38bdf8' : 'var(--accent-orange)',
+                      }}
                     />
                     <span>
                       {card.type} •••• {card.last4}
@@ -120,200 +135,182 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 ))}
               </div>
 
-              <div className="text-xs text-slate-400">Tap card to rotate & examine</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tap card to rotate & examine</div>
             </div>
           </div>
 
-          <div className="glass-panel p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+          {/* Card Controls */}
+          <div className="s-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
                 Card controls
               </h2>
               <span
-                className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
-                  isFrozen
-                    ? 'bg-sky-500/10 text-sky-500 border-sky-500/20'
-                    : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                className={`badge-status ${
+                  isFrozen ? 'badge-status-failed' : 'badge-status-completed'
                 }`}
               >
                 {isFrozen ? 'Frozen' : 'Active'}
               </span>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="control-card-item">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
                     <Globe size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                       Online payments
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Shops, subscriptions and in-app purchases
                     </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleToggle(setOnlinePayments, onlinePayments)}
-                  className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
-                    onlinePayments ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
+                  className={`switch-track ${onlinePayments ? 'checked' : ''}`}
                   aria-label="Toggle online payments"
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      onlinePayments ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
+                  <div className="switch-thumb" />
                 </button>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
+              <div className="control-card-item">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
                     <Radio size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                       Contactless
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Tap to pay up to ₹5,000 per payment
                     </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleToggle(setContactless, contactless)}
-                  className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
-                    contactless ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
+                  className={`switch-track ${contactless ? 'checked' : ''}`}
                   aria-label="Toggle contactless payments"
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      contactless ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
+                  <div className="switch-thumb" />
                 </button>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
+              <div className="control-card-item">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
                     <Landmark size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                       ATM withdrawals
                     </div>
-                    <div className="text-[11px] text-slate-400">Up to ₹25,000 per day</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Up to ₹25,000 per day
+                    </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleToggle(setAtmWithdrawals, atmWithdrawals)}
-                  className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
-                    atmWithdrawals ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
+                  className={`switch-track ${atmWithdrawals ? 'checked' : ''}`}
                   aria-label="Toggle ATM withdrawals"
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      atmWithdrawals ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
+                  <div className="switch-thumb" />
                 </button>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
+              <div className="control-card-item">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)' }}>
                     <Globe size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
                       Use abroad
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                       Payments outside your home currency zone
                     </div>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => handleToggle(setUseAbroad, useAbroad)}
-                  className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
-                    useAbroad ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
-                  }`}
+                  className={`switch-track ${useAbroad ? 'checked' : ''}`}
                   aria-label="Toggle use abroad"
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
-                      useAbroad ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
+                  <div className="switch-thumb" />
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 flex items-start gap-2 text-[11px] text-slate-400">
-              <ShieldCheck size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <ShieldCheck size={14} style={{ color: '#10b981', flexShrink: 0 }} />
               <span>Card controls are a preview here; no real card is connected.</span>
             </div>
           </div>
         </div>
 
-        <div className="lg:col-span-6 flex flex-col gap-6">
-          <div className="glass-panel p-6">
-            <div className="flex items-center justify-between mb-4">
+        {/* Right Column: All Accounts + Spending Limit */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* All Accounts */}
+          <div className="s-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
               <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
                   All accounts
                 </h2>
-                <p className="text-xs text-slate-400">Balances update as you spend and save.</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Balances update as you spend and save.
+                </p>
               </div>
-              <Wallet size={16} className="text-slate-400" />
+              <Wallet size={18} style={{ color: 'var(--text-muted)' }} />
             </div>
 
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {accounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-sm">
+                <div key={account.id} className="account-card-item">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '14px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', flexShrink: 0 }}>
                       {renderAccountIcon(account)}
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                         {account.name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {account.type} · {account.currency} ·{' '}
-                        <span
-                          className={
-                            account.status === 'Active' ? 'text-emerald-500' : 'text-slate-400'
-                          }
-                        >
+                        <span style={{ color: account.status === 'Active' ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
                           {account.status}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-black font-mono-numbers text-slate-900 dark:text-white">
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                       {formatMoney(account.balance, account.currency, { decimals: false })}
                     </div>
                     <div
-                      className={`text-[10px] font-mono-numbers ${
-                        Number(account.change) >= 0 ? 'text-emerald-500' : 'text-rose-500'
-                      }`}
+                      className="font-mono-numbers"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        color: Number(account.change) >= 0 ? '#10b981' : '#f43f5e',
+                        marginTop: '2px',
+                      }}
                     >
                       {formatPercent(Number(account.change))}
                     </div>
@@ -323,53 +320,66 @@ export const CardsTab: React.FC<CardsTabProps> = ({
             </div>
           </div>
 
-          <div className="glass-panel p-6">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          {/* Monthly Spending Limit */}
+          <div className="s-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>
                 Monthly spending limit
               </span>
-              <span className="text-xs font-mono-numbers font-bold text-orange-500">
+              <span className="font-mono-numbers" style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-orange)' }}>
                 {spentRatio.toFixed(0)}% used
               </span>
             </div>
 
-            <div className="mt-4 relative w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
+            <div
+              style={{
+                marginTop: '12px',
+                width: '100%',
+                height: '12px',
+                borderRadius: '9999px',
+                backgroundColor: 'var(--bg-pill)',
+                overflow: 'hidden',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
               <div
-                className="h-full rounded-full transition-all duration-500"
                 style={{
+                  height: '100%',
+                  borderRadius: '9999px',
                   width: `${spentRatio}%`,
                   background:
                     spentRatio > 80
                       ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
                       : 'linear-gradient(90deg, #ff7043, #ff5722)',
+                  transition: 'width 0.5s ease',
                 }}
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between text-xs font-mono-numbers">
-              <span className="font-extrabold text-slate-900 dark:text-white">
+            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }} className="font-mono-numbers">
+              <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>
                 {formatMoney(monthlySpent, 'INR', { decimals: false })} spent
               </span>
-              <span className="text-slate-400">
+              <span style={{ color: 'var(--text-muted)' }}>
                 of {formatMoney(monthlyBudget, 'INR', { decimals: false })}
               </span>
             </div>
 
             <button
               onClick={onOpenPlan}
-              className="mt-4 w-full btn-secondary py-2.5 text-xs"
+              className="btn-action-light"
+              style={{ marginTop: '18px', width: '100%', padding: '12px 16px', fontSize: '13px', justifyContent: 'center' }}
             >
               <span>Adjust category budgets</span>
-              <ChevronRight size={14} />
+              <ChevronRight size={15} />
             </button>
 
-            <div className="mt-4 flex items-start gap-2 text-[11px] text-slate-400">
-              <ShieldCheck size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+            <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <ShieldCheck size={14} style={{ color: '#10b981', flexShrink: 0 }} />
               <span>Only completed payments count toward your budget.</span>
             </div>
           </div>
         </div>
       </div>
-    </div>
   );
 };

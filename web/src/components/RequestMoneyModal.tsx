@@ -60,32 +60,50 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="modal-overlay-backdrop animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="glass-panel p-6 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl"
+        className="modal-dialog-panel"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4">
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request money</h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <h3 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
+              Request money
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
               Write a clear request and copy it to send yourself.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--bg-pill)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
             aria-label="Close request"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
-        <div className="mt-5 space-y-4">
+        {/* Form Fields */}
+        <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div>
-            <label className="text-xs font-semibold text-slate-500">Request from</label>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Request from
+            </label>
             <select
               value={contactId}
               onChange={(event) => {
@@ -93,7 +111,18 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
                 setContactId(event.target.value);
                 setError('');
               }}
-              className="mt-1 w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:outline-none focus:border-orange-500 cursor-pointer"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                backgroundColor: 'var(--bg-pill)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-main)',
+                outline: 'none',
+                cursor: 'pointer',
+              }}
             >
               {contacts.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -104,10 +133,22 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-500">Amount</label>
-            <div className="mt-1 flex items-center justify-between p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10">
-              <div className="flex items-center gap-1 font-mono-numbers">
-                <span className="text-2xl font-black text-slate-900 dark:text-white">
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Amount
+            </label>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '14px 20px',
+                borderRadius: '18px',
+                backgroundColor: 'var(--bg-pill)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)' }}>
                   {contact?.currency === 'USD' ? '$' : contact?.currency === 'EUR' ? '€' : '₹'}
                 </span>
                 <input
@@ -118,55 +159,119 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
                     setAmountInput(event.target.value.replace(/[^0-9.]/g, ''));
                     setError('');
                   }}
-                  className="text-2xl font-black text-slate-900 dark:text-white bg-transparent w-36 focus:outline-none"
+                  className="font-mono-numbers"
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: 900,
+                    color: 'var(--text-main)',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    width: '160px',
+                  }}
                 />
               </div>
-              <span className="text-xs font-bold text-slate-400 uppercase">
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-muted)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
                 {contact?.currency ?? 'INR'}
               </span>
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-500">What is it for? (optional)</label>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              What is it for? (optional)
+            </label>
             <input
               type="text"
               value={note}
               maxLength={60}
               onChange={(event) => setNote(event.target.value)}
               placeholder="e.g. split dinner"
-              className="mt-1 w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-orange-500"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '16px',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-pill)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-main)',
+                outline: 'none',
+              }}
             />
           </div>
 
           {requestText && (
-            <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-orange-500 mb-2">
-                <ArrowDownLeft size={12} />
-                Request preview · {reference}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: '18px',
+                backgroundColor: 'rgba(255, 87, 34, 0.06)',
+                border: '1px solid rgba(255, 87, 34, 0.25)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: 'var(--accent-orange)',
+                  marginBottom: '8px',
+                }}
+              >
+                <ArrowDownLeft size={13} />
+                <span>Request preview · {reference}</span>
               </div>
-              <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+              <p style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.6, fontWeight: 500 }}>
                 {requestText}
               </p>
             </div>
           )}
 
           {error && (
-            <div className="flex items-start gap-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-600 dark:text-rose-400">
-              <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 16px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                fontSize: '12px',
+                color: '#ef4444',
+                fontWeight: 600,
+              }}
+            >
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="flex items-start gap-2 text-[11px] text-slate-400">
-            <ShieldCheck size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+            <ShieldCheck size={14} style={{ color: '#10b981', flexShrink: 0 }} />
             <span>
               Nothing is sent automatically. Copy the message and share it however you like.
             </span>
           </div>
         </div>
 
-        <div className="flex gap-3 mt-5">
+        {/* Footer Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '28px' }}>
           <button
             onClick={() => {
               setAmountInput('1000');
@@ -174,18 +279,21 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
               setCopied(false);
               setError('');
             }}
-            className="py-2.5 px-3 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 flex items-center gap-1.5 cursor-pointer"
+            className="btn-action-light"
+            style={{ padding: '13px 20px', gap: '6px', fontSize: '13px' }}
           >
-            <RotateCcw size={13} />
-            Reset
+            <RotateCcw size={14} />
+            <span>Reset</span>
           </button>
+
           <button
             onClick={handleCopy}
             disabled={!amountValid || !contact}
-            className="flex-1 btn-primary py-2.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn-action-dark"
+            style={{ flex: 1, padding: '13px 24px', fontSize: '13px', gap: '8px', opacity: !amountValid || !contact ? 0.4 : 1 }}
           >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            <span>{copied ? 'Copied request' : 'Copy request'}</span>
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            <span>{copied ? 'Copied to clipboard' : 'Copy request'}</span>
           </button>
         </div>
       </div>
