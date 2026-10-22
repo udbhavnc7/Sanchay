@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import creatorStudioHtml from '../splash/creator-studio-intro';
 import { MetalAction } from './MetalAction';
-
-const SANCHAY_MARK = `<svg viewBox="0 0 24 24" aria-hidden="true">
-  <circle cx="12" cy="12" r="10.4" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/>
-  <path d="M16.55 8.35c-.78-1.08-2.1-1.7-3.82-1.7-2.55 0-4.18 1.28-4.18 3.16 0 4.18 8.38 1.88 8.38 5.77 0 1.98-1.9 3.36-4.7 3.36-2.15 0-3.9-.82-4.82-2.26" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-</svg>`;
+import { SANCHAY_MARK } from './sanchayMarkSvg';
 
 const SANCHAY_SPLASH_HTML = (() => {
   let html = creatorStudioHtml.replaceAll('Creator Studio', 'Sanchay');
@@ -74,7 +70,14 @@ export function SanchaySplash({ onEnter }: SanchaySplashProps) {
       />
 
       <div className="sanchay-splash__top">
-        <span className="sanchay-splash__kicker">Sanchay / Private finance</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img
+            src="/sanchay-mark.png"
+            alt="Sanchay Polestar"
+            style={{ width: '20px', height: '25px', objectFit: 'contain' }}
+          />
+          <span className="sanchay-splash__kicker">Sanchay / Private finance</span>
+        </div>
         <button type="button" className="sanchay-splash__skip" onClick={finish}>
           Skip intro
         </button>

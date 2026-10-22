@@ -877,7 +877,6 @@ body {
 @media (max-height: 760px) {
   .metal-action--splash {
     height: 150px;
-    margin-bottom: -8px;
   }
 
   .sanchay-splash__action {
