@@ -365,8 +365,8 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .animate-fade-in {
@@ -823,25 +823,24 @@ body {
 .sanchay-splash__action {
   position: absolute;
   left: 50%;
-  bottom: clamp(18px, 3.2vh, 34px);
+  bottom: clamp(22px, 3.2vh, 34px);
   z-index: 2;
   width: min(520px, calc(100vw - 32px));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 8px;
 }
 
 .metal-action--splash {
   height: 190px;
-  margin-bottom: -14px;
   background: transparent;
 }
 
 .sanchay-splash__hint {
-  color: #52525b;
-  font-size: 8px;
+  color: #71717a;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -882,7 +881,7 @@ body {
   }
 
   .sanchay-splash__action {
-    bottom: 14px;
+    bottom: 20px;
   }
 
   .sanchay-splash__tagline {

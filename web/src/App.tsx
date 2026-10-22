@@ -28,6 +28,7 @@ import { TransactionDrawer } from './components/TransactionDrawer';
 import { SearchOverlay } from './components/SearchOverlay';
 import { RequestMoneyModal } from './components/RequestMoneyModal';
 import { SanchaySplash } from './components/SanchaySplash';
+import { SanchayLogo } from './components/SanchayLogo';
 import {
   Sun,
   Moon,
@@ -452,22 +453,7 @@ export const App: React.FC = () => {
         <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           <header className="header-bar">
             <div className="brand-badge" onClick={() => navigate('Overview')}>
-              <div className="brand-logo-icon">S</div>
-              <div>
-                <div
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  Sanchay
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                  Personal finance, privately
-                </div>
-              </div>
+              <SanchayLogo size="md" />
             </div>
 
             <nav className="top-nav-capsule">

@@ -170,21 +170,28 @@ export const ThreeDCard: React.FC<ThreeDCardProps> = ({
       ctx.arc(880, 500, 320, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Top Brand
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px Syne, sans-serif';
-      ctx.fillText('VERTIX', 60, 90);
+      // Top Brand: Sanchay Gold Emblem + Wordmark
+      const markImg = new Image();
+      markImg.src = '/sanchay-mark.png';
+      markImg.onload = () => {
+        ctx.drawImage(markImg, 60, 52, 40, 50);
+        texture.needsUpdate = true;
+      };
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.font = '600 16px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText('SANCHAY WORLD ELITE', 60, 120);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 34px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('SANCHAY', 112, 90);
+
+      ctx.fillStyle = '#c5a059';
+      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.fillText('WORLD ELITE TITANIUM', 114, 114);
 
       // Contactless icon
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.lineWidth = 3;
       for (let r = 1; r <= 3; r++) {
         ctx.beginPath();
-        ctx.arc(280, 85, r * 10, -Math.PI / 3, Math.PI / 3);
+        ctx.arc(380, 85, r * 10, -Math.PI / 3, Math.PI / 3);
         ctx.stroke();
       }
 
