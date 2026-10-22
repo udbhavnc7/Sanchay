@@ -1,89 +1,61 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  initialAccounts,
-  initialTransactions,
-  initialContacts,
-  initialGoals,
-  initialBudgets,
-} from './data/mockData';
-import type {
-  Account,
-  Budget,
-  Contact,
-  GoalDepositInput,
-  MoneyResult,
-  PaymentInput,
-  SavingsGoal,
-  Transaction,
-} from './types/finance';
-import { formatMoney, isValidAmount, startOfMonth } from './utils/money';
+import React, { useState, useEffect } from 'react';
+import { initialWallets, initialTransactions, initialContacts, initialGoals } from './data/mockData';
+import type { Wallet, Transaction, Contact, SavingsGoal } from './types/finance';
 import { sound } from './utils/audio';
 import { OverviewTab } from './components/OverviewTab';
 import { CardsTab } from './components/CardsTab';
 import { TransfersTab } from './components/TransfersTab';
 import { GoalsTab } from './components/GoalsTab';
 import { ReportsTab } from './components/ReportsTab';
-import { ActivityTab } from './components/ActivityTab';
 import { TransactionDrawer } from './components/TransactionDrawer';
-import { SearchOverlay } from './components/SearchOverlay';
-import { RequestMoneyModal } from './components/RequestMoneyModal';
+import { ThreeDOrb } from './components/ThreeDOrb';
 import {
   Sun,
   Moon,
   LayoutGrid,
-  Wallet,
+  CreditCard,
   Users,
   Target,
-  PieChart,
+  Settings,
+  LogOut,
   Search,
   Bell,
   Volume2,
   VolumeX,
   ChevronDown,
-  List,
-  ArrowLeftRight,
-  ShieldCheck,
-  AlertTriangle,
-  Clock3,
-  CheckCircle2,
-  X,
+  Sparkles,
 } from 'lucide-react';
 
-export type MainTab = 'Overview' | 'Activity' | 'Accounts' | 'Plan' | 'Payees' | 'Reports';
-
-const NAV_ITEMS: { tab: MainTab; label: string; icon: typeof LayoutGrid }[] = [
-  { tab: 'Overview', label: 'Overview', icon: LayoutGrid },
-  { tab: 'Activity', label: 'Activity', icon: List },
-  { tab: 'Accounts', label: 'Accounts', icon: Wallet },
-  { tab: 'Plan', label: 'Plan', icon: Target },
-  { tab: 'Payees', label: 'Payees', icon: Users },
-  { tab: 'Reports', label: 'Reports', icon: PieChart },
-];
-
-interface Alert {
-  id: string;
-  tone: 'warning' | 'info' | 'success';
-  title: string;
-  detail: string;
-}
+export type MainTab =
+  | 'Overview'
+  | 'Activity'
+  | 'Manage'
+  | 'Program'
+  | 'Account'
+  | 'Reports'
+  | 'Plan'
+  | 'Payees'
+  | 'Accounts';
 
 export const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<MainTab>('Overview');
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
+  // Financial state
+  const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [goals, setGoals] = useState<SavingsGoal[]>(initialGoals);
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+
+  const [spendingLimit, setSpendingLimit] = useState<number>(5500);
+  const [monthlySpent, setMonthlySpent] = useState<number>(1635.57);
   const [isCardFrozen, setIsCardFrozen] = useState(false);
 
+  // Inspector and modal state
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showRequest, setShowRequest] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showOrbPreview, setShowOrbPreview] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -92,123 +64,6 @@ export const App: React.FC = () => {
       document.documentElement.classList.remove('dark');
     }
   }, [isDarkMode]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setShowSearch(true);
-      }
-      if (event.key === 'Escape') {
-        setShowSearch(false);
-        setShowNotifications(false);
-        setShowPrivacy(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  const accountById = useMemo(
-    () => new Map(accounts.map((account) => [account.id, account])),
-    [accounts]
-  );
-
-  const monthStart = startOfMonth().getTime();
-
-  const monthlyTotals = useMemo(() => {
-    let expense = 0;
-    let income = 0;
-    let saved = 0;
-    const byCategory: Record<string, number> = {};
-
-    transactions.forEach((tx) => {
-      if (tx.status !== 'Completed') return;
-      if (new Date(tx.date).getTime() < monthStart) return;
-      if (tx.kind === 'income') {
-        income += tx.amount;
-      } else if (tx.kind === 'transfer') {
-        saved += tx.amount;
-      } else {
-        expense += tx.amount;
-        byCategory[tx.category] = (byCategory[tx.category] ?? 0) + tx.amount;
-      }
-    });
-
-    return { expense, income, saved, byCategory };
-  }, [transactions, monthStart]);
-
-  const budgetsTotal = useMemo(
-    () => budgets.reduce((sum, budget) => sum + budget.limit, 0),
-    [budgets]
-  );
-
-  const availableBalance = useMemo(
-    () =>
-      accounts
-        .filter((account) => account.status === 'Active')
-        .reduce((sum, account) => sum + account.balance, 0),
-    [accounts]
-  );
-
-  const goalBalance = useMemo(
-    () => goals.reduce((sum, goal) => sum + goal.savedAmount, 0),
-    [goals]
-  );
-
-  const alerts = useMemo<Alert[]>(() => {
-    const list: Alert[] = [];
-
-    budgets.forEach((budget) => {
-      const spent = monthlyTotals.byCategory[budget.category] ?? 0;
-      const ratio = budget.limit > 0 ? spent / budget.limit : 0;
-      if (ratio >= 1) {
-        list.push({
-          id: `budget-over-${budget.id}`,
-          tone: 'warning',
-          title: `${budget.category} budget exceeded`,
-          detail: `${formatMoney(spent, 'INR', { decimals: false })} spent of ${formatMoney(
-            budget.limit,
-            'INR',
-            { decimals: false }
-          )}.`,
-        });
-      } else if (ratio >= 0.8) {
-        list.push({
-          id: `budget-near-${budget.id}`,
-          tone: 'warning',
-          title: `${budget.category} is at ${Math.round(ratio * 100)}%`,
-          detail: `${formatMoney(budget.limit - spent, 'INR', { decimals: false })} left this month.`,
-        });
-      }
-    });
-
-    transactions
-      .filter((tx) => tx.status === 'Pending')
-      .slice(0, 2)
-      .forEach((tx) => {
-        list.push({
-          id: `pending-${tx.id}`,
-          tone: 'info',
-          title: 'Payment pending',
-          detail: `${tx.counterparty} · ${formatMoney(tx.amount, 'INR')}`,
-        });
-      });
-
-    goals.forEach((goal) => {
-      const ratio = goal.targetAmount > 0 ? goal.savedAmount / goal.targetAmount : 0;
-      if (ratio >= 0.8 && ratio < 1) {
-        list.push({
-          id: `goal-${goal.id}`,
-          tone: 'success',
-          title: `${goal.title} is almost funded`,
-          detail: `${Math.round(ratio * 100)}% saved.`,
-        });
-      }
-    });
-
-    return list.slice(0, 5);
-  }, [budgets, monthlyTotals.byCategory, transactions, goals]);
 
   const toggleTheme = (dark: boolean) => {
     sound.click();
@@ -222,150 +77,34 @@ export const App: React.FC = () => {
     if (next) sound.click();
   };
 
-  const openTab = (tab: MainTab) => {
-    sound.click();
-    setActiveTab(tab);
-    setShowNotifications(false);
-  };
+  const handleExecuteTransfer = (recipient: Contact, amount: number) => {
+    setWallets((prev) =>
+      prev.map((w) =>
+        w.currency === 'USD' ? { ...w, balance: Math.max(0, w.balance - amount) } : w
+      )
+    );
+    setMonthlySpent((prev) => prev + amount);
 
-  const handleSendPayment = (input: PaymentInput): MoneyResult => {
-    const account = accountById.get(input.accountId);
-
-    if (!account) {
-      return { ok: false, error: 'Choose an account to pay from.' };
-    }
-    if (account.status !== 'Active') {
-      return { ok: false, error: `${account.name} is inactive. Choose another account.` };
-    }
-    if (!isValidAmount(input.amount)) {
-      return { ok: false, error: 'Enter an amount greater than zero.' };
-    }
-    if (account.currency !== input.payee.currency) {
-      return {
-        ok: false,
-        error: `${input.payee.name} receives ${input.payee.currency}. Choose a ${input.payee.currency} account.`,
-      };
-    }
-
-    const fee = 0;
-    if (input.amount + fee > account.balance) {
-      return {
-        ok: false,
-        error: `Not enough money in ${account.name}. Available ${formatMoney(
-          account.balance,
-          account.currency
-        )}.`,
-      };
-    }
-
-    const timestamp = new Date().toISOString();
-    const now = Date.now();
-    const transaction: Transaction = {
-      id: `tx_${now}`,
-      reference: `PAY-${String(now).slice(-6)}`,
-      title: `Payment to ${input.payee.name}`,
-      category: input.category,
-      amount: input.amount,
+    const newTx: Transaction = {
+      id: 'tx_' + Date.now(),
+      orderId: 'INV_00' + Math.floor(2700 + Math.random() * 800),
+      title: `Instant Wire to ${recipient.name}`,
+      category: 'Payroll',
+      amount: amount,
       type: 'debit',
       status: 'Completed',
-      date: timestamp,
-      accountId: account.id,
-      counterparty: input.payee.name,
-      note: input.note?.trim() || undefined,
-      kind: 'expense',
-      fee,
+      date: 'Today ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      recipient: recipient.name,
+      wallet: 'USD',
     };
-
-    setAccounts((prev) =>
-      prev.map((item) =>
-        item.id === account.id ? { ...item, balance: item.balance - input.amount - fee } : item
-      )
-    );
-    setTransactions((prev) => [transaction, ...prev]);
-    setContacts((prev) =>
-      prev.map((contact) =>
-        contact.id === input.payee.id
-          ? {
-              ...contact,
-              lastTransfer: `Today · ${formatMoney(input.amount, account.currency)}`,
-            }
-          : contact
-      )
-    );
-
-    return { ok: true, transaction };
+    setTransactions((prev) => [newTx, ...prev]);
   };
 
-  const handleDepositToGoal = (input: GoalDepositInput): MoneyResult => {
-    const account = accountById.get(input.accountId);
-    const goal = goals.find((item) => item.id === input.goalId);
-
-    if (!goal) {
-      return { ok: false, error: 'That goal no longer exists.' };
-    }
-    if (!account) {
-      return { ok: false, error: 'Choose an account to move money from.' };
-    }
-    if (account.status !== 'Active') {
-      return { ok: false, error: `${account.name} is inactive. Choose another account.` };
-    }
-    if (account.currency !== 'INR') {
-      return { ok: false, error: 'Goals are held in INR. Choose an INR account.' };
-    }
-    if (!isValidAmount(input.amount)) {
-      return { ok: false, error: 'Enter an amount greater than zero.' };
-    }
-    if (input.amount > account.balance) {
-      return {
-        ok: false,
-        error: `Not enough money in ${account.name}. Available ${formatMoney(
-          account.balance,
-          account.currency
-        )}.`,
-      };
-    }
-    const remaining = Math.max(0, goal.targetAmount - goal.savedAmount);
-    if (remaining === 0) {
-      return { ok: false, error: 'This goal is already fully funded.' };
-    }
-    if (input.amount > remaining) {
-      return {
-        ok: false,
-        error: `Only ${formatMoney(remaining, 'INR')} left to fully fund ${goal.title}.`,
-      };
-    }
-
-    const timestamp = new Date().toISOString();
-    const now = Date.now();
-    const transaction: Transaction = {
-      id: `tx_${now}`,
-      reference: `SAV-${String(now).slice(-6)}`,
-      title: `Moved to ${goal.title}`,
-      category: 'Savings',
-      amount: input.amount,
-      type: 'debit',
-      status: 'Completed',
-      date: timestamp,
-      accountId: account.id,
-      counterparty: goal.title,
-      note: 'Savings transfer',
-      kind: 'transfer',
-      fee: 0,
-    };
-
-    setAccounts((prev) =>
-      prev.map((item) =>
-        item.id === account.id ? { ...item, balance: item.balance - input.amount } : item
-      )
-    );
+  const handleAddMoneyToGoal = (goalId: string, amount: number) => {
     setGoals((prev) =>
-      prev.map((item) =>
-        item.id === goal.id ? { ...item, savedAmount: item.savedAmount + input.amount } : item
-      )
+      prev.map((g) => (g.id === goalId ? { ...g, savedAmount: g.savedAmount + amount } : g))
     );
-    setTransactions((prev) => [transaction, ...prev]);
-
-    return { ok: true, transaction };
+    setMonthlySpent((prev) => prev + amount);
   };
 
   const handleAddNewGoal = (newGoal: SavingsGoal) => {
@@ -376,401 +115,321 @@ export const App: React.FC = () => {
     setContacts((prev) => [newContact, ...prev]);
   };
 
-  const handleToggleFavorite = (contactId: string) => {
-    sound.click();
-    setContacts((prev) =>
-      prev.map((contact) =>
-        contact.id === contactId ? { ...contact, isFavorite: !contact.isFavorite } : contact
-      )
-    );
-  };
-
-  const handleUpdateBudget = (budgetId: string, limit: number) => {
-    setBudgets((prev) =>
-      prev.map((budget) =>
-        budget.id === budgetId
-          ? { ...budget, limit: Math.max(0, Math.round(limit)) }
-          : budget
-      )
-    );
-  };
-
-  const activeAlertCount = alerts.length;
-
   return (
-    <div className="min-h-screen p-3 md:p-6 lg:p-8 flex items-start justify-center transition-colors duration-300">
-      <div className="w-full max-w-[1580px] rounded-[36px] bg-slate-100/90 dark:bg-[#0c0e12] border border-slate-300/80 dark:border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.12)] p-4 md:p-6 lg:p-8 relative">
-        <div className="flex gap-6 items-start">
-          <aside className="hidden md:flex flex-col items-center gap-4 py-4 px-2 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-sm sticky top-8 z-30">
-            <div className="flex flex-col items-center p-1 rounded-full bg-slate-100 dark:bg-slate-800 gap-1 border border-slate-200/60 dark:border-white/5">
-              <button
-                onClick={() => toggleTheme(false)}
-                title="Light mode"
-                className={`p-2 rounded-full transition-all cursor-pointer ${
-                  !isDarkMode
-                    ? 'bg-white text-orange-500 shadow-sm scale-110'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <Sun size={15} />
-              </button>
-              <button
-                onClick={() => toggleTheme(true)}
-                title="Dark mode"
-                className={`p-2 rounded-full transition-all cursor-pointer ${
-                  isDarkMode
-                    ? 'bg-slate-950 text-orange-400 shadow-sm scale-110'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Moon size={15} />
-              </button>
-            </div>
+    <div style={{ minHeight: '100vh', padding: '16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+      {/* Outer Executive Chassis Frame */}
+      <div className="chassis-frame">
+        {/* 1. Left Vertical Dock */}
+        <aside className="vertical-dock">
+          {/* Theme Pill */}
+          <div className="dock-pill">
+            <button
+              onClick={() => toggleTheme(false)}
+              className={`dock-btn ${!isDarkMode ? 'active' : ''}`}
+              title="Light Mode"
+            >
+              <Sun size={15} />
+            </button>
+            <button
+              onClick={() => toggleTheme(true)}
+              className={`dock-btn ${isDarkMode ? 'active' : ''}`}
+              title="Dark Mode"
+            >
+              <Moon size={15} />
+            </button>
+          </div>
 
-            <div className="flex flex-col items-center gap-2 p-1 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/5">
-              {NAV_ITEMS.map(({ tab, label, icon: Icon }) => (
-                <button
-                  key={tab}
-                  onClick={() => openTab(tab)}
-                  title={label}
-                  className={`p-3 rounded-full transition-all cursor-pointer ${
-                    activeTab === tab
-                      ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950 shadow-md scale-105'
-                      : 'text-slate-400 hover:text-slate-700 dark:hover:text-white'
-                  }`}
-                >
-                  <Icon size={18} />
-                </button>
-              ))}
-            </div>
+          {/* Navigation Pill */}
+          <div className="dock-pill">
+            <button
+              onClick={() => {
+                sound.click();
+                setActiveTab('Overview');
+              }}
+              className={`dock-btn ${activeTab === 'Overview' ? 'active' : ''}`}
+              title="Overview"
+            >
+              <LayoutGrid size={17} />
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
+                setActiveTab('Program');
+              }}
+              className={`dock-btn ${activeTab === 'Program' ? 'active' : ''}`}
+              title="Savings & Goals"
+            >
+              <Target size={17} />
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
+                setActiveTab('Manage');
+              }}
+              className={`dock-btn ${activeTab === 'Manage' ? 'active' : ''}`}
+              title="Manage Cards"
+            >
+              <CreditCard size={17} />
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
+                setActiveTab('Account');
+              }}
+              className={`dock-btn ${activeTab === 'Account' ? 'active' : ''}`}
+              title="Contacts & Wire"
+            >
+              <Users size={17} />
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
+                setActiveTab('Reports');
+              }}
+              className={`dock-btn ${activeTab === 'Reports' ? 'active' : ''}`}
+              title="Reports & Audit"
+            >
+              <Settings size={17} />
+            </button>
+          </div>
 
-            <div className="flex flex-col items-center gap-2 p-1 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200/60 dark:border-white/5 mt-auto">
-              <button
-                onClick={() => {
-                  sound.click();
-                  setShowSearch(true);
-                }}
-                title="Search (Ctrl/Cmd + K)"
-                className="p-3 rounded-full text-slate-400 hover:text-orange-500 transition-colors cursor-pointer"
-              >
-                <Search size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  sound.click();
-                  setShowPrivacy(true);
-                }}
-                title="How your data is handled"
-                className="p-3 rounded-full text-slate-400 hover:text-emerald-500 transition-colors cursor-pointer"
-              >
-                <ShieldCheck size={18} />
-              </button>
-            </div>
-          </aside>
+          {/* Bottom Dock Pill */}
+          <div className="dock-pill" style={{ marginTop: 'auto' }}>
+            <button
+              onClick={() => {
+                sound.click();
+                setShowOrbPreview(!showOrbPreview);
+              }}
+              className={`dock-btn ${showOrbPreview ? 'active' : ''}`}
+              title="3D Global Nexus Orb"
+            >
+              <Sparkles size={16} />
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
+                alert('Session Secured with Sanchay Cryptographic Key.');
+              }}
+              className="dock-btn"
+              title="Lock Session"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </aside>
 
-          <main className="flex-1 min-w-0 space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
-              <div
-                onClick={() => openTab('Overview')}
-                className="flex items-center gap-2.5 cursor-pointer select-none group"
-              >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5722] to-[#FF8A65] flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 transition-transform shadow-orange-500/30">
-                  S
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xl font-extrabold tracking-tight font-display text-slate-900 dark:text-white flex items-center gap-1">
-                    Sanchay
-                    <span className="text-[10px] font-mono-numbers px-1.5 py-0.2 rounded bg-orange-500/10 text-orange-500 border border-orange-500/20">
-                      PERSONAL
-                    </span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 tracking-wider uppercase font-semibold">
-                    Your money, clearly
-                  </span>
+        {/* 2. Main Executive Content Area */}
+        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* Header Bar */}
+          <header className="header-bar">
+            {/* Brand Logo */}
+            <div
+              className="brand-badge"
+              onClick={() => {
+                sound.click();
+                setActiveTab('Overview');
+              }}
+            >
+              <div className="brand-logo-icon">V</div>
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-main)' }}>
+                  Vertix
                 </div>
               </div>
+            </div>
 
-              <nav className="flex items-center p-1 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-white/10 shadow-sm overflow-x-auto">
-                {NAV_ITEMS.map(({ tab }) => {
+            {/* Center Navigation Pill */}
+            <nav className="top-nav-capsule">
+              {(['Overview', 'Activity', 'Manage', 'Program', 'Account', 'Reports'] as MainTab[]).map(
+                (tab) => {
                   const isActive = activeTab === tab;
                   return (
                     <button
                       key={tab}
-                      onClick={() => openTab(tab)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                        isActive
-                          ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950 shadow-md'
-                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
-                      }`}
+                      onClick={() => {
+                        sound.click();
+                        setActiveTab(tab);
+                      }}
+                      className={`top-nav-item ${isActive ? 'active' : ''}`}
                     >
                       {tab}
                     </button>
                   );
-                })}
-              </nav>
+                }
+              )}
+            </nav>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    sound.click();
-                    setShowSearch(true);
-                  }}
-                  className="w-10 h-10 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm cursor-pointer"
-                  title="Search (Ctrl/Cmd + K)"
-                >
-                  <Search size={16} />
-                </button>
-
-                <div className="relative">
-                  <button
-                    onClick={() => {
-                      sound.click();
-                      setShowNotifications(!showNotifications);
-                    }}
-                    className="w-10 h-10 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm relative cursor-pointer"
-                    title="Alerts"
-                  >
-                    <Bell size={16} />
-                    {activeAlertCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-                        {activeAlertCount}
-                      </span>
-                    )}
-                  </button>
-
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 p-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-2xl z-50 animate-fade-in text-xs space-y-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
-                        <span className="font-bold text-slate-900 dark:text-white">
-                          What needs attention
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {activeAlertCount} item{activeAlertCount === 1 ? '' : 's'}
-                        </span>
-                      </div>
-                      {alerts.length === 0 ? (
-                        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                          <div className="font-bold">You're all caught up</div>
-                          <div className="text-[11px] opacity-80">
-                            No budget or payment issues right now.
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {alerts.map((alert) => (
-                            <div
-                              key={alert.id}
-                              className={`p-2.5 rounded-xl border ${
-                                alert.tone === 'warning'
-                                  ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400'
-                                  : alert.tone === 'success'
-                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400'
-                              }`}
-                            >
-                              <div className="font-bold flex items-center gap-1.5">
-                                {alert.tone === 'warning' ? (
-                                  <AlertTriangle size={12} />
-                                ) : alert.tone === 'success' ? (
-                                  <CheckCircle2 size={12} />
-                                ) : (
-                                  <Clock3 size={12} />
-                                )}
-                                {alert.title}
-                              </div>
-                              <div className="text-[11px] opacity-80 mt-0.5">{alert.detail}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={toggleAudio}
-                  title={isAudioEnabled ? 'Mute sound effects' : 'Enable sound effects'}
-                  className="w-10 h-10 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 flex items-center justify-center text-slate-500 hover:text-orange-500 transition-all shadow-sm cursor-pointer"
-                >
-                  {isAudioEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                </button>
-
-                <button
-                  onClick={() => {
-                    sound.click();
-                    setShowPrivacy(true);
-                  }}
-                  className="flex items-center gap-3 pl-1 pr-3 py-1 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-white/10 shadow-sm cursor-pointer hover:border-orange-500/30 transition-all"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-800 to-slate-950 flex items-center justify-center text-white font-bold text-xs shadow-inner">
-                    U
-                  </div>
-                  <div className="hidden lg:flex flex-col text-left">
-                    <span className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                      Udbhav
-                    </span>
-                    <span className="text-[10px] text-slate-400 leading-tight">Local profile</span>
-                  </div>
-                  <ChevronDown size={13} className="text-slate-400" />
-                </button>
-              </div>
-            </header>
-
-            {activeTab === 'Overview' && (
-              <OverviewTab
-                accounts={accounts}
-                transactions={transactions}
-                goals={goals}
-                budgets={budgets}
-                monthlySpent={monthlyTotals.expense}
-                monthlyIncome={monthlyTotals.income}
-                monthlySaved={monthlyTotals.saved}
-                monthlyBudget={budgetsTotal}
-                availableBalance={availableBalance}
-                goalBalance={goalBalance}
-                onOpenTransfer={() => openTab('Payees')}
-                onOpenRequest={() => {
+            {/* Actions & Profile */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Search */}
+              <button
+                onClick={() => {
                   sound.click();
-                  setShowRequest(true);
+                  const q = prompt('Search Sanchay Treasury:');
+                  if (q) alert(`Searching for "${q}"...`);
                 }}
-                onOpenActivity={() => openTab('Activity')}
-                onOpenPlan={() => openTab('Plan')}
-                onSelectTransaction={setSelectedTransaction}
-              />
-            )}
+                className="dock-btn"
+                style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
+                title="Search"
+              >
+                <Search size={15} />
+              </button>
 
-            {activeTab === 'Activity' && (
-              <ActivityTab
-                transactions={transactions}
-                accounts={accounts}
-                onSelectTransaction={setSelectedTransaction}
-              />
-            )}
+              {/* Notification Bell */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => {
+                    sound.click();
+                    setShowNotifications(!showNotifications);
+                  }}
+                  className="dock-btn"
+                  style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', position: 'relative' }}
+                  title="Notifications"
+                >
+                  <Bell size={15} />
+                  <span style={{ position: 'absolute', top: '10px', right: '10px', width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-orange)' }} />
+                </button>
 
-            {activeTab === 'Accounts' && (
-              <CardsTab
-                accounts={accounts}
-                isFrozen={isCardFrozen}
-                onToggleFreeze={() => {
-                  setIsCardFrozen(!isCardFrozen);
-                  if (!isCardFrozen) sound.laser();
+                {showNotifications && (
+                  <div className="s-card" style={{ position: 'absolute', right: 0, top: '48px', width: '280px', zIndex: 50, padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 700 }}>Alerts</span>
+                      <span style={{ fontSize: '10px', color: 'var(--accent-orange)', fontWeight: 600, cursor: 'pointer' }}>Clear</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px' }}>
+                      <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', fontWeight: 600 }}>
+                        +$8,750 Dividend Received
+                      </div>
+                      <div style={{ padding: '8px', borderRadius: '10px', background: 'rgba(255, 87, 34, 0.1)', color: 'var(--accent-orange)', fontWeight: 600 }}>
+                        Card Limit 30% reached
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sound Toggle */}
+              <button
+                onClick={toggleAudio}
+                className="dock-btn"
+                style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
+                title={isAudioEnabled ? 'Mute' : 'Unmute'}
+              >
+                {isAudioEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+              </button>
+
+              {/* Profile Pill */}
+              <div
+                onClick={() => sound.click()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 12px 4px 6px',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
+                  cursor: 'pointer',
                 }}
-                monthlyBudget={budgetsTotal}
-                monthlySpent={monthlyTotals.expense}
-                onOpenPlan={() => openTab('Plan')}
-              />
-            )}
+              >
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#111317', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 800 }}>
+                  CX
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, lineHeight: 1.1, color: 'var(--text-main)' }}>
+                    Code XR
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.1 }}>
+                    hello@codexr.studio
+                  </span>
+                </div>
+                <ChevronDown size={12} color="var(--text-muted)" />
+              </div>
+            </div>
+          </header>
 
-            {activeTab === 'Payees' && (
-              <TransfersTab
-                contacts={contacts}
-                accounts={accounts}
-                onSendPayment={handleSendPayment}
-                onAddContact={handleAddContact}
-                onToggleFavorite={handleToggleFavorite}
-              />
-            )}
+          {/* Optional 3D Orb Banner */}
+          {showOrbPreview && (
+            <div className="s-card" style={{ marginBottom: '24px', background: '#0a0d14', color: '#ffffff', border: '1px solid rgba(255,87,34,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px', flexWrap: 'wrap', gap: '20px' }}>
+              <div style={{ maxWidth: '520px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: '#ff7043', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <Sparkles size={13} />
+                  <span>Sanchay Global Liquidity Mesh (Three.js WebGL)</span>
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, marginTop: '6px' }}>
+                  Live Multi-Node Quantum Settlement
+                </h3>
+                <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px', lineHeight: 1.5 }}>
+                  Real-time visual node mesh streaming cross-border liquidity routes. Average latency 14ms across global vaults.
+                </p>
+              </div>
+              <div style={{ width: '180px', height: '180px' }}>
+                <ThreeDOrb />
+              </div>
+            </div>
+          )}
 
-            {activeTab === 'Plan' && (
-              <GoalsTab
-                goals={goals}
-                accounts={accounts}
-                budgets={budgets}
-                transactions={transactions}
-                onDepositToGoal={handleDepositToGoal}
-                onAddNewGoal={handleAddNewGoal}
-                onUpdateBudget={handleUpdateBudget}
-              />
-            )}
+          {/* Screen Content Views */}
+          {activeTab === 'Overview' && (
+            <OverviewTab
+              wallets={wallets}
+              transactions={transactions}
+              spendingLimit={spendingLimit}
+              monthlySpent={monthlySpent}
+              onSetSpendingLimit={setSpendingLimit}
+              onOpenTransfer={() => setActiveTab('Account')}
+              onSelectTransaction={setSelectedTransaction}
+            />
+          )}
 
-            {activeTab === 'Reports' && (
-              <ReportsTab transactions={transactions} accounts={accounts} />
-            )}
-          </main>
-        </div>
+          {activeTab === 'Manage' && (
+            <CardsTab
+              accounts={wallets}
+              isFrozen={isCardFrozen}
+              onToggleFreeze={() => setIsCardFrozen(!isCardFrozen)}
+              monthlyBudget={spendingLimit}
+              monthlySpent={monthlySpent}
+              onOpenPlan={() => setActiveTab('Program')}
+            />
+          )}
+
+          {activeTab === 'Account' && (
+            <TransfersTab
+              contacts={contacts}
+              onExecuteTransfer={handleExecuteTransfer}
+              onAddContact={handleAddContact}
+            />
+          )}
+
+          {activeTab === 'Program' && (
+            <GoalsTab
+              goals={goals}
+              onAddMoneyToGoal={handleAddMoneyToGoal}
+              onAddNewGoal={handleAddNewGoal}
+            />
+          )}
+
+          {activeTab === 'Activity' && (
+            <OverviewTab
+              wallets={wallets}
+              transactions={transactions}
+              spendingLimit={spendingLimit}
+              monthlySpent={monthlySpent}
+              onSetSpendingLimit={setSpendingLimit}
+              onOpenTransfer={() => setActiveTab('Account')}
+              onSelectTransaction={setSelectedTransaction}
+            />
+          )}
+
+          {activeTab === 'Reports' && <ReportsTab />}
+        </main>
       </div>
 
+      {/* Transaction Slide-over Drawer */}
       <TransactionDrawer
         transaction={selectedTransaction}
-        account={
-          selectedTransaction ? accountById.get(selectedTransaction.accountId) : undefined
-        }
         onClose={() => setSelectedTransaction(null)}
       />
-
-      <SearchOverlay
-        open={showSearch}
-        transactions={transactions}
-        contacts={contacts}
-        goals={goals}
-        accounts={accounts}
-        onClose={() => setShowSearch(false)}
-        onNavigate={(tab) => {
-          setShowSearch(false);
-          openTab(tab);
-        }}
-        onSelectTransaction={(transaction) => {
-          setShowSearch(false);
-          setSelectedTransaction(transaction);
-        }}
-      />
-
-      {showRequest && (
-        <RequestMoneyModal
-          contacts={contacts}
-          onClose={() => {
-            setShowRequest(false);
-          }}
-        />
-      )}
-
-      {showPrivacy && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="glass-panel p-6 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <ShieldCheck size={22} />
-              </div>
-              <button
-                onClick={() => setShowPrivacy(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all cursor-pointer"
-                aria-label="Close privacy details"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-white">
-              Your ledger stays yours
-            </h3>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              This Sanchay prototype runs entirely in your browser. It does not connect to a bank,
-              ask for credentials, or send your transactions to a server.
-            </p>
-            <div className="mt-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-500" />
-                <span>No bank login or account linking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-500" />
-                <span>No money movement — payments are simulated</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-500" />
-                <span>Balances and budgets stay on this device</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowPrivacy(false)}
-              className="mt-6 w-full btn-primary py-3 text-xs"
-            >
-              <span>Got it</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

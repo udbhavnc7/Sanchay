@@ -50,10 +50,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   ];
 
   const filteredTransactions = transactions.filter((tx) => {
+    const idStr = tx.orderId || tx.reference || '';
+    const recipientStr = tx.recipient || tx.counterparty || '';
     const matchesSearch =
       tx.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      tx.recipient.toLowerCase().includes(searchTerm.toLowerCase());
+      idStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipientStr.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || tx.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -510,11 +512,11 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     }}
                   >
                     <td className="font-mono-numbers" style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      {tx.orderId}
+                      {tx.orderId || tx.reference}
                     </td>
                     <td style={{ padding: '12px 10px' }}>
                       <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{tx.title}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{tx.recipient}</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{tx.recipient || tx.counterparty}</div>
                     </td>
                     <td className="font-mono-numbers" style={{ padding: '12px 10px', fontWeight: 800 }}>
                       <span style={{ color: tx.type === 'credit' ? '#10b981' : 'var(--text-main)' }}>

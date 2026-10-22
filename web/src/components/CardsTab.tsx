@@ -1,27 +1,36 @@
 import React, { useState } from 'react';
+import type { Account } from '../types/finance';
 import { ThreeDCard } from './ThreeDCard';
 import { sound } from '../utils/audio';
 import {
   Globe,
   Radio,
   Landmark,
-  Plus,
+  CreditCard,
+  Wallet,
+  Banknote,
+  PiggyBank,
+  ShieldCheck,
+  ChevronRight,
 } from 'lucide-react';
+import { formatMoney, formatPercent } from '../utils/money';
 
 interface CardsTabProps {
+  accounts: Account[];
   isFrozen: boolean;
   onToggleFreeze: () => void;
-  spendingLimit: number;
+  monthlyBudget: number;
   monthlySpent: number;
-  onSetSpendingLimit: (val: number) => void;
+  onOpenPlan: () => void;
 }
 
 export const CardsTab: React.FC<CardsTabProps> = ({
+  accounts,
   isFrozen,
   onToggleFreeze,
-  spendingLimit,
+  monthlyBudget,
   monthlySpent,
-  onSetSpendingLimit,
+  onOpenPlan,
 }) => {
   const [onlinePayments, setOnlinePayments] = useState(true);
   const [contactless, setContactless] = useState(true);
@@ -30,121 +39,117 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   const [activeCardIndex, setActiveCardIndex] = useState(0);
 
   const cardsList = [
-    { id: 'card1', last4: '6782', type: 'Titanium Obsidian', primary: true },
-    { id: 'card2', last4: '4356', type: 'Virtual Solar Orange', primary: false },
+    { id: 'card1', last4: '6782', type: 'Everyday card', primary: true },
+    { id: 'card2', last4: '4356', type: 'Travel card', primary: false },
   ];
 
-  const handleToggle = (setter: React.Dispatch<React.SetStateAction<boolean>>, current: boolean) => {
+  const handleToggle = (
+    setter: React.Dispatch<React.SetStateAction<boolean>>,
+    current: boolean
+  ) => {
     sound.click();
     setter(!current);
   };
 
-  const spentRatio = Math.min(100, (monthlySpent / spendingLimit) * 100);
+  const spentRatio = monthlyBudget > 0 ? Math.min(100, (monthlySpent / monthlyBudget) * 100) : 0;
+
+  const renderAccountIcon = (account: Account) => {
+    if (account.type === 'Bank') return <Landmark size={16} />;
+    if (account.type === 'Cash') return <Banknote size={16} />;
+    if (account.type === 'Card') return <CreditCard size={16} />;
+    return <PiggyBank size={16} />;
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Manage
+            Accounts
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Freeze cards, fine-tune limits and decide which wallets stay switched on.
+            See every account, freeze your card, and keep spending on track.
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            sound.click();
-            alert('Virtual Titanium Card Request submitted to Sanchay Vault. Ready in 2 minutes.');
-          }}
-          className="btn-primary"
-        >
-          <Plus size={16} />
-          <span>New card</span>
+        <button onClick={onOpenPlan} className="btn-primary">
+          <span>Review budgets</span>
+          <ChevronRight size={16} />
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: 3D Interactive Card & Card Switcher (6 cols) */}
         <div className="lg:col-span-6 flex flex-col gap-6">
           <div className="glass-panel p-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Your cards</h2>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Your card</h2>
               <span className="text-xs text-slate-400 font-semibold">{cardsList.length} cards</span>
             </div>
 
-            {/* Three.js 3D WebGL Canvas */}
             <ThreeDCard
               isFrozen={isFrozen}
               onToggleFreeze={onToggleFreeze}
-              spendingLimit={spendingLimit}
+              spendingLimit={monthlyBudget}
               monthlySpent={monthlySpent}
             />
 
-            {/* Multiple Cards Pills */}
-            <div className="mt-6 pt-5 border-t border-slate-200/60 dark:border-white/10 flex items-center justify-between">
+            <div className="mt-6 pt-5 border-t border-slate-200/60 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                {cardsList.map((c, idx) => (
+                {cardsList.map((card, index) => (
                   <button
-                    key={c.id}
+                    key={card.id}
                     onClick={() => {
                       sound.click();
-                      setActiveCardIndex(idx);
+                      setActiveCardIndex(index);
                     }}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold font-mono-numbers transition-all ${
-                      activeCardIndex === idx
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold font-mono-numbers transition-all cursor-pointer ${
+                      activeCardIndex === index
                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-md scale-105'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     <span
                       className={`w-2.5 h-2.5 rounded-sm ${
-                        idx === 0 ? 'bg-slate-800 border border-slate-600' : 'bg-orange-500'
+                        index === 0 ? 'bg-slate-800 border border-slate-600' : 'bg-orange-500'
                       }`}
                     />
-                    <span>•• {c.last4}</span>
+                    <span>
+                      {card.type} •••• {card.last4}
+                    </span>
                   </button>
                 ))}
-
-                <button
-                  onClick={() => {
-                    sound.click();
-                    alert('Create a disposable virtual card with automatic 24-hour expiry.');
-                  }}
-                  className="w-7 h-7 rounded-full border border-dashed border-slate-400 dark:border-slate-600 flex items-center justify-center text-slate-400 hover:text-orange-500 hover:border-orange-500 transition-all text-sm font-bold"
-                >
-                  +
-                </button>
               </div>
 
-              <div className="text-xs text-slate-400">
-                Tap card to rotate & examine
-              </div>
+              <div className="text-xs text-slate-400">Tap card to rotate & examine</div>
             </div>
           </div>
-        </div>
 
-        {/* Right Column: Card Controls & Limit Settings (6 cols) */}
-        <div className="lg:col-span-6 flex flex-col gap-6">
           <div className="glass-panel p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Card controls</h2>
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                Active
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Card controls
+              </h2>
+              <span
+                className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
+                  isFrozen
+                    ? 'bg-sky-500/10 text-sky-500 border-sky-500/20'
+                    : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                }`}
+              >
+                {isFrozen ? 'Frozen' : 'Active'}
               </span>
             </div>
 
             <div className="space-y-4">
-              {/* 1. Online Payments */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
                     <Globe size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Online payments</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      Online payments
+                    </div>
                     <div className="text-[11px] text-slate-400">
                       Shops, subscriptions and in-app purchases
                     </div>
@@ -156,6 +161,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
                     onlinePayments ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
                   }`}
+                  aria-label="Toggle online payments"
                 >
                   <div
                     className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -165,15 +171,18 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 </button>
               </div>
 
-              {/* 2. Contactless */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
                     <Radio size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Contactless</div>
-                    <div className="text-[11px] text-slate-400">Tap to pay up to $250 per payment</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      Contactless
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      Tap to pay up to ₹5,000 per payment
+                    </div>
                   </div>
                 </div>
 
@@ -182,6 +191,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
                     contactless ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
                   }`}
+                  aria-label="Toggle contactless payments"
                 >
                   <div
                     className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -191,15 +201,16 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 </button>
               </div>
 
-              {/* 3. ATM Withdrawals */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
                     <Landmark size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">ATM withdrawals</div>
-                    <div className="text-[11px] text-slate-400">Up to $1,000 per day</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      ATM withdrawals
+                    </div>
+                    <div className="text-[11px] text-slate-400">Up to ₹25,000 per day</div>
                   </div>
                 </div>
 
@@ -208,6 +219,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
                     atmWithdrawals ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
                   }`}
+                  aria-label="Toggle ATM withdrawals"
                 >
                   <div
                     className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -217,16 +229,17 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 </button>
               </div>
 
-              {/* 4. Use Abroad */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200">
                     <Globe size={18} />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-white">Use abroad</div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white">
+                      Use abroad
+                    </div>
                     <div className="text-[11px] text-slate-400">
-                      Payments outside home currency zone
+                      Payments outside your home currency zone
                     </div>
                   </div>
                 </div>
@@ -236,6 +249,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   className={`w-12 h-6 rounded-full transition-colors p-0.5 relative cursor-pointer ${
                     useAbroad ? 'bg-[#FF5722]' : 'bg-slate-300 dark:bg-slate-700'
                   }`}
+                  aria-label="Toggle use abroad"
                 >
                   <div
                     className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
@@ -246,48 +260,112 @@ export const CardsTab: React.FC<CardsTabProps> = ({
               </div>
             </div>
 
-            {/* Monthly Spending Limit Slider */}
-            <div className="mt-6 pt-6 border-t border-slate-200/60 dark:border-white/10">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Monthly spending limit</span>
-                <span className="text-xl font-black font-mono-numbers text-slate-900 dark:text-white">
-                  ${spendingLimit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+            <div className="mt-4 flex items-start gap-2 text-[11px] text-slate-400">
+              <ShieldCheck size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+              <span>Card controls are a preview here; no real card is connected.</span>
+            </div>
+          </div>
+        </div>
 
-              {/* Slider */}
-              <div className="mt-4">
-                <input
-                  type="range"
-                  min="1000"
-                  max="20000"
-                  step="500"
-                  value={spendingLimit}
-                  onChange={(e) => {
-                    sound.click();
-                    onSetSpendingLimit(Number(e.target.value));
-                  }}
-                  className="w-full"
-                />
+        <div className="lg:col-span-6 flex flex-col gap-6">
+          <div className="glass-panel p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                  All accounts
+                </h2>
+                <p className="text-xs text-slate-400">Balances update as you spend and save.</p>
               </div>
+              <Wallet size={16} className="text-slate-400" />
+            </div>
 
-              <div className="mt-3 flex items-center justify-between text-xs text-slate-400 font-mono-numbers">
-                <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    ${monthlySpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>{' '}
-                  used ({spentRatio.toFixed(0)}%)
-                </div>
-                <span>$20,000 max</span>
-              </div>
-
-              {/* Dynamic Spent progress bar */}
-              <div className="mt-2 w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+            <div className="space-y-3">
+              {accounts.map((account) => (
                 <div
-                  className="h-full bg-orange-500 rounded-full transition-all duration-300"
-                  style={{ width: `${spentRatio}%` }}
-                />
-              </div>
+                  key={account.id}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 shadow-sm">
+                      {renderAccountIcon(account)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {account.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {account.type} · {account.currency} ·{' '}
+                        <span
+                          className={
+                            account.status === 'Active' ? 'text-emerald-500' : 'text-slate-400'
+                          }
+                        >
+                          {account.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-black font-mono-numbers text-slate-900 dark:text-white">
+                      {formatMoney(account.balance, account.currency, { decimals: false })}
+                    </div>
+                    <div
+                      className={`text-[10px] font-mono-numbers ${
+                        account.change >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                      }`}
+                    >
+                      {formatPercent(account.change)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-panel p-6">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Monthly spending limit
+              </span>
+              <span className="text-xs font-mono-numbers font-bold text-orange-500">
+                {spentRatio.toFixed(0)}% used
+              </span>
+            </div>
+
+            <div className="mt-4 relative w-full h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${spentRatio}%`,
+                  background:
+                    spentRatio > 80
+                      ? 'linear-gradient(90deg, #f59e0b, #ef4444)'
+                      : 'linear-gradient(90deg, #ff7043, #ff5722)',
+                }}
+              />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-xs font-mono-numbers">
+              <span className="font-extrabold text-slate-900 dark:text-white">
+                {formatMoney(monthlySpent, 'INR', { decimals: false })} spent
+              </span>
+              <span className="text-slate-400">
+                of {formatMoney(monthlyBudget, 'INR', { decimals: false })}
+              </span>
+            </div>
+
+            <button
+              onClick={onOpenPlan}
+              className="mt-4 w-full btn-secondary py-2.5 text-xs"
+            >
+              <span>Adjust category budgets</span>
+              <ChevronRight size={14} />
+            </button>
+
+            <div className="mt-4 flex items-start gap-2 text-[11px] text-slate-400">
+              <ShieldCheck size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+              <span>Only completed payments count toward your budget.</span>
             </div>
           </div>
         </div>

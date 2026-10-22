@@ -1,115 +1,231 @@
-import React from 'react';
-import type { Transaction } from '../types/finance';
+import React, { useEffect, useState } from 'react';
+import type { Account, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
   X,
   CheckCircle2,
+  Clock,
+  XCircle,
   Download,
-  FileCheck,
-  Shield,
+  Copy,
+  Check,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ShieldCheck,
 } from 'lucide-react';
+import { formatDateTime, formatMoney } from '../utils/money';
 
 interface TransactionDrawerProps {
   transaction: Transaction | null;
+  account?: Account;
   onClose: () => void;
 }
 
 export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   transaction,
+  account,
   onClose,
 }) => {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!transaction) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [transaction, onClose]);
+
   if (!transaction) return null;
 
-  const handleDownload = () => {
-    sound.success();
-    alert(`Downloaded Official Tax Invoice for ${transaction.orderId}`);
+  const currency = account?.currency ?? 'INR';
+  const isIncome = transaction.kind === 'income';
+  const isTransfer = transaction.kind === 'transfer';
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(transaction.reference);
+      setCopied(true);
+      sound.click();
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
+  const handleDownload = () => {
+    const lines = [
+      'SANCHAY — TRANSACTION RECORD',
+      '============================',
+      '',
+      `Reference:    ${transaction.reference}`,
+      `Status:       ${transaction.status}`,
+      `Type:         ${isIncome ? 'Income' : isTransfer ? 'Savings transfer' : 'Expense'}`,
+      `Amount:       ${formatMoney(transaction.amount, currency)}`,
+      `Title:        ${transaction.title}`,
+      `Counterparty: ${transaction.counterparty}`,
+      `Account:      ${account?.name ?? 'Unknown account'}`,
+      `Category:     ${transaction.category}`,
+      `Date:         ${formatDateTime(transaction.date)}`,
+      `Fee:          ${formatMoney(transaction.fee ?? 0, currency)}`,
+      `Note:         ${transaction.note ?? '—'}`,
+      '',
+      'Generated locally by Sanchay. No bank connection was used.',
+    ];
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sanchay-${transaction.reference}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    sound.success();
+  };
+
+  const statusStyles =
+    transaction.status === 'Completed'
+      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+      : transaction.status === 'Pending'
+        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+        : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+
+  const StatusIcon =
+    transaction.status === 'Completed'
+      ? CheckCircle2
+      : transaction.status === 'Pending'
+        ? Clock
+        : XCircle;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md h-full bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto border-l border-slate-200 dark:border-white/10">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md h-full bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto border-l border-slate-200 dark:border-white/10"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div>
-          {/* Top Bar */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-200/70 dark:border-white/10">
             <span className="text-xs font-mono-numbers font-bold text-slate-400">
-              {transaction.orderId}
+              {transaction.reference}
             </span>
-            <button
-              onClick={() => {
-                sound.click();
-                onClose();
-              }}
-              className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleCopy}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all cursor-pointer"
+                title="Copy reference"
+              >
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </button>
+              <button
+                onClick={() => {
+                  sound.click();
+                  onClose();
+                }}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all cursor-pointer"
+                aria-label="Close transaction details"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
-          {/* Receipt Header */}
           <div className="my-6 text-center">
-            <div className="w-14 h-14 rounded-full mx-auto flex items-center justify-center bg-orange-500/10 text-orange-500 mb-3">
-              <FileCheck size={28} />
+            <div
+              className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center mb-3 ${
+                isIncome
+                  ? 'bg-emerald-500/10 text-emerald-500'
+                  : isTransfer
+                    ? 'bg-orange-500/10 text-orange-500'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+              }`}
+            >
+              {isIncome ? (
+                <ArrowDownLeft size={26} />
+              ) : isTransfer ? (
+                <ArrowLeftRight size={26} />
+              ) : (
+                <ArrowUpRight size={26} />
+              )}
             </div>
 
             <h2 className="text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
-              {transaction.type === 'credit' ? '+' : '-'}$
-              {transaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {isIncome ? '+' : '−'}
+              {formatMoney(transaction.amount, currency)}
             </h2>
 
             <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
               {transaction.title}
             </div>
 
-            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-              <CheckCircle2 size={13} />
-              <span>Cleared & Settled</span>
+            <div
+              className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${statusStyles}`}
+            >
+              <StatusIcon size={13} />
+              <span>{transaction.status}</span>
             </div>
           </div>
 
-          {/* Details Card */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5 space-y-3.5 text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Beneficiary</span>
-              <span className="font-bold text-slate-900 dark:text-white">{transaction.recipient}</span>
+            <div className="flex justify-between gap-4">
+              <span className="text-slate-400">Counterparty</span>
+              <span className="font-bold text-slate-900 dark:text-white text-right">
+                {transaction.counterparty}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Category</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{transaction.category}</span>
+              <span className="font-semibold text-slate-900 dark:text-white">
+                {transaction.category}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-slate-400">Account</span>
+              <span className="font-semibold text-slate-900 dark:text-white text-right">
+                {account?.name ?? 'Unknown account'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-slate-400">Recorded</span>
+              <span className="font-mono-numbers text-slate-700 dark:text-slate-300 text-right">
+                {formatDateTime(transaction.date)}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Settlement Wallet</span>
-              <span className="font-semibold text-slate-900 dark:text-white">{transaction.wallet} Corporate Treasury</span>
+              <span className="text-slate-400">Fee</span>
+              <span className="font-bold text-emerald-500">
+                {formatMoney(transaction.fee ?? 0, currency)}
+              </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Timestamp</span>
-              <span className="font-mono-numbers text-slate-700 dark:text-slate-300">{transaction.date}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Network Fee</span>
-              <span className="font-mono-numbers text-emerald-500 font-bold">$0.00 (Zero Sanchay Enterprise Fee)</span>
-            </div>
+            {transaction.note && (
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-400">Note</span>
+                <span className="font-semibold text-slate-900 dark:text-white text-right">
+                  {transaction.note}
+                </span>
+              </div>
+            )}
           </div>
 
-          {/* Simulated Cryptographic Hash */}
-          <div className="mt-6 p-4 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-[11px] text-slate-400 space-y-1">
-            <div className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
-              <Shield size={12} className="text-emerald-500" />
-              <span>Immutable Ledger Verification</span>
+          <div className="mt-5 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+            <div className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
+              <ShieldCheck size={13} />
+              <span>Local record</span>
             </div>
-            <div className="font-mono text-[10px] break-all opacity-70">
-              0x8f3c7e4b912a7d6e15904bc3fa2e9d7210bc89456e
-            </div>
+            This entry exists only in this browser. No bank was contacted and no money moved.
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-6 border-t border-slate-200/70 dark:border-white/10 flex gap-3">
-          <button
-            onClick={handleDownload}
-            className="flex-1 btn-primary py-3 text-xs"
-          >
+        <div className="pt-6 border-t border-slate-200/70 dark:border-white/10">
+          <button onClick={handleDownload} className="w-full btn-primary py-3 text-xs">
             <Download size={14} />
-            <span>Download Invoice PDF</span>
+            <span>Download receipt</span>
           </button>
         </div>
       </div>

@@ -15,20 +15,20 @@ export const ReportsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.15, color: 'var(--text-main)' }}>
             Treasury & Audit Reports
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Enterprise compliance, cash burn runway, tax provisions, and fiscal statements.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-full bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-white/10 text-xs">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', padding: '3px', borderRadius: '9999px', background: 'var(--bg-pill)', border: '1px solid var(--border-subtle)' }}>
             {(['Q1', 'Q2', 'YTD'] as const).map((r) => (
               <button
                 key={r}
@@ -36,122 +36,131 @@ export const ReportsTab: React.FC = () => {
                   sound.click();
                   setActiveRange(r);
                 }}
-                className={`px-3.5 py-1.5 rounded-full font-bold transition-all ${
-                  activeRange === r
-                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-400'
-                }`}
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: activeRange === r ? '#111317' : 'transparent',
+                  color: activeRange === r ? '#ffffff' : 'var(--text-muted)',
+                }}
               >
                 {r}
               </button>
             ))}
           </div>
 
-          <button onClick={handleExportStatement} className="btn-primary text-xs py-2">
+          <button onClick={handleExportStatement} className="btn-action-dark" style={{ padding: '8px 16px', fontSize: '12px' }}>
             <Download size={14} />
             <span>Export Statement</span>
           </button>
         </div>
       </div>
 
-      {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="glass-panel p-5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+      {/* 4 Metric Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div className="s-card">
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Cash Runway
           </span>
-          <div className="mt-2 text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
+          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
             22.4 Mo
           </div>
-          <div className="mt-1 text-xs text-emerald-500 font-bold flex items-center gap-1">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
             <TrendingUp size={12} /> +3.2 mo runway added
           </div>
         </div>
 
-        <div className="glass-panel p-5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="s-card">
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Net Cash Burn
           </span>
-          <div className="mt-2 text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
-            $24,650<span className="text-sm text-slate-400">/mo</span>
+          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
+            $24,650<span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>/mo</span>
           </div>
-          <div className="mt-1 text-xs text-slate-400">Stable within Q2 threshold</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Stable within Q2 threshold
+          </div>
         </div>
 
-        <div className="glass-panel p-5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="s-card">
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Tax Provision Reserve
           </span>
-          <div className="mt-2 text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
+          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-main)', marginTop: '6px' }}>
             $118,400
           </div>
-          <div className="mt-1 text-xs text-emerald-500 font-bold">100% Fully collateralized</div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
+            100% Fully collateralized
+          </div>
         </div>
 
-        <div className="glass-panel p-5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+        <div className="s-card">
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             Gross Margin (EBITDA)
           </span>
-          <div className="mt-2 text-3xl font-black font-mono-numbers text-orange-500">
+          <div className="font-mono-numbers" style={{ fontSize: '32px', fontWeight: 900, color: 'var(--accent-orange)', marginTop: '6px' }}>
             68.4%
           </div>
-          <div className="mt-1 text-xs text-slate-400 font-mono-numbers">+4.2% vs target</div>
+          <div className="font-mono-numbers" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            +4.2% vs target
+          </div>
         </div>
       </div>
 
       {/* Breakdown Panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 glass-panel p-6">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+        <div className="s-card" style={{ gridColumn: 'span 2' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '16px' }}>
             Expense Allocation Matrix
           </h3>
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {[
-              { label: 'Engineering & Cloud Infrastructure (AWS / GCP / Cloudflare)', pct: 42, amt: '$104,200', color: '#FF5722' },
-              { label: 'Core Team Payroll & Executive Retainers', pct: 28, amt: '$69,400', color: '#38BDF8' },
-              { label: 'Marketing, Growth & User Acquisition', pct: 16, amt: '$39,600', color: '#10B981' },
-              { label: 'Legal, Compliance & Banking Reserve', pct: 14, amt: '$34,700', color: '#F59E0B' },
+              { label: 'Engineering & Cloud Infrastructure (AWS / GCP / Cloudflare)', pct: 42, amt: '$104,200', color: '#ff5722' },
+              { label: 'Core Team Payroll & Executive Retainers', pct: 28, amt: '$69,400', color: '#38bdf8' },
+              { label: 'Marketing, Growth & User Acquisition', pct: 16, amt: '$39,600', color: '#10b981' },
+              { label: 'Legal, Compliance & Banking Reserve', pct: 14, amt: '$34,700', color: '#f59e0b' },
             ].map((row) => (
-              <div key={row.label} className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{row.label}</span>
-                  <span className="font-bold font-mono-numbers text-slate-900 dark:text-white">{row.amt} ({row.pct}%)</span>
+              <div key={row.label} style={{ padding: '14px', borderRadius: '16px', background: 'var(--bg-pill)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.label}</span>
+                  <span className="font-mono-numbers" style={{ fontWeight: 800, color: 'var(--text-main)' }}>{row.amt} ({row.pct}%)</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${row.pct}%`, backgroundColor: row.color }} />
+                <div style={{ width: '100%', height: '8px', borderRadius: '9999px', background: 'var(--bg-card)', overflow: 'hidden' }}>
+                  <div style={{ width: `${row.pct}%`, height: '100%', borderRadius: '9999px', backgroundColor: row.color, transition: 'width 0.6s ease' }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="lg:col-span-4 glass-panel p-6 flex flex-col justify-between">
+        <div className="s-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Audit Certifications</h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '6px' }}>Audit Certifications</h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
               Cryptographically verified by Sanchay Decentralized Trust Node.
             </p>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
                 <CheckCircle2 size={16} />
                 <span>SOC 2 Type II Certified</span>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
                 <CheckCircle2 size={16} />
                 <span>PCI-DSS Level 1 Compliant</span>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '12px', color: '#10b981', fontWeight: 700 }}>
                 <CheckCircle2 size={16} />
                 <span>Automated Form 1099 & W8-BEN Generator</span>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-200/60 dark:border-white/10 text-center">
-            <span className="text-[11px] text-slate-400">
-              Last audited: Today at 04:30 PM UTC
-            </span>
+          <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+            Last audited: Today at 04:30 PM UTC
           </div>
         </div>
       </div>

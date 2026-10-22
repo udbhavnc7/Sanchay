@@ -461,3 +461,9 @@ export const initialBudgets: Budget[] = [
   { id: 'b6', category: 'Entertainment', limit: 1500, color: '#ec4899' },
   { id: 'b7', category: 'Rent', limit: 22000, color: '#64748b' },
 ];
+
+export const initialWallets: Account[] = initialAccounts.map(a => ({
+  ...a,
+  flag: a.currency === 'USD' ? '🇺🇸' : a.currency === 'EUR' ? '🇪🇺' : '🇮🇳',
+  symbol: a.currency === 'USD' ? '$' : a.currency === 'EUR' ? '€' : '₹',
+}));

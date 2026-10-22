@@ -1,4 +1,4 @@
-export type Currency = 'INR' | 'USD' | 'EUR';
+export type Currency = 'INR' | 'USD' | 'EUR' | 'GBP' | 'JPY';
 
 export type AccountType = 'Bank' | 'Cash' | 'Savings' | 'Card';
 
@@ -9,8 +9,12 @@ export interface Account {
   currency: Currency;
   balance: number;
   status: 'Active' | 'Inactive';
-  change: number;
+  change: number | string;
+  flag?: string;
+  symbol?: string;
 }
+
+export type Wallet = Account;
 
 export type Category =
   | 'Income'
@@ -23,25 +27,33 @@ export type Category =
   | 'Health'
   | 'Rent'
   | 'Savings'
+  | 'Payroll'
+  | 'Infrastructure'
+  | 'Client Payment'
+  | 'Equipment'
+  | 'Travel'
   | 'Other';
 
-export type TxStatus = 'Completed' | 'Pending' | 'Failed';
+export type TxStatus = 'Completed' | 'Pending' | 'Failed' | 'Flagged';
 export type TxKind = 'expense' | 'income' | 'transfer';
 
 export interface Transaction {
   id: string;
-  reference: string;
+  reference?: string;
+  orderId?: string;
   title: string;
   category: Category;
   amount: number;
   type: 'credit' | 'debit';
   status: TxStatus;
   date: string;
-  accountId: string;
-  counterparty: string;
+  accountId?: string;
+  counterparty?: string;
+  recipient?: string;
   note?: string;
-  kind: TxKind;
+  kind?: TxKind;
   fee?: number;
+  wallet?: string;
 }
 
 export interface Contact {
@@ -50,15 +62,15 @@ export interface Contact {
   handle: string;
   type: 'Person' | 'Business';
   bank: string;
-  accountNumber: string;
-  currency: Currency;
+  accountNumber?: string;
+  currency?: Currency;
   initials: string;
   avatarColor: string;
   isFavorite: boolean;
   lastTransfer?: string;
 }
 
-export type GoalIcon = 'laptop' | 'plane' | 'shield' | 'car' | 'gift';
+export type GoalIcon = 'laptop' | 'plane' | 'shield' | 'car' | 'gift' | string;
 
 export interface SavingsGoal {
   id: string;
