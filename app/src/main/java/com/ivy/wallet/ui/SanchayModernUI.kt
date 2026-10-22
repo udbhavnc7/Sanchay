@@ -60,8 +60,9 @@ fun SanchayModernUI(
                     allowContentAccess = true
                     allowFileAccessFromFileURLs = true
                     allowUniversalAccessFromFileURLs = true
-                    loadWithOverviewMode = true
-                    useWideViewPort = true
+                    loadWithOverviewMode = false
+                    useWideViewPort = false
+                    textZoom = 100
                     builtInZoomControls = false
                     displayZoomControls = false
                     setSupportZoom(false)

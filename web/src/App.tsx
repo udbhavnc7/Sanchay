@@ -382,396 +382,419 @@ export const App: React.FC = () => {
     <>
       {showSplash && <SanchaySplash onEnter={handleEnterApp} />}
       <div
+        className="app-shell-root"
         aria-hidden={showSplash || undefined}
-        style={{
-          minHeight: '100vh',
-          padding: '16px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-        }}
       >
-      <div className="chassis-frame">
-        <aside className="vertical-dock">
-          <div className="dock-pill">
-            <button
-              onClick={() => toggleTheme(false)}
-              className={`dock-btn ${!isDarkMode ? 'active' : ''}`}
-              title="Light mode"
-            >
-              <Sun size={15} />
-            </button>
-            <button
-              onClick={() => toggleTheme(true)}
-              className={`dock-btn ${isDarkMode ? 'active' : ''}`}
-              title="Dark mode"
-            >
-              <Moon size={15} />
-            </button>
-          </div>
-
-          <div className="dock-pill">
-            {TABS.map((tab) => {
-              const Icon = DOCK_ICONS[tab];
-              return (
-                <button
-                  key={tab}
-                  onClick={() => navigate(tab)}
-                  className={`dock-btn ${activeTab === tab ? 'active' : ''}`}
-                  title={tab}
-                >
-                  <Icon size={17} />
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="dock-pill" style={{ marginTop: 'auto' }}>
-            <button
-              onClick={() => {
-                sound.click();
-                setShowSearch(true);
-              }}
-              className="dock-btn"
-              title="Search (Ctrl/Cmd + K)"
-            >
-              <Search size={16} />
-            </button>
-            <button
-              onClick={() => {
-                sound.click();
-                setShowPrivacy(true);
-              }}
-              className="dock-btn"
-              title="Privacy"
-            >
-              <ShieldCheck size={16} />
-            </button>
-          </div>
-        </aside>
-
-        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          <header className="header-bar">
-            <div className="brand-badge" onClick={() => navigate('Overview')}>
-              <SanchayLogo size="md" />
+        <div className="chassis-frame">
+          <aside className="vertical-dock">
+            <div className="dock-pill">
+              <button
+                onClick={() => toggleTheme(false)}
+                className={`dock-btn ${!isDarkMode ? 'active' : ''}`}
+                title="Light mode"
+              >
+                <Sun size={15} />
+              </button>
+              <button
+                onClick={() => toggleTheme(true)}
+                className={`dock-btn ${isDarkMode ? 'active' : ''}`}
+                title="Dark mode"
+              >
+                <Moon size={15} />
+              </button>
             </div>
 
-            <nav className="top-nav-capsule">
-              {TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => navigate(tab)}
-                  className={`top-nav-item ${activeTab === tab ? 'active' : ''}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </nav>
+            <div className="dock-pill">
+              {TABS.map((tab) => {
+                const Icon = DOCK_ICONS[tab];
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => navigate(tab)}
+                    className={`dock-btn ${activeTab === tab ? 'active' : ''}`}
+                    title={tab}
+                  >
+                    <Icon size={17} />
+                  </button>
+                );
+              })}
+            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="dock-pill" style={{ marginTop: 'auto' }}>
               <button
                 onClick={() => {
                   sound.click();
                   setShowSearch(true);
                 }}
                 className="dock-btn"
-                style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
-                title="Search"
+                title="Search (Ctrl/Cmd + K)"
               >
-                <Search size={15} />
+                <Search size={16} />
               </button>
-
               <button
                 onClick={() => {
                   sound.click();
-                  setShowRequest(true);
+                  setShowPrivacy(true);
                 }}
-                className="btn-action-dark"
-                style={{ padding: '8px 14px', fontSize: '12px' }}
+                className="dock-btn"
+                title="Privacy"
               >
-                <ArrowDownLeft size={14} />
-                <span>Request</span>
+                <ShieldCheck size={16} />
               </button>
+            </div>
+          </aside>
 
-              <div style={{ position: 'relative' }}>
+          <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <header className="header-bar">
+              <div className="brand-badge" onClick={() => navigate('Overview')}>
+                <SanchayLogo size="md" />
+              </div>
+
+              <nav className="top-nav-capsule">
+                {TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => navigate(tab)}
+                    className={`top-nav-item ${activeTab === tab ? 'active' : ''}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => toggleTheme(!isDarkMode)}
+                  className="dock-btn mobile-theme-btn"
+                  style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
+                  title={isDarkMode ? 'Switch to Light mode' : 'Switch to Dark mode'}
+                >
+                  {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                </button>
+
                 <button
                   onClick={() => {
                     sound.click();
-                    setShowNotifications(!showNotifications);
+                    setShowSearch(true);
                   }}
                   className="dock-btn"
-                  style={{
-                    border: '1px solid var(--border-subtle)',
-                    background: 'var(--bg-card)',
-                    position: 'relative',
-                  }}
-                  title="Notifications"
+                  style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
+                  title="Search"
                 >
-                  <Bell size={15} />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '9px',
-                      right: '9px',
-                      width: '7px',
-                      height: '7px',
-                      borderRadius: '50%',
-                      background: 'var(--accent-orange)',
-                    }}
-                  />
+                  <Search size={15} />
                 </button>
 
-                {showNotifications && (
-                  <div
-                    className="s-card"
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: '48px',
-                      width: '300px',
-                      zIndex: 50,
-                      padding: '16px',
+                <button
+                  onClick={() => {
+                    sound.click();
+                    setShowRequest(true);
+                  }}
+                  className="btn-action-dark"
+                  style={{ padding: '8px 14px', fontSize: '12px' }}
+                >
+                  <ArrowDownLeft size={14} />
+                  <span>Request</span>
+                </button>
+
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => {
+                      sound.click();
+                      setShowNotifications(!showNotifications);
                     }}
+                    className="dock-btn"
+                    style={{
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-card)',
+                      position: 'relative',
+                    }}
+                    title="Notifications"
                   >
-                    <div
+                    <Bell size={15} />
+                    <span
                       style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '12px',
+                        position: 'absolute',
+                        top: '9px',
+                        right: '9px',
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: 'var(--accent-orange)',
+                      }}
+                    />
+                  </button>
+
+                  {showNotifications && (
+                    <div
+                      className="s-card"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '48px',
+                        width: '300px',
+                        zIndex: 50,
+                        padding: '16px',
                       }}
                     >
-                      <span style={{ fontSize: '12px', fontWeight: 700 }}>Alerts</span>
-                      <span
+                      <div
                         style={{
-                          fontSize: '10px',
-                          color: 'var(--text-muted)',
-                          fontWeight: 600,
-                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '12px',
                         }}
-                        onClick={() => setShowNotifications(false)}
                       >
-                        Close
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {alerts.map((alert) => (
-                        <div
-                          key={alert.text}
+                        <span style={{ fontSize: '12px', fontWeight: 700 }}>Alerts</span>
+                        <span
                           style={{
-                            padding: '8px 10px',
-                            borderRadius: '10px',
-                            fontSize: '11px',
+                            fontSize: '10px',
+                            color: 'var(--text-muted)',
                             fontWeight: 600,
-                            background: ALERT_STYLES[alert.tone].background,
-                            color: ALERT_STYLES[alert.tone].color,
+                            cursor: 'pointer',
                           }}
+                          onClick={() => setShowNotifications(false)}
                         >
-                          {alert.text}
-                        </div>
-                      ))}
+                          Close
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {alerts.map((alert) => (
+                          <div
+                            key={alert.text}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '10px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              background: ALERT_STYLES[alert.tone].background,
+                              color: ALERT_STYLES[alert.tone].color,
+                            }}
+                          >
+                            {alert.text}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <button
-                onClick={toggleAudio}
-                className="dock-btn"
-                style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
-                title={isAudioEnabled ? 'Mute sounds' : 'Enable sounds'}
-              >
-                {isAudioEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-              </button>
+                <button
+                  onClick={toggleAudio}
+                  className="dock-btn"
+                  style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
+                  title={isAudioEnabled ? 'Mute sounds' : 'Enable sounds'}
+                >
+                  {isAudioEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                </button>
 
-              <div
-                onClick={() => sound.click()}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px 12px 4px 6px',
-                  borderRadius: '9999px',
-                  border: '1px solid var(--border-subtle)',
-                  background: 'var(--bg-card)',
-                  cursor: 'pointer',
-                }}
-              >
                 <div
+                  onClick={() => sound.click()}
                   style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    background: '#111317',
-                    color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '11px',
-                    fontWeight: 800,
+                    gap: '8px',
+                    padding: '4px 12px 4px 6px',
+                    borderRadius: '9999px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-card)',
+                    cursor: 'pointer',
                   }}
                 >
-                  U
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                  <span
+                  <div
                     style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      lineHeight: 1.1,
-                      color: 'var(--text-main)',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: '#111317',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 800,
                     }}
                   >
-                    Udbhav
-                  </span>
-                  <span
-                    style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.1 }}
-                  >
-                    hello@sanchay.app
-                  </span>
+                    U
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        lineHeight: 1.1,
+                        color: 'var(--text-main)',
+                      }}
+                    >
+                      Udbhav
+                    </span>
+                    <span
+                      style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.1 }}
+                    >
+                      hello@sanchay.app
+                    </span>
+                  </div>
+                  <ChevronDown size={12} color="var(--text-muted)" />
                 </div>
-                <ChevronDown size={12} color="var(--text-muted)" />
               </div>
-            </div>
-          </header>
+            </header>
 
-          {activeTab === 'Overview' && (
-            <OverviewTab
-              accounts={accounts}
-              transactions={transactions}
-              budgets={budgets}
-              goals={goals}
-              monthlySpent={monthlySpent}
-              monthlyBudget={monthlyBudget}
-              availableBalance={availableBalance}
-              goalBalance={goalBalance}
-              netWorth={netWorth}
-              onOpenPayees={() => navigate('Payees')}
-              onOpenPlan={() => navigate('Plan')}
-              onOpenActivity={() => navigate('Activity')}
-              onRequestMoney={() => setShowRequest(true)}
-              onSelectTransaction={setSelectedTransaction}
-            />
-          )}
+            {activeTab === 'Overview' && (
+              <OverviewTab
+                accounts={accounts}
+                transactions={transactions}
+                budgets={budgets}
+                goals={goals}
+                monthlySpent={monthlySpent}
+                monthlyBudget={monthlyBudget}
+                availableBalance={availableBalance}
+                goalBalance={goalBalance}
+                netWorth={netWorth}
+                onOpenPayees={() => navigate('Payees')}
+                onOpenPlan={() => navigate('Plan')}
+                onOpenActivity={() => navigate('Activity')}
+                onRequestMoney={() => setShowRequest(true)}
+                onSelectTransaction={setSelectedTransaction}
+              />
+            )}
 
-          {activeTab === 'Activity' && (
-            <ActivityTab
-              transactions={transactions}
-              accounts={accounts}
-              onSelectTransaction={setSelectedTransaction}
-            />
-          )}
+            {activeTab === 'Activity' && (
+              <ActivityTab
+                transactions={transactions}
+                accounts={accounts}
+                onSelectTransaction={setSelectedTransaction}
+              />
+            )}
 
-          {activeTab === 'Accounts' && (
-            <CardsTab
-              accounts={accounts}
-              isFrozen={isCardFrozen}
-              onToggleFreeze={() => setIsCardFrozen(!isCardFrozen)}
-              monthlyBudget={monthlyBudget}
-              monthlySpent={monthlySpent}
-              onOpenPlan={() => navigate('Plan')}
-            />
-          )}
+            {activeTab === 'Accounts' && (
+              <CardsTab
+                accounts={accounts}
+                isFrozen={isCardFrozen}
+                onToggleFreeze={() => setIsCardFrozen(!isCardFrozen)}
+                monthlyBudget={monthlyBudget}
+                monthlySpent={monthlySpent}
+                onOpenPlan={() => navigate('Plan')}
+              />
+            )}
 
-          {activeTab === 'Plan' && (
-            <GoalsTab
-              goals={goals}
-              budgets={budgets}
-              accounts={accounts}
-              transactions={transactions}
-              onDepositToGoal={handleDepositToGoal}
-              onAddGoal={handleAddGoal}
-              onUpdateBudget={handleUpdateBudget}
-            />
-          )}
+            {activeTab === 'Plan' && (
+              <GoalsTab
+                goals={goals}
+                budgets={budgets}
+                accounts={accounts}
+                transactions={transactions}
+                onDepositToGoal={handleDepositToGoal}
+                onAddGoal={handleAddGoal}
+                onUpdateBudget={handleUpdateBudget}
+              />
+            )}
 
-          {activeTab === 'Payees' && (
-            <TransfersTab
-              accounts={accounts}
-              contacts={contacts}
-              onSendPayment={handleSendPayment}
-              onAddContact={handleAddContact}
-              onToggleFavorite={handleToggleFavorite}
-            />
-          )}
+            {activeTab === 'Payees' && (
+              <TransfersTab
+                accounts={accounts}
+                contacts={contacts}
+                onSendPayment={handleSendPayment}
+                onAddContact={handleAddContact}
+                onToggleFavorite={handleToggleFavorite}
+              />
+            )}
 
-          {activeTab === 'Reports' && (
-            <ReportsTab transactions={transactions} accounts={accounts} />
-          )}
-        </main>
-      </div>
-
-      <TransactionDrawer
-        transaction={selectedTransaction}
-        account={selectedAccount}
-        onClose={() => setSelectedTransaction(null)}
-      />
-
-      <SearchOverlay
-        open={showSearch}
-        transactions={transactions}
-        contacts={contacts}
-        goals={goals}
-        accounts={accounts}
-        onClose={() => setShowSearch(false)}
-        onNavigate={navigate}
-        onSelectTransaction={(transaction) => {
-          setShowSearch(false);
-          setSelectedTransaction(transaction);
-        }}
-      />
-
-      {showRequest && (
-        <RequestMoneyModal contacts={contacts} onClose={() => setShowRequest(false)} />
-      )}
-
-      {showPrivacy && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
-            padding: '16px',
-          }}
-          onClick={() => setShowPrivacy(false)}
-        >
-          <div
-            className="s-card"
-            style={{ maxWidth: '460px', width: '100%' }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
-              Your data stays with you
-            </h3>
-            <p
-              style={{
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                marginTop: '8px',
-                lineHeight: 1.6,
-              }}
-            >
-              This prototype keeps every account, payment, budget and goal in local state on this
-              device. Nothing is uploaded. Search, reports and receipts are generated locally.
-            </p>
-            <button
-              onClick={() => {
-                sound.click();
-                setShowPrivacy(false);
-              }}
-              className="btn-action-dark"
-              style={{ width: '100%', marginTop: '20px' }}
-            >
-              Got it
-            </button>
-          </div>
+            {activeTab === 'Reports' && (
+              <ReportsTab transactions={transactions} accounts={accounts} />
+            )}
+          </main>
         </div>
-      )}
+
+        <TransactionDrawer
+          transaction={selectedTransaction}
+          account={selectedAccount}
+          onClose={() => setSelectedTransaction(null)}
+        />
+
+        <SearchOverlay
+          open={showSearch}
+          transactions={transactions}
+          contacts={contacts}
+          goals={goals}
+          accounts={accounts}
+          onClose={() => setShowSearch(false)}
+          onNavigate={navigate}
+          onSelectTransaction={(transaction) => {
+            setShowSearch(false);
+            setSelectedTransaction(transaction);
+          }}
+        />
+
+        {showRequest && (
+          <RequestMoneyModal contacts={contacts} onClose={() => setShowRequest(false)} />
+        )}
+
+        {showPrivacy && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              padding: '16px',
+            }}
+            onClick={() => setShowPrivacy(false)}
+          >
+            <div
+              className="s-card"
+              style={{ maxWidth: '460px', width: '100%' }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
+                Your data stays with you
+              </h3>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  marginTop: '8px',
+                  lineHeight: 1.6,
+                }}
+              >
+                This prototype keeps every account, payment, budget and goal in local state on this
+                device. Nothing is uploaded. Search, reports and receipts are generated locally.
+              </p>
+              <button
+                onClick={() => {
+                  sound.click();
+                  setShowPrivacy(false);
+                }}
+                className="btn-action-dark"
+                style={{ width: '100%', marginTop: '20px' }}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modern Mobile Bottom Navigation Dock */}
+        <nav className="mobile-bottom-dock" aria-label="Mobile Navigation">
+          {TABS.map((tab) => {
+            const Icon = DOCK_ICONS[tab];
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => navigate(tab)}
+                className={`mobile-tab-btn ${isActive ? 'active' : ''}`}
+              >
+                <div className="mobile-tab-icon-wrap">
+                  <Icon size={19} />
+                </div>
+                <span className="mobile-tab-label">{tab}</span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
     </>
   );
