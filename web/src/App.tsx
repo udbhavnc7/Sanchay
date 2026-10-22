@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   initialAccounts,
   initialBudgets,
@@ -27,6 +27,7 @@ import { ReportsTab } from './components/ReportsTab';
 import { TransactionDrawer } from './components/TransactionDrawer';
 import { SearchOverlay } from './components/SearchOverlay';
 import { RequestMoneyModal } from './components/RequestMoneyModal';
+import { SanchaySplash } from './components/SanchaySplash';
 import {
   Sun,
   Moon,
@@ -88,6 +89,23 @@ export const App: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      if (new URLSearchParams(window.location.search).has('splash')) return true;
+      return sessionStorage.getItem('sanchay-splash-seen') !== 'seen';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleEnterApp = useCallback(() => {
+    try {
+      sessionStorage.setItem('sanchay-splash-seen', 'seen');
+    } catch {
+      // Session storage can be unavailable in strict privacy modes.
+    }
+    setShowSplash(false);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDarkMode);
@@ -360,15 +378,18 @@ export const App: React.FC = () => {
     : undefined;
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        padding: '16px',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-      }}
-    >
+    <>
+      {showSplash && <SanchaySplash onEnter={handleEnterApp} />}
+      <div
+        aria-hidden={showSplash || undefined}
+        style={{
+          minHeight: '100vh',
+          padding: '16px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+        }}
+      >
       <div className="chassis-frame">
         <aside className="vertical-dock">
           <div className="dock-pill">
@@ -765,7 +786,8 @@ export const App: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

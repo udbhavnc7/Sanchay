@@ -16,6 +16,7 @@ import {
   User,
 } from 'lucide-react';
 import { formatMoney, initialsFromName, isValidAmount } from '../utils/money';
+import { MetalAction } from './MetalAction';
 
 interface TransfersTabProps {
   accounts: Account[];
@@ -1077,13 +1078,11 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                   </button>
                 </div>
 
-                <button
+                <MetalAction
+                  className="metal-action--receipt"
+                  text="Done"
                   onClick={() => setReviewOpen(false)}
-                  className="btn-action-dark"
-                  style={{ width: '100%', marginTop: '18px', padding: '11px 0' }}
-                >
-                  Done
-                </button>
+                />
               </>
             ) : (
               <>
@@ -1307,3 +1306,4 @@ const SummaryRow: React.FC<{ label: string; value: string; strong?: boolean }> =
     </span>
   </div>
 );
+

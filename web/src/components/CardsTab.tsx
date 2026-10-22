@@ -381,5 +381,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
           </div>
         </div>
       </div>
+    </div>
   );
 };
+
