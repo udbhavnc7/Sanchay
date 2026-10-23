@@ -24,13 +24,16 @@ interface OverviewTabProps {
   goals: SavingsGoal[];
   monthlySpent: number;
   monthlyBudget: number;
+  remainingBudget: number;
   availableBalance: number;
   goalBalance: number;
+  freeToSpend: number;
   netWorth: number;
   onOpenPayees: () => void;
   onOpenPlan: () => void;
   onOpenActivity: () => void;
   onRequestMoney: () => void;
+  onAddTransaction: () => void;
   onSelectTransaction: (tx: Transaction) => void;
 }
 
@@ -64,13 +67,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   goals,
   monthlySpent,
   monthlyBudget,
+  remainingBudget,
   availableBalance,
   goalBalance,
+  freeToSpend,
   netWorth,
   onOpenPayees,
   onOpenPlan,
   onOpenActivity,
   onRequestMoney,
+  onAddTransaction,
   onSelectTransaction,
 }) => {
   const monthStart = useMemo(() => startOfMonth(), []);
@@ -243,9 +249,35 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '4px' }}>
               across {accounts.filter((account) => account.status === 'Active').length} active accounts
             </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+                marginTop: '12px',
+                paddingTop: '10px',
+                borderTop: '1px solid rgba(255,255,255,0.24)',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              <span style={{ opacity: 0.85 }}>Free after budgets</span>
+              <span className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 900 }}>
+                {formatMoney(freeToSpend)}
+              </span>
+            </div>
+            <details className="calc-note calc-note-inverse">
+              <summary>How these are calculated</summary>
+              <p>
+                Available balance sums active INR accounts only. Free after budgets subtracts{' '}
+                {formatMoney(remainingBudget)} still budgeted this month. Future bills and goal
+                money are not deducted.
+              </p>
+            </details>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             <button
               onClick={() => {
                 sound.click();
@@ -253,8 +285,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               }}
               className="btn-action-light"
               style={{
-                flex: 1,
-                padding: '10px 12px',
+                flex: '1 1 74px',
+                padding: '10px 10px',
                 background: '#ffffff',
                 color: '#111317',
                 fontSize: '12px',
@@ -266,11 +298,26 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <button
               onClick={() => {
                 sound.click();
+                onAddTransaction();
+              }}
+              className="btn-action-dark"
+              style={{
+                flex: '1 1 74px',
+                padding: '10px 10px',
+                fontSize: '12px',
+              }}
+            >
+              <Plus size={14} />
+              Add
+            </button>
+            <button
+              onClick={() => {
+                sound.click();
                 onRequestMoney();
               }}
               style={{
-                flex: 1,
-                padding: '10px 12px',
+                flex: '1 1 74px',
+                padding: '10px 10px',
                 borderRadius: '16px',
                 border: '1px solid rgba(255,255,255,0.4)',
                 background: 'rgba(255,255,255,0.16)',
@@ -296,6 +343,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           hint={`${budgetUsedPct}% of ${formatMoney(monthlyBudget)} budget`}
           icon={ArrowUpRight}
           tone={monthlySpent > monthlyBudget ? 'warn' : 'neutral'}
+          explanation="Completed expenses dated this month, excluding savings transfers. Pending payments are not counted."
         />
         <StatCard
           label="Income this month"
@@ -303,12 +351,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           hint={`${savingsRate >= 0 ? '+' : ''}${savingsRate}% savings rate`}
           icon={TrendingUp}
           tone="good"
+          explanation="Completed income dated this month, excluding transfers. Transfers between your own accounts are not income."
         />
         <StatCard
           label="Set aside for goals"
           value={formatMoney(goalBalance)}
           hint={`${formatMoney(monthlySaved)} added this month`}
           icon={Target}
+          explanation="Savings held in goals. The monthly figure counts completed transfers to Savings this month."
         />
       </div>
 
@@ -792,9 +842,17 @@ interface StatCardProps {
   hint: string;
   icon: typeof Wallet;
   tone?: 'neutral' | 'good' | 'warn';
+  explanation?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, hint, icon: Icon, tone = 'neutral' }) => {
+const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  hint,
+  icon: Icon,
+  tone = 'neutral',
+  explanation,
+}) => {
   const toneColor = tone === 'good' ? '#10b981' : tone === 'warn' ? '#ef4444' : 'var(--text-muted)';
   return (
     <div
@@ -845,6 +903,12 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, hint, icon: Icon, ton
         <div style={{ fontSize: '11px', color: toneColor, marginTop: '4px', fontWeight: 600 }}>
           {hint}
         </div>
+        {explanation && (
+          <details className="calc-note">
+            <summary>How calculated</summary>
+            <p>{explanation}</p>
+          </details>
+        )}
       </div>
     </div>
   );

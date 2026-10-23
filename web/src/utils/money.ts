@@ -13,12 +13,129 @@ interface FormatOptions {
   compact?: boolean;
 }
 
+export type MoneyParseResult =
+  | {
+      ok: true;
+      amount: number;
+      minorUnits: number;
+      currency: Currency;
+    }
+  | {
+      ok: false;
+      amount: 0;
+      minorUnits: 0;
+      currency: Currency;
+      error: string;
+    };
+
+const MINOR_DIGITS: Record<Currency, number> = {
+  INR: 2,
+  USD: 2,
+  EUR: 2,
+  GBP: 2,
+  JPY: 0,
+};
+
+export function minorDigits(currency: Currency = 'INR'): number {
+  return MINOR_DIGITS[currency];
+}
+
+export function toMinorUnits(amount: number, currency: Currency = 'INR'): number {
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(amount * 10 ** minorDigits(currency));
+}
+
+export function fromMinorUnits(minorUnits: number, currency: Currency = 'INR'): number {
+  if (!Number.isFinite(minorUnits)) return 0;
+  return minorUnits / 10 ** minorDigits(currency);
+}
+
+export function sumMoney(amounts: Iterable<number>, currency: Currency = 'INR'): number {
+  let total = 0;
+  for (const amount of amounts) {
+    total += toMinorUnits(amount, currency);
+  }
+  return fromMinorUnits(total, currency);
+}
+
+export function addMoney(a: number, b: number, currency: Currency = 'INR'): number {
+  return fromMinorUnits(toMinorUnits(a, currency) + toMinorUnits(b, currency), currency);
+}
+
+export function subtractMoney(a: number, b: number, currency: Currency = 'INR'): number {
+  return fromMinorUnits(toMinorUnits(a, currency) - toMinorUnits(b, currency), currency);
+}
+
+export function compareMoney(a: number, b: number, currency: Currency = 'INR'): number {
+  return toMinorUnits(a, currency) - toMinorUnits(b, currency);
+}
+
+export function parseMoneyInput(
+  input: string,
+  currency: Currency = 'INR'
+): MoneyParseResult {
+  const digits = minorDigits(currency);
+  const normalized = input.trim().replace(/[,\s₹$€£¥]/g, '');
+
+  if (!normalized) {
+    return { ok: false, amount: 0, minorUnits: 0, currency, error: 'Enter an amount.' };
+  }
+
+  const pattern =
+    digits === 0 ? /^\d+$/ : new RegExp(`^\\d+(?:\\.\\d{0,${digits}})?$`);
+
+  if (!pattern.test(normalized)) {
+    return {
+      ok: false,
+      amount: 0,
+      minorUnits: 0,
+      currency,
+      error: digits === 0 ? 'Use a whole number.' : `Use at most ${digits} decimal places.`,
+    };
+  }
+
+  const [whole, fraction = ''] = normalized.split('.');
+  const wholeNumber = Number(whole);
+  if (!Number.isSafeInteger(wholeNumber)) {
+    return {
+      ok: false,
+      amount: 0,
+      minorUnits: 0,
+      currency,
+      error: 'That amount is too large.',
+    };
+  }
+
+  const factor = 10 ** digits;
+  const minorUnits = wholeNumber * factor + Number(fraction.padEnd(digits, '0') || '0');
+
+  if (!Number.isSafeInteger(minorUnits) || minorUnits <= 0) {
+    return {
+      ok: false,
+      amount: 0,
+      minorUnits: 0,
+      currency,
+      error: 'Enter an amount greater than zero.',
+    };
+  }
+
+  return {
+    ok: true,
+    amount: fromMinorUnits(minorUnits, currency),
+    minorUnits,
+    currency,
+  };
+}
+
 export function formatMoney(
   amount: number,
   currency: Currency = 'INR',
   options: FormatOptions = {}
 ): string {
-  const { decimals = true, compact = false } = options;
+  const { decimals = minorDigits(currency) > 0, compact = false } = options;
+  const normalized = Number.isFinite(amount)
+    ? fromMinorUnits(toMinorUnits(amount, currency), currency)
+    : 0;
   return new Intl.NumberFormat(currency === 'INR' ? 'en-IN' : 'en-US', {
     style: 'currency',
     currency,
@@ -26,7 +143,7 @@ export function formatMoney(
     maximumFractionDigits: decimals ? 2 : 0,
     notation: compact ? 'compact' : 'standard',
     compactDisplay: 'short',
-  }).format(Number.isFinite(amount) ? amount : 0);
+  }).format(normalized);
 }
 
 export function formatSigned(
@@ -100,6 +217,12 @@ export function initialsFromName(name: string): string {
     .slice(0, 2);
 }
 
-export function isValidAmount(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
+export function isValidAmount(value: number, currency: Currency = 'INR'): boolean {
+  if (!Number.isFinite(value) || value <= 0) return false;
+  const factor = 10 ** minorDigits(currency);
+  const scaled = value * factor;
+  return (
+    Number.isSafeInteger(toMinorUnits(value, currency)) &&
+    Math.abs(scaled - Math.round(scaled)) < 1e-6
+  );
 }

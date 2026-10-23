@@ -12,12 +12,24 @@ import type {
   Contact,
   GoalDepositInput,
   MoneyResult,
+  NewTransactionInput,
   PaymentInput,
   SavingsGoal,
   Transaction,
 } from './types/finance';
 import { sound } from './utils/audio';
-import { formatMoney, isValidAmount, startOfMonth } from './utils/money';
+import {
+  addMoney,
+  compareMoney,
+  formatMoney,
+  fromMinorUnits,
+  isValidAmount,
+  startOfMonth,
+  subtractMoney,
+  sumMoney,
+  toMinorUnits,
+} from './utils/money';
+import { clearPersistedState, loadPersistedState, savePersistedState } from './data/persistence';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
 import { CardsTab } from './components/CardsTab';
@@ -27,6 +39,7 @@ import { ReportsTab } from './components/ReportsTab';
 import { TransactionDrawer } from './components/TransactionDrawer';
 import { SearchOverlay } from './components/SearchOverlay';
 import { RequestMoneyModal } from './components/RequestMoneyModal';
+import { AddTransactionModal } from './components/AddTransactionModal';
 import { SanchaySplash } from './components/SanchaySplash';
 import { SanchayLogo } from './components/SanchayLogo';
 import {
@@ -45,6 +58,8 @@ import {
   VolumeX,
   ChevronDown,
   ArrowDownLeft,
+  CheckCircle2,
+  Undo2,
 } from 'lucide-react';
 
 export type MainTab = 'Overview' | 'Activity' | 'Accounts' | 'Plan' | 'Payees' | 'Reports';
@@ -74,22 +89,39 @@ const ALERT_STYLES: Record<AlertTone, { background: string; color: string }> = {
 };
 
 export const App: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [initialSnapshot] = useState(loadPersistedState);
+  const [isDarkMode, setIsDarkMode] = useState(
+    initialSnapshot?.preferences.isDarkMode ?? false
+  );
   const [activeTab, setActiveTab] = useState<MainTab>('Overview');
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(
+    initialSnapshot?.preferences.isAudioEnabled ?? true
+  );
 
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
-  const [goals, setGoals] = useState<SavingsGoal[]>(initialGoals);
-  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
+  const [accounts, setAccounts] = useState<Account[]>(
+    initialSnapshot?.accounts ?? initialAccounts
+  );
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    initialSnapshot?.transactions ?? initialTransactions
+  );
+  const [contacts, setContacts] = useState<Contact[]>(
+    initialSnapshot?.contacts ?? initialContacts
+  );
+  const [goals, setGoals] = useState<SavingsGoal[]>(initialSnapshot?.goals ?? initialGoals);
+  const [budgets, setBudgets] = useState<Budget[]>(initialSnapshot?.budgets ?? initialBudgets);
 
-  const [isCardFrozen, setIsCardFrozen] = useState(false);
+  const [isCardFrozen, setIsCardFrozen] = useState(
+    initialSnapshot?.preferences.isCardFrozen ?? false
+  );
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [storageError, setStorageError] = useState('');
+  const [lastAdded, setLastAdded] = useState<Transaction | null>(null);
   const [showSplash, setShowSplash] = useState(() => {
     try {
       if (new URLSearchParams(window.location.search).has('splash')) return true;
@@ -123,41 +155,93 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  useEffect(() => {
+    sound.enabled = isAudioEnabled;
+  }, [isAudioEnabled]);
+
+  useEffect(() => {
+    const result = savePersistedState({
+      accounts,
+      transactions,
+      contacts,
+      goals,
+      budgets,
+      preferences: {
+        isDarkMode,
+        isAudioEnabled,
+        isCardFrozen,
+      },
+    });
+    setStorageError(result.ok ? '' : result.error);
+  }, [
+    accounts,
+    transactions,
+    contacts,
+    goals,
+    budgets,
+    isDarkMode,
+    isAudioEnabled,
+    isCardFrozen,
+  ]);
+
+  useEffect(() => {
+    if (!lastAdded) return;
+    const timer = window.setTimeout(() => setLastAdded(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [lastAdded]);
+
   const monthStart = useMemo(() => startOfMonth(), []);
 
   const monthlySpent = useMemo(
     () =>
-      transactions
-        .filter(
-          (tx) =>
-            tx.status === 'Completed' &&
-            tx.type === 'debit' &&
-            tx.kind !== 'transfer' &&
-            new Date(tx.date) >= monthStart
-        )
-        .reduce((sum, tx) => sum + tx.amount, 0),
+      sumMoney(
+        transactions
+          .filter(
+            (tx) =>
+              tx.status === 'Completed' &&
+              tx.type === 'debit' &&
+              tx.kind !== 'transfer' &&
+              new Date(tx.date) >= monthStart
+          )
+          .map((tx) => tx.amount)
+      ),
     [transactions, monthStart]
   );
 
   const monthlyBudget = useMemo(
-    () => budgets.reduce((sum, budget) => sum + budget.limit, 0),
+    () => sumMoney(budgets.map((budget) => budget.limit)),
     [budgets]
   );
 
   const availableBalance = useMemo(
     () =>
-      accounts
-        .filter((account) => account.status === 'Active' && account.currency === 'INR')
-        .reduce((sum, account) => sum + account.balance, 0),
+      sumMoney(
+        accounts
+          .filter((account) => account.status === 'Active' && account.currency === 'INR')
+          .map((account) => account.balance)
+      ),
     [accounts]
   );
 
   const goalBalance = useMemo(
-    () => goals.reduce((sum, goal) => sum + goal.savedAmount, 0),
+    () => sumMoney(goals.map((goal) => goal.savedAmount)),
     [goals]
   );
 
-  const netWorth = availableBalance + goalBalance;
+  const netWorth = useMemo(
+    () => addMoney(availableBalance, goalBalance),
+    [availableBalance, goalBalance]
+  );
+
+  const remainingBudget = useMemo(() => {
+    const remaining = subtractMoney(monthlyBudget, monthlySpent);
+    return compareMoney(remaining, 0) < 0 ? 0 : remaining;
+  }, [monthlyBudget, monthlySpent]);
+
+  const freeToSpend = useMemo(() => {
+    const free = subtractMoney(availableBalance, remainingBudget);
+    return compareMoney(free, 0) < 0 ? 0 : free;
+  }, [availableBalance, remainingBudget]);
 
   const alerts = useMemo<Alert[]>(() => {
     const list: Alert[] = [];
@@ -173,15 +257,18 @@ export const App: React.FC = () => {
           new Date(tx.date) >= month
       )
       .forEach((tx) => {
-        spendByCategory.set(tx.category, (spendByCategory.get(tx.category) ?? 0) + tx.amount);
+        spendByCategory.set(
+          tx.category,
+          addMoney(spendByCategory.get(tx.category) ?? 0, tx.amount)
+        );
       });
 
     budgets.forEach((budget) => {
       const spent = spendByCategory.get(budget.category) ?? 0;
-      if (spent > budget.limit) {
+      if (compareMoney(spent, budget.limit) > 0) {
         list.push({
           tone: 'warn',
-          text: `${budget.category} is ${formatMoney(spent - budget.limit)} over budget`,
+          text: `${budget.category} is ${formatMoney(subtractMoney(spent, budget.limit))} over budget`,
         });
       } else if (budget.limit > 0 && spent / budget.limit >= 0.8) {
         list.push({
@@ -192,8 +279,8 @@ export const App: React.FC = () => {
     });
 
     goals.forEach((goal) => {
-      const remaining = goal.targetAmount - goal.savedAmount;
-      if (remaining > 0 && remaining <= goal.targetAmount * 0.1) {
+      const remaining = subtractMoney(goal.targetAmount, goal.savedAmount);
+      if (compareMoney(remaining, 0) > 0 && remaining <= goal.targetAmount * 0.1) {
         list.push({
           tone: 'good',
           text: `${goal.title} is almost funded — ${formatMoney(remaining)} to go`,
@@ -251,7 +338,7 @@ export const App: React.FC = () => {
         error: `${input.payee.name} receives ${input.payee.currency ?? 'INR'}. Pick a matching account.`,
       };
     }
-    if (account.balance < input.amount) {
+    if (compareMoney(account.balance, input.amount) < 0) {
       return {
         ok: false,
         error: `Insufficient balance in ${account.name}. Available ${formatMoney(account.balance, account.currency)}.`,
@@ -276,7 +363,9 @@ export const App: React.FC = () => {
 
     setAccounts((prev) =>
       prev.map((item) =>
-        item.id === account.id ? { ...item, balance: item.balance - input.amount } : item
+        item.id === account.id
+          ? { ...item, balance: subtractMoney(item.balance, input.amount) }
+          : item
       )
     );
     setTransactions((prev) => [transaction, ...prev]);
@@ -307,14 +396,14 @@ export const App: React.FC = () => {
     if (account.currency !== 'INR') {
       return { ok: false, error: 'Goals are held in INR. Pick an INR account.' };
     }
-    if (account.balance < input.amount) {
+    if (compareMoney(account.balance, input.amount) < 0) {
       return {
         ok: false,
         error: `Insufficient balance in ${account.name}. Available ${formatMoney(account.balance)}.`,
       };
     }
-    const remaining = Math.max(0, goal.targetAmount - goal.savedAmount);
-    if (input.amount > remaining) {
+    const remaining = subtractMoney(goal.targetAmount, goal.savedAmount);
+    if (compareMoney(input.amount, remaining) > 0) {
       return {
         ok: false,
         error: `That is more than the ${formatMoney(remaining)} left to fully fund this goal.`,
@@ -338,13 +427,17 @@ export const App: React.FC = () => {
 
     setAccounts((prev) =>
       prev.map((item) =>
-        item.id === account.id ? { ...item, balance: item.balance - input.amount } : item
+        item.id === account.id
+          ? { ...item, balance: subtractMoney(item.balance, input.amount) }
+          : item
       )
     );
     setTransactions((prev) => [transaction, ...prev]);
     setGoals((prev) =>
       prev.map((item) =>
-        item.id === goal.id ? { ...item, savedAmount: item.savedAmount + input.amount } : item
+        item.id === goal.id
+          ? { ...item, savedAmount: addMoney(item.savedAmount, input.amount) }
+          : item
       )
     );
 
@@ -369,9 +462,120 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateBudget = (budgetId: string, limit: number) => {
+    const normalized = compareMoney(limit, 0) < 0 ? 0 : fromMinorUnits(toMinorUnits(limit));
     setBudgets((prev) =>
-      prev.map((budget) => (budget.id === budgetId ? { ...budget, limit } : budget))
+      prev.map((budget) =>
+        budget.id === budgetId ? { ...budget, limit: normalized } : budget
+      )
     );
+  };
+
+  const handleAddTransaction = (input: NewTransactionInput): MoneyResult => {
+    const account = accounts.find((item) => item.id === input.accountId);
+    if (!account) {
+      return { ok: false, error: 'Choose an account for this transaction.' };
+    }
+    if (account.status !== 'Active') {
+      return { ok: false, error: `${account.name} is not active right now.` };
+    }
+    if (account.currency !== 'INR') {
+      return { ok: false, error: 'Quick entry currently supports INR accounts only.' };
+    }
+    if (!isValidAmount(input.amount)) {
+      return { ok: false, error: 'Enter an amount greater than zero.' };
+    }
+
+    const amount = fromMinorUnits(toMinorUnits(input.amount));
+    if (input.type === 'expense' && compareMoney(account.balance, amount) < 0) {
+      return {
+        ok: false,
+        error: `Not enough in ${account.name}. Available ${formatMoney(account.balance)}.`,
+      };
+    }
+
+    const occurredAt = new Date(`${input.date}T12:00:00`);
+    if (Number.isNaN(occurredAt.getTime())) {
+      return { ok: false, error: 'Choose a valid date.' };
+    }
+
+    const transaction: Transaction = {
+      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      reference: `ADD-${String(Date.now()).slice(-8)}`,
+      title: input.title.trim() || input.category,
+      category: input.category,
+      amount,
+      type: input.type === 'expense' ? 'debit' : 'credit',
+      status: 'Completed',
+      date: occurredAt.toISOString(),
+      accountId: account.id,
+      counterparty: input.title.trim() || input.category,
+      note: input.note?.trim() || undefined,
+      kind: input.type,
+    };
+
+    setAccounts((prev) =>
+      prev.map((item) =>
+        item.id === account.id
+          ? {
+              ...item,
+              balance:
+                input.type === 'expense'
+                  ? subtractMoney(item.balance, amount)
+                  : addMoney(item.balance, amount),
+            }
+          : item
+      )
+    );
+    setTransactions((prev) => [transaction, ...prev]);
+    setLastAdded(transaction);
+
+    return { ok: true, transaction };
+  };
+
+  const handleUndoAdd = () => {
+    if (!lastAdded) return;
+    const transaction = lastAdded;
+    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
+    if (transaction.accountId) {
+      setAccounts((prev) =>
+        prev.map((item) =>
+          item.id === transaction.accountId
+            ? {
+                ...item,
+                balance:
+                  transaction.type === 'credit'
+                    ? subtractMoney(item.balance, transaction.amount)
+                    : addMoney(item.balance, transaction.amount),
+              }
+            : item
+        )
+      );
+    }
+    setLastAdded(null);
+    sound.click();
+  };
+
+  const handleResetLocalData = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
+    }
+
+    clearPersistedState();
+    setAccounts(initialAccounts);
+    setTransactions(initialTransactions);
+    setContacts(initialContacts);
+    setGoals(initialGoals);
+    setBudgets(initialBudgets);
+    setIsDarkMode(false);
+    setIsAudioEnabled(true);
+    setIsCardFrozen(false);
+    sound.enabled = true;
+    setStorageError('');
+    setLastAdded(null);
+    setShowPrivacy(false);
+    setConfirmReset(false);
+    sound.success();
   };
 
   const selectedAccount = selectedTransaction?.accountId
@@ -647,13 +851,16 @@ export const App: React.FC = () => {
                 goals={goals}
                 monthlySpent={monthlySpent}
                 monthlyBudget={monthlyBudget}
+                remainingBudget={remainingBudget}
                 availableBalance={availableBalance}
                 goalBalance={goalBalance}
+                freeToSpend={freeToSpend}
                 netWorth={netWorth}
                 onOpenPayees={() => navigate('Payees')}
                 onOpenPlan={() => navigate('Plan')}
                 onOpenActivity={() => navigate('Activity')}
                 onRequestMoney={() => setShowRequest(true)}
+                onAddTransaction={() => setShowAddTransaction(true)}
                 onSelectTransaction={setSelectedTransaction}
               />
             )}
@@ -662,6 +869,7 @@ export const App: React.FC = () => {
               <ActivityTab
                 transactions={transactions}
                 accounts={accounts}
+                onAddTransaction={() => setShowAddTransaction(true)}
                 onSelectTransaction={setSelectedTransaction}
               />
             )}
@@ -729,6 +937,42 @@ export const App: React.FC = () => {
           <RequestMoneyModal contacts={contacts} onClose={() => setShowRequest(false)} />
         )}
 
+        {showAddTransaction && (
+          <AddTransactionModal
+            accounts={accounts}
+            onAdd={handleAddTransaction}
+            onClose={() => setShowAddTransaction(false)}
+          />
+        )}
+
+        {lastAdded && (
+          <div className="sanchay-toast" role="status" aria-live="polite">
+            <div className="sanchay-toast-icon">
+              <CheckCircle2 size={17} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                Transaction added
+              </div>
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {lastAdded.title} · {formatMoney(lastAdded.amount)}
+              </div>
+            </div>
+            <button type="button" onClick={handleUndoAdd} className="sanchay-toast-undo">
+              <Undo2 size={13} />
+              Undo
+            </button>
+          </div>
+        )}
+
         {showPrivacy && (
           <div
             style={{
@@ -742,7 +986,10 @@ export const App: React.FC = () => {
               backdropFilter: 'blur(4px)',
               padding: '16px',
             }}
-            onClick={() => setShowPrivacy(false)}
+            onClick={() => {
+              setShowPrivacy(false);
+              setConfirmReset(false);
+            }}
           >
             <div
               className="s-card"
@@ -760,19 +1007,60 @@ export const App: React.FC = () => {
                   lineHeight: 1.6,
                 }}
               >
-                This prototype keeps every account, payment, budget and goal in local state on this
-                device. Nothing is uploaded. Search, reports and receipts are generated locally.
+                Your accounts, transactions, budgets and goals are saved in this browser&apos;s
+                local storage on this device. Nothing is uploaded or synced. Search, reports and
+                receipts are generated locally.
               </p>
-              <button
-                onClick={() => {
-                  sound.click();
-                  setShowPrivacy(false);
-                }}
-                className="btn-action-dark"
-                style={{ width: '100%', marginTop: '20px' }}
-              >
-                Got it
-              </button>
+              {storageError && (
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {storageError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button
+                  onClick={() => {
+                    sound.click();
+                    setShowPrivacy(false);
+                    setConfirmReset(false);
+                  }}
+                  className="btn-action-dark"
+                  style={{ flex: 1 }}
+                >
+                  Got it
+                </button>
+                <button
+                  onClick={handleResetLocalData}
+                  className="btn-action-light"
+                  style={{
+                    flex: confirmReset ? 1.4 : 1,
+                    color: confirmReset ? '#ef4444' : undefined,
+                  }}
+                >
+                  {confirmReset ? 'Confirm reset' : 'Reset local data'}
+                </button>
+              </div>
+              {confirmReset && (
+                <p
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    marginTop: '8px',
+                    textAlign: 'right',
+                  }}
+                >
+                  This replaces saved changes with the demo data.
+                </p>
+              )}
             </div>
           </div>
         )}

@@ -10,12 +10,14 @@ import {
   XCircle,
   ArrowLeftRight,
   Filter,
+  Plus,
 } from 'lucide-react';
 import { formatMoney, relativeDay } from '../utils/money';
 
 interface ActivityTabProps {
   transactions: Transaction[];
   accounts: Account[];
+  onAddTransaction: () => void;
   onSelectTransaction: (tx: Transaction) => void;
 }
 
@@ -25,6 +27,7 @@ type DirectionFilter = 'All' | 'In' | 'Out' | 'Saved';
 export const ActivityTab: React.FC<ActivityTabProps> = ({
   transactions,
   accounts,
+  onAddTransaction,
   onSelectTransaction,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');

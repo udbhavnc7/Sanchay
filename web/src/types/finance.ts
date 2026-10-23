@@ -103,6 +103,16 @@ export interface GoalDepositInput {
   accountId: string;
 }
 
+export interface NewTransactionInput {
+  type: 'expense' | 'income';
+  title: string;
+  category: Category;
+  amount: number;
+  accountId: string;
+  date: string;
+  note?: string;
+}
+
 export interface MoneyResult {
   ok: boolean;
   error?: string;
