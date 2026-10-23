@@ -43,6 +43,9 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - View goal progress and amounts still needed.
 - See the equal monthly amount implied by each goal's remaining balance and target month.
 - Edit a goal's name, target, date, icon, or colour and see the pace recalculate.
+- Add one-time planned payments with a title, amount, direction, due date, category, and optional account.
+- See a 30-day safe-to-spend estimate after remaining budgets, goal pace, planned outflows, and planned inflows. Overdue outflows stay in the estimate until you delete them.
+- Review the planned payments behind the estimate; planned entries never change the ledger or account balances.
 
 ### Payees and payments
 
@@ -56,6 +59,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 - View cash-flow and category summaries calculated from local transactions.
 - Compare month-to-date spending and income with the same days last month, including the largest category changes.
+- Open a category change to see the current-month payments behind it and jump into a transaction.
 - Export the transaction list as a CSV file.
 
 ### Privacy and preferences
@@ -63,7 +67,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Light and dark themes.
 - Sound on/off preference.
 - Privacy panel that explains local storage, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
-- Backups include accounts, transactions, payees, goals, budgets, and preferences.
+- Backups include accounts, transactions, payees, goals, budgets, planned payments, and preferences.
 - Restoring a backup replaces the current data on this device after a confirmation preview.
 - On Android, exports and receipt/CSV downloads are written to `Downloads/Sanchay` through a native bridge, and imports use the system file picker.
 - In a desktop browser, exports use normal browser downloads.
@@ -80,7 +84,9 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Goal monthly-pace figures assume equal contributions and do not schedule or move money automatically.
 - Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
-- Recurring payments, planned-payment workflows, loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
+- Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
+- Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, and entered planned payments. It does not predict income beyond entered planned inflows, guarantee a balance, or include a user-defined buffer yet.
+- Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
 - Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
 - The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
@@ -186,7 +192,7 @@ Sanchay aims to answer simple questions:
 Planned areas include:
 
 - On-device verification and Android storage hardening
-- Recurring and planned payments
+- Recurring payment schedules and reminders
 - Custom categories and account management
 - Complete multi-currency handling
 - Encrypted and automatic backup options

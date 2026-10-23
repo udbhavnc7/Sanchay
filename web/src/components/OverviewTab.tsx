@@ -5,6 +5,7 @@ import {
   ArrowDownLeft,
   ArrowRight,
   ArrowUpRight,
+  CalendarDays,
   ChevronRight,
   PiggyBank,
   Plus,
@@ -16,6 +17,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { addMoney, formatMoney, relativeDay, startOfMonth, sumMoney } from '../utils/money';
+import type { SafeToSpendResult } from '../utils/safeToSpend';
 
 interface OverviewTabProps {
   accounts: Account[];
@@ -28,6 +30,7 @@ interface OverviewTabProps {
   availableBalance: number;
   goalBalance: number;
   freeToSpend: number;
+  safeToSpend: SafeToSpendResult;
   netWorth: number;
   onOpenPayees: () => void;
   onOpenPlan: () => void;
@@ -71,6 +74,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   availableBalance,
   goalBalance,
   freeToSpend,
+  safeToSpend,
   netWorth,
   onOpenPayees,
   onOpenPlan,
@@ -365,6 +369,238 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           icon={Target}
           explanation="Savings held in goals. The monthly figure counts completed transfers to Savings this month."
         />
+      </div>
+
+      <div
+        className="s-card"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))',
+          gap: '24px',
+        }}
+      >
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <CalendarDays size={15} color="var(--accent-orange)" />
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                Safe to spend
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '3px 9px',
+                borderRadius: '9999px',
+                background: 'var(--bg-pill)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Next {safeToSpend.horizonDays} days
+            </span>
+          </div>
+          <div
+            className="font-mono-numbers"
+            style={{
+              fontSize: '32px',
+              fontWeight: 900,
+              color: 'var(--text-main)',
+              marginTop: '8px',
+            }}
+          >
+            {formatMoney(safeToSpend.safeToSpend)}
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+            After budgets, goal pace and planned payments. This is an estimate, not advice.
+          </p>
+
+          {safeToSpend.shortfall > 0 && (
+            <div
+              style={{
+                marginTop: '10px',
+                padding: '9px 11px',
+                borderRadius: '11px',
+                background: 'rgba(239,68,68,0.09)',
+                color: '#b91c1c',
+                fontSize: '11px',
+                fontWeight: 700,
+              }}
+            >
+              Known obligations are {formatMoney(safeToSpend.shortfall)} more than the money
+              available.
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              marginTop: '12px',
+              fontSize: '11px',
+            }}
+          >
+            <SafeSpendRow label="Available balance" value={formatMoney(safeToSpend.availableBalance)} />
+            <SafeSpendRow
+              label="Still budgeted"
+              value={
+                safeToSpend.remainingBudget > 0
+                  ? `-${formatMoney(safeToSpend.remainingBudget)}`
+                  : formatMoney(0)
+              }
+            />
+            <SafeSpendRow
+              label="Goal pace"
+              value={
+                safeToSpend.goalCommitments > 0
+                  ? `-${formatMoney(safeToSpend.goalCommitments)}`
+                  : formatMoney(0)
+              }
+            />
+            <SafeSpendRow
+              label="Planned out"
+              value={
+                safeToSpend.plannedOutflows > 0
+                  ? `-${formatMoney(safeToSpend.plannedOutflows)}`
+                  : formatMoney(0)
+              }
+            />
+            <SafeSpendRow
+              label="Planned in"
+              value={
+                safeToSpend.plannedInflows > 0
+                  ? `+${formatMoney(safeToSpend.plannedInflows)}`
+                  : formatMoney(0)
+              }
+            />
+            {safeToSpend.buffer > 0 && (
+              <SafeSpendRow label="Buffer" value={`-${formatMoney(safeToSpend.buffer)}`} />
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              sound.click();
+              onOpenPlan();
+            }}
+            className="btn-action-light"
+            style={{ marginTop: '14px', padding: '8px 13px', fontSize: '11px' }}
+          >
+            Review planned payments
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: '14px',
+            borderRadius: '16px',
+            background: 'var(--bg-pill)',
+            border: '1px solid var(--border-subtle)',
+            alignSelf: 'start',
+          }}
+        >
+          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-main)' }}>
+            Upcoming money flow
+          </div>
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Overdue and upcoming estimates through the next {safeToSpend.horizonDays} days.
+          </div>
+
+          {safeToSpend.upcoming.length === 0 ? (
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.5 }}>
+              No planned payments in the next {safeToSpend.horizonDays} days. Add rent, bills or
+              expected income in Plan to make this estimate more complete.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: '10px' }}>
+              {safeToSpend.upcoming.slice(0, 5).map((payment) => {
+                const isIncome = payment.direction === 'in';
+                const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
+                return (
+                  <div
+                    key={payment.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 0',
+                      borderBottom: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '26px',
+                        height: '26px',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(255,87,34,0.1)',
+                        color: isIncome ? '#10b981' : 'var(--accent-orange)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon size={12} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: 'var(--text-main)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {payment.title}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {relativeDay(payment.dueDate)} {'\u00b7'} {payment.category}
+                      </div>
+                    </div>
+                    <div
+                      className="font-mono-numbers"
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        color: isIncome ? '#10b981' : 'var(--text-main)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {isIncome ? '+' : '-'}
+                      {formatMoney(payment.amount)}
+                    </div>
+                  </div>
+                );
+              })}
+              {safeToSpend.upcoming.length > 5 && (
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '8px' }}>
+                  +{safeToSpend.upcoming.length - 5} more in Plan
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="s-card">
@@ -849,6 +1085,15 @@ interface StatCardProps {
   tone?: 'neutral' | 'good' | 'warn';
   explanation?: string;
 }
+
+const SafeSpendRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+    <span className="font-mono-numbers" style={{ color: 'var(--text-main)', fontWeight: 700 }}>
+      {value}
+    </span>
+  </div>
+);
 
 const StatCard: React.FC<StatCardProps> = ({
   label,

@@ -4,6 +4,7 @@ import {
   initialBudgets,
   initialContacts,
   initialGoals,
+  initialPlannedPayments,
   initialTransactions,
 } from './data/mockData';
 import type {
@@ -14,6 +15,7 @@ import type {
   MoneyResult,
   NewTransactionInput,
   PaymentInput,
+  PlannedPayment,
   SavingsGoal,
   Transaction,
   UpdateTransactionInput,
@@ -44,6 +46,7 @@ import {
   replaceTransactionOnBalance,
   reverseTransactionFromBalance,
 } from './utils/ledger';
+import { buildSafeToSpend } from './utils/safeToSpend';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
 import { CardsTab } from './components/CardsTab';
@@ -126,6 +129,9 @@ export const App: React.FC = () => {
   );
   const [goals, setGoals] = useState<SavingsGoal[]>(initialSnapshot?.goals ?? initialGoals);
   const [budgets, setBudgets] = useState<Budget[]>(initialSnapshot?.budgets ?? initialBudgets);
+  const [plannedPayments, setPlannedPayments] = useState<PlannedPayment[]>(
+    initialSnapshot?.plannedPayments ?? initialPlannedPayments
+  );
 
   const [isCardFrozen, setIsCardFrozen] = useState(
     initialSnapshot?.preferences.isCardFrozen ?? false
@@ -188,6 +194,7 @@ export const App: React.FC = () => {
       contacts,
       goals,
       budgets,
+      plannedPayments,
       preferences: {
         isDarkMode,
         isAudioEnabled,
@@ -201,6 +208,7 @@ export const App: React.FC = () => {
     contacts,
     goals,
     budgets,
+    plannedPayments,
     isDarkMode,
     isAudioEnabled,
     isCardFrozen,
@@ -270,6 +278,17 @@ export const App: React.FC = () => {
     const free = subtractMoney(availableBalance, remainingBudget);
     return compareMoney(free, 0) < 0 ? 0 : free;
   }, [availableBalance, remainingBudget]);
+
+  const safeToSpend = useMemo(
+    () =>
+      buildSafeToSpend({
+        availableBalance,
+        remainingBudget,
+        goals,
+        plannedPayments,
+      }),
+    [availableBalance, remainingBudget, goals, plannedPayments]
+  );
 
   const alerts = useMemo<Alert[]>(() => {
     const list: Alert[] = [];
@@ -514,6 +533,19 @@ export const App: React.FC = () => {
         budget.id === budgetId ? { ...budget, limit: normalized } : budget
       )
     );
+  };
+
+  const handleAddPlannedPayment = (payment: PlannedPayment) => {
+    setPlannedPayments((prev) =>
+      [...prev, payment].sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      )
+    );
+  };
+
+  const handleDeletePlannedPayment = (paymentId: string) => {
+    sound.click();
+    setPlannedPayments((prev) => prev.filter((payment) => payment.id !== paymentId));
   };
 
   const handleAddTransaction = (input: NewTransactionInput): MoneyResult => {
@@ -808,6 +840,7 @@ export const App: React.FC = () => {
       contacts,
       goals,
       budgets,
+      plannedPayments,
       preferences: {
         isDarkMode,
         isAudioEnabled,
@@ -867,6 +900,7 @@ export const App: React.FC = () => {
     setContacts(pendingImport.contacts);
     setGoals(pendingImport.goals);
     setBudgets(pendingImport.budgets);
+    setPlannedPayments(pendingImport.plannedPayments);
     setIsDarkMode(pendingImport.preferences.isDarkMode);
     setIsAudioEnabled(pendingImport.preferences.isAudioEnabled);
     setIsCardFrozen(pendingImport.preferences.isCardFrozen);
@@ -896,6 +930,7 @@ export const App: React.FC = () => {
     setContacts(initialContacts);
     setGoals(initialGoals);
     setBudgets(initialBudgets);
+    setPlannedPayments(initialPlannedPayments);
     setIsDarkMode(false);
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
@@ -1186,6 +1221,7 @@ export const App: React.FC = () => {
                 availableBalance={availableBalance}
                 goalBalance={goalBalance}
                 freeToSpend={freeToSpend}
+                safeToSpend={safeToSpend}
                 netWorth={netWorth}
                 onOpenPayees={() => navigate('Payees')}
                 onOpenPlan={() => navigate('Plan')}
@@ -1222,10 +1258,13 @@ export const App: React.FC = () => {
                 budgets={budgets}
                 accounts={accounts}
                 transactions={transactions}
+                plannedPayments={plannedPayments}
                 onDepositToGoal={handleDepositToGoal}
                 onAddGoal={handleAddGoal}
                 onUpdateGoal={handleUpdateGoal}
                 onUpdateBudget={handleUpdateBudget}
+                onAddPlannedPayment={handleAddPlannedPayment}
+                onDeletePlannedPayment={handleDeletePlannedPayment}
               />
             )}
 
@@ -1240,7 +1279,11 @@ export const App: React.FC = () => {
             )}
 
             {activeTab === 'Reports' && (
-              <ReportsTab transactions={transactions} accounts={accounts} />
+              <ReportsTab
+                transactions={transactions}
+                accounts={accounts}
+                onSelectTransaction={setSelectedTransaction}
+              />
             )}
           </main>
         </div>
@@ -1422,8 +1465,8 @@ export const App: React.FC = () => {
                   lineHeight: 1.5,
                 }}
               >
-                The JSON backup includes accounts, transactions, payees, goals, budgets and
-                preferences. Importing replaces the data on this device.
+                The JSON backup includes accounts, transactions, payees, goals, budgets,
+                planned payments and preferences. Importing replaces the data on this device.
               </p>
 
               {backupStatus && (
@@ -1458,8 +1501,9 @@ export const App: React.FC = () => {
                   >
                     Saved {pendingImport.savedAt.slice(0, 10)}. Contains{' '}
                     {pendingImport.transactions.length} transactions,{' '}
-                    {pendingImport.accounts.length} accounts, {pendingImport.goals.length} goals
-                    and {pendingImport.contacts.length} payees.
+                    {pendingImport.accounts.length} accounts, {pendingImport.goals.length} goals,{' '}
+                    {pendingImport.plannedPayments.length} planned payments and{' '}
+                    {pendingImport.contacts.length} payees.
                   </p>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                     <button

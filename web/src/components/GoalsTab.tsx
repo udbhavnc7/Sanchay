@@ -4,6 +4,7 @@ import type {
   Budget,
   GoalDepositInput,
   MoneyResult,
+  PlannedPayment,
   SavingsGoal,
   Transaction,
 } from '../types/finance';
@@ -36,16 +37,20 @@ import {
   sumMoney,
 } from '../utils/money';
 import { buildGoalProjection, goalTargetMonthValue } from '../utils/goalProjection';
+import { PlannedPaymentsSection } from './PlannedPaymentsSection';
 
 interface GoalsTabProps {
   goals: SavingsGoal[];
   budgets: Budget[];
   accounts: Account[];
   transactions: Transaction[];
+  plannedPayments: PlannedPayment[];
   onDepositToGoal: (input: GoalDepositInput) => MoneyResult;
   onAddGoal: (goal: SavingsGoal) => void;
   onUpdateGoal: (goal: SavingsGoal) => void;
   onUpdateBudget: (budgetId: string, limit: number) => void;
+  onAddPlannedPayment: (payment: PlannedPayment) => void;
+  onDeletePlannedPayment: (paymentId: string) => void;
 }
 
 const GOAL_ICONS: Record<string, typeof Target> = {
@@ -79,10 +84,13 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   budgets,
   accounts,
   transactions,
+  plannedPayments,
   onDepositToGoal,
   onAddGoal,
   onUpdateGoal,
   onUpdateBudget,
+  onAddPlannedPayment,
+  onDeletePlannedPayment,
 }) => {
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
   const [depositInput, setDepositInput] = useState('1000');
@@ -914,6 +922,13 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           })}
         </div>
       </div>
+
+      <PlannedPaymentsSection
+        plannedPayments={plannedPayments}
+        accounts={accounts}
+        onAdd={onAddPlannedPayment}
+        onDelete={onDeletePlannedPayment}
+      />
 
       {selectedGoal && (
         <div

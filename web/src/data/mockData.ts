@@ -2,6 +2,7 @@ import type {
   Account,
   Budget,
   Contact,
+  PlannedPayment,
   SavingsGoal,
   Transaction,
 } from '../types/finance';
@@ -17,6 +18,13 @@ function dayThisMonth(daysBeforeToday: number, hour = 12): string {
 
 function monthsAgo(months: number, day: number, hour = 12): string {
   const date = new Date(now.getFullYear(), now.getMonth() - months, day, hour, 0, 0, 0);
+  return date.toISOString();
+}
+
+function daysFromNow(days: number, hour = 12): string {
+  const date = new Date(now);
+  date.setDate(now.getDate() + days);
+  date.setHours(hour, 0, 0, 0);
   return date.toISOString();
 }
 
@@ -460,6 +468,38 @@ export const initialBudgets: Budget[] = [
   { id: 'b5', category: 'Bills', limit: 5000, color: '#10b981' },
   { id: 'b6', category: 'Entertainment', limit: 1500, color: '#ec4899' },
   { id: 'b7', category: 'Rent', limit: 22000, color: '#64748b' },
+];
+
+export const initialPlannedPayments: PlannedPayment[] = [
+  {
+    id: 'pp1',
+    title: 'Monthly rent',
+    amount: 22000,
+    direction: 'out',
+    dueDate: daysFromNow(5),
+    category: 'Rent',
+    accountId: 'a1',
+    note: 'Recurring rent estimate',
+  },
+  {
+    id: 'pp2',
+    title: 'Internet bill',
+    amount: 999,
+    direction: 'out',
+    dueDate: daysFromNow(9),
+    category: 'Bills',
+    accountId: 'a1',
+  },
+  {
+    id: 'pp3',
+    title: 'Salary credit',
+    amount: 85000,
+    direction: 'in',
+    dueDate: daysFromNow(12),
+    category: 'Income',
+    accountId: 'a2',
+    note: 'Expected, not guaranteed',
+  },
 ];
 
 export const initialWallets: Account[] = initialAccounts.map(a => ({

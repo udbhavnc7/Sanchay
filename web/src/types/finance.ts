@@ -90,6 +90,17 @@ export interface Budget {
   color: string;
 }
 
+export interface PlannedPayment {
+  id: string;
+  title: string;
+  amount: number;
+  direction: 'in' | 'out';
+  dueDate: string;
+  category: Category;
+  accountId?: string;
+  note?: string;
+}
+
 export interface PaymentInput {
   payee: Contact;
   amount: number;

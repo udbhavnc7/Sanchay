@@ -4,6 +4,7 @@ import type {
   Category,
   Contact,
   Currency,
+  PlannedPayment,
   SavingsGoal,
   Transaction,
 } from '../types/finance';
@@ -25,10 +26,16 @@ export interface PersistedState {
   contacts: Contact[];
   goals: SavingsGoal[];
   budgets: Budget[];
+  plannedPayments: PlannedPayment[];
   preferences: PersistedPreferences;
 }
 
-export type PersistedStateInput = Omit<PersistedState, 'version' | 'savedAt'>;
+export type PersistedStateInput = Omit<
+  PersistedState,
+  'version' | 'savedAt' | 'plannedPayments'
+> & {
+  plannedPayments?: PlannedPayment[];
+};
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -50,6 +57,7 @@ const TRANSACTION_STATUSES: Transaction['status'][] = [
   'Flagged',
 ];
 const TRANSACTION_KINDS: NonNullable<Transaction['kind']>[] = ['expense', 'income', 'transfer'];
+const PLANNED_DIRECTIONS: PlannedPayment['direction'][] = ['in', 'out'];
 
 function browserStorage(): StorageLike | null {
   if (typeof window === 'undefined') return null;
@@ -156,6 +164,23 @@ function isBudget(value: unknown): value is Budget {
   );
 }
 
+function isPlannedPayment(value: unknown): value is PlannedPayment {
+  if (!isRecord(value)) return false;
+  return (
+    isString(value.id) &&
+    isString(value.title) &&
+    isNumber(value.amount) &&
+    value.amount > 0 &&
+    isString(value.direction) &&
+    PLANNED_DIRECTIONS.includes(value.direction as PlannedPayment['direction']) &&
+    isString(value.dueDate) &&
+    !Number.isNaN(Date.parse(value.dueDate)) &&
+    isCategory(value.category) &&
+    (value.accountId === undefined || isString(value.accountId)) &&
+    (value.note === undefined || isString(value.note))
+  );
+}
+
 function isPreferences(value: unknown): value is PersistedPreferences {
   if (!isRecord(value)) return false;
   return (
@@ -165,7 +190,11 @@ function isPreferences(value: unknown): value is PersistedPreferences {
   );
 }
 
-function isPersistedState(value: unknown): value is PersistedState {
+type PersistedStateBase = Omit<PersistedState, 'plannedPayments'> & {
+  plannedPayments?: PlannedPayment[];
+};
+
+function isPersistedStateBase(value: unknown): value is PersistedStateBase {
   if (!isRecord(value)) return false;
   return (
     value.version === STORAGE_VERSION &&
@@ -180,6 +209,9 @@ function isPersistedState(value: unknown): value is PersistedState {
     value.goals.every(isGoal) &&
     Array.isArray(value.budgets) &&
     value.budgets.every(isBudget) &&
+    (value.plannedPayments === undefined ||
+      (Array.isArray(value.plannedPayments) &&
+        value.plannedPayments.every(isPlannedPayment))) &&
     isPreferences(value.preferences)
   );
 }
@@ -189,13 +221,15 @@ export function createPersistedState(input: PersistedStateInput): PersistedState
     version: STORAGE_VERSION,
     savedAt: new Date().toISOString(),
     ...input,
+    plannedPayments: input.plannedPayments ?? [],
   };
 }
 
 export function parsePersistedState(raw: string): PersistedState | null {
   try {
     const parsed: unknown = JSON.parse(raw);
-    return isPersistedState(parsed) ? parsed : null;
+    if (!isPersistedStateBase(parsed)) return null;
+    return { ...parsed, plannedPayments: parsed.plannedPayments ?? [] };
   } catch {
     return null;
   }

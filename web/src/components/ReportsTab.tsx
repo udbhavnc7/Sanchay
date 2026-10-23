@@ -7,12 +7,14 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
+  ChevronRight,
   Download,
   Minus,
   PiggyBank,
   ReceiptText,
   ShieldCheck,
   TrendingUp,
+  X,
 } from 'lucide-react';
 import {
   addMoney,
@@ -30,10 +32,12 @@ import {
   absoluteMoney,
   buildMonthlyComparison,
 } from '../utils/spendingComparison';
+import type { CategoryMovement } from '../utils/spendingComparison';
 
 interface ReportsTabProps {
   transactions: Transaction[];
   accounts: Account[];
+  onSelectTransaction: (tx: Transaction) => void;
 }
 
 type RangeKey = 'month' | 'quarter' | 'year';
@@ -55,13 +59,24 @@ function rangeStart(range: RangeKey): Date {
   return startOfMonth();
 }
 
+function endOfToday(): Date {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
 function csvCell(value: string | number): string {
   const text = String(value ?? '');
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }) => {
+export const ReportsTab: React.FC<ReportsTabProps> = ({
+  transactions,
+  accounts,
+  onSelectTransaction,
+}) => {
   const [range, setRange] = useState<RangeKey>('month');
+  const [drilldown, setDrilldown] = useState<CategoryMovement | null>(null);
 
   const start = useMemo(() => rangeStart(range), [range]);
   const currentMonth = useMemo(() => startOfMonth(), []);
@@ -101,6 +116,28 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
   }, [filtered]);
 
   const comparison = useMemo(() => buildMonthlyComparison(transactions), [transactions]);
+
+  const drilldownTransactions = useMemo(() => {
+    if (!drilldown) return [];
+    const monthStart = startOfMonth();
+    const todayEnd = endOfToday();
+    return transactions
+      .filter(
+        (tx) =>
+          tx.category === drilldown.category &&
+          tx.status === 'Completed' &&
+          tx.type === 'debit' &&
+          tx.kind !== 'transfer' &&
+          new Date(tx.date) >= monthStart &&
+          new Date(tx.date) <= todayEnd
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [drilldown, transactions]);
+
+  const drilldownTotal = useMemo(
+    () => sumMoney(drilldownTransactions.map((tx) => tx.amount)),
+    [drilldownTransactions]
+  );
 
   const categories = useMemo(() => {
     const map = new Map<string, number>();
@@ -398,8 +435,14 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
               {comparison.topMovements.map((movement) => {
                 const increased = compareMoney(movement.delta, 0) > 0;
                 return (
-                  <div
+                  <button
                     key={movement.category}
+                    type="button"
+                    onClick={() => {
+                      sound.click();
+                      setDrilldown(movement);
+                    }}
+                    aria-label={`View ${movement.category} transactions behind this change`}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -410,6 +453,9 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
                       background: 'var(--bg-pill)',
                       border: '1px solid var(--border-subtle)',
                       fontSize: '12px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
                     }}
                   >
                     <span style={{ color: 'var(--text-main)' }}>
@@ -419,17 +465,23 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
                       </span>
                     </span>
                     <span
-                      className="font-mono-numbers"
                       style={{
-                        fontWeight: 800,
-                        color: 'var(--text-main)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {increased ? '+' : '-'}
-                      {formatMoney(absoluteMoney(movement.delta))}
+                      <span
+                        className="font-mono-numbers"
+                        style={{ fontWeight: 800, color: 'var(--text-main)' }}
+                      >
+                        {increased ? '+' : '-'}
+                        {formatMoney(absoluteMoney(movement.delta))}
+                      </span>
+                      <ChevronRight size={13} color="var(--text-muted)" />
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -820,6 +872,187 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
         <ReceiptText size={13} />
         <span>Reports are generated locally from the transactions in this prototype.</span>
       </div>
+
+      {drilldown && (
+        <div
+          className="sanchay-modal-overlay"
+          role="presentation"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            padding: '16px',
+          }}
+          onClick={() => setDrilldown(null)}
+        >
+          <div
+            className="s-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="category-drilldown-title"
+            style={{ maxWidth: '520px', width: '100%', maxHeight: '82vh', overflowY: 'auto' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '16px',
+              }}
+            >
+              <div>
+                <h3
+                  id="category-drilldown-title"
+                  style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main)' }}
+                >
+                  {drilldown.category}
+                </h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                  {drilldownTransactions.length} completed payment
+                  {drilldownTransactions.length === 1 ? '' : 's'} totalling{' '}
+                  {formatMoney(drilldownTotal)} this month.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDrilldown(null)}
+                aria-label="Close category transactions"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--bg-pill)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '10px',
+                marginTop: '16px',
+              }}
+            >
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-pill)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  {comparison.currentLabel}
+                </div>
+                <div
+                  className="font-mono-numbers"
+                  style={{ fontSize: '17px', fontWeight: 900, color: 'var(--text-main)' }}
+                >
+                  {formatMoney(drilldown.current)}
+                </div>
+              </div>
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: 'var(--bg-pill)',
+                  border: '1px solid var(--border-subtle)',
+                }}
+              >
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  {comparison.previousLabel}
+                </div>
+                <div
+                  className="font-mono-numbers"
+                  style={{ fontSize: '17px', fontWeight: 900, color: 'var(--text-main)' }}
+                >
+                  {formatMoney(drilldown.previous)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: '16px' }}>
+              {drilldownTransactions.length === 0 && (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  No current-month payments found for this category.
+                </p>
+              )}
+              {drilldownTransactions.map((tx, index) => (
+                <button
+                  key={tx.id}
+                  type="button"
+                  onClick={() => {
+                    sound.click();
+                    setDrilldown(null);
+                    onSelectTransaction(tx);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '11px 2px',
+                    border: 'none',
+                    borderBottom:
+                      index === drilldownTransactions.length - 1
+                        ? 'none'
+                        : '1px solid var(--border-subtle)',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {tx.title}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {formatDate(tx.date)}
+                      {tx.counterparty ? ` \u00b7 ${tx.counterparty}` : ''}
+                    </div>
+                  </div>
+                  <div
+                    className="font-mono-numbers"
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      color: 'var(--text-main)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatMoney(tx.amount)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -15,6 +15,7 @@ import {
   initialBudgets,
   initialContacts,
   initialGoals,
+  initialPlannedPayments,
   initialTransactions,
 } from './mockData';
 
@@ -45,6 +46,7 @@ function snapshot(): PersistedStateInput {
     contacts: initialContacts,
     goals: initialGoals,
     budgets: initialBudgets,
+    plannedPayments: initialPlannedPayments,
     preferences: {
       isDarkMode: true,
       isAudioEnabled: false,
@@ -64,6 +66,7 @@ describe('local persistence', () => {
     expect(loaded?.version).toBe(STORAGE_VERSION);
     expect(loaded?.accounts).toHaveLength(initialAccounts.length);
     expect(loaded?.transactions).toHaveLength(initialTransactions.length);
+    expect(loaded?.plannedPayments).toHaveLength(initialPlannedPayments.length);
     expect(loaded?.preferences.isDarkMode).toBe(true);
     expect(loaded?.preferences.isAudioEnabled).toBe(false);
     expect(loaded?.savedAt).toEqual(expect.any(String));
@@ -140,6 +143,29 @@ describe('local persistence', () => {
     };
     invalid.transactions[0].goalId = 42;
     expect(parsePersistedState(JSON.stringify(invalid))).toBeNull();
+  });
+
+  it('loads older backups without planned payments as an empty list', () => {
+    const state = createPersistedState(snapshot()) as unknown as Record<string, unknown>;
+    delete state.plannedPayments;
+
+    const parsed = parsePersistedState(JSON.stringify(state));
+    expect(parsed?.plannedPayments).toEqual([]);
+  });
+
+  it('rejects malformed planned payments', () => {
+    const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      plannedPayments: Array<{ direction: unknown; amount: unknown }>;
+    };
+    raw.plannedPayments[0].direction = 'sideways';
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.plannedPayments[0].direction = 'out';
+    raw.plannedPayments[0].amount = 'not-a-number';
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.plannedPayments[0].amount = 0;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
   });
 
   it('clears saved data', () => {
