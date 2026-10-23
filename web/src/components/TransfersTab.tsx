@@ -15,7 +15,13 @@ import {
   Star,
   User,
 } from 'lucide-react';
-import { formatMoney, initialsFromName, isValidAmount } from '../utils/money';
+import {
+  compareMoney,
+  formatMoney,
+  initialsFromName,
+  parseMoneyInput,
+  subtractMoney,
+} from '../utils/money';
 import { MetalAction } from './MetalAction';
 
 interface TransfersTabProps {
@@ -91,8 +97,9 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
   const sourceAccount =
     matchingAccounts.find((account) => account.id === sourceAccountId) ?? matchingAccounts[0];
 
-  const amount = Number.parseFloat(amountInput);
-  const amountValid = isValidAmount(amount);
+  const parsedAmount = parseMoneyInput(amountInput, payeeCurrency);
+  const amount = parsedAmount.ok ? parsedAmount.amount : 0;
+  const amountValid = parsedAmount.ok;
   const presets = payeeCurrency === 'INR' ? [500, 1000, 2500, 5000] : [50, 100, 250, 500];
 
   const favorites = contacts.filter((contact) => contact.isFavorite);
@@ -109,9 +116,9 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
   const validationError = (() => {
     if (!selectedContact) return 'Choose someone to pay.';
-    if (!amountValid) return 'Enter an amount greater than zero.';
+    if (!parsedAmount.ok) return parsedAmount.error;
     if (!sourceAccount) return `You have no active ${payeeCurrency} account to pay from.`;
-    if (sourceAccount.balance < amount) {
+    if (compareMoney(sourceAccount.balance, amount) < 0) {
       return `Not enough in ${sourceAccount.name}. Available ${formatMoney(sourceAccount.balance, sourceAccount.currency)}.`;
     }
     return '';
@@ -962,7 +969,10 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
               {note.trim() && <SummaryRow label="Note" value={note.trim()} />}
               <SummaryRow
                 label="Balance after"
-                value={formatMoney(sourceAccount.balance - amount, sourceAccount.currency)}
+                value={formatMoney(
+                  subtractMoney(sourceAccount.balance, amount),
+                  sourceAccount.currency
+                )}
               />
             </div>
 

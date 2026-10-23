@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { formatMoney, relativeDay, startOfMonth } from '../utils/money';
+import { addMoney, formatMoney, relativeDay, startOfMonth, sumMoney } from '../utils/money';
 
 interface OverviewTabProps {
   accounts: Account[];
@@ -91,17 +91,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   const monthlyIncome = useMemo(
     () =>
-      monthTransactions
-        .filter((tx) => tx.type === 'credit' && tx.kind !== 'transfer')
-        .reduce((sum, tx) => sum + tx.amount, 0),
+      sumMoney(
+        monthTransactions
+          .filter((tx) => tx.type === 'credit' && tx.kind !== 'transfer')
+          .map((tx) => tx.amount)
+      ),
     [monthTransactions]
   );
 
   const monthlySaved = useMemo(
     () =>
-      monthTransactions
-        .filter((tx) => tx.kind === 'transfer' && tx.category === 'Savings')
-        .reduce((sum, tx) => sum + tx.amount, 0),
+      sumMoney(
+        monthTransactions
+          .filter((tx) => tx.kind === 'transfer' && tx.category === 'Savings')
+          .map((tx) => tx.amount)
+      ),
     [monthTransactions]
   );
 
@@ -110,7 +114,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     monthTransactions
       .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer')
       .forEach((tx) => {
-        totals.set(tx.category, (totals.get(tx.category) ?? 0) + tx.amount);
+        totals.set(tx.category, addMoney(totals.get(tx.category) ?? 0, tx.amount));
       });
     const rows = Array.from(totals.entries())
       .map(([category, amount]) => ({ category, amount }))
@@ -127,7 +131,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     monthTransactions
       .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer')
       .forEach((tx) => {
-        spend.set(tx.category, (spend.get(tx.category) ?? 0) + tx.amount);
+        spend.set(tx.category, addMoney(spend.get(tx.category) ?? 0, tx.amount));
       });
     return budgets
       .map((budget) => {

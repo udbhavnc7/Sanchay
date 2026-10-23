@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   RotateCcw,
 } from 'lucide-react';
-import { formatMoney, isValidAmount } from '../utils/money';
+import { formatMoney, parseMoneyInput } from '../utils/money';
 
 interface RequestMoneyModalProps {
   contacts: Contact[];
@@ -29,8 +29,9 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
   const [error, setError] = useState('');
 
   const contact = contacts.find((item) => item.id === contactId);
-  const amount = Number.parseFloat(amountInput);
-  const amountValid = isValidAmount(amount);
+  const parsedAmount = parseMoneyInput(amountInput, contact?.currency ?? 'INR');
+  const amount = parsedAmount.ok ? parsedAmount.amount : 0;
+  const amountValid = parsedAmount.ok;
 
   const requestText = useMemo(() => {
     if (!contact || !amountValid) return '';
@@ -42,8 +43,8 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
   }, [contact, amount, amountValid, note, reference]);
 
   const handleCopy = async () => {
-    if (!amountValid) {
-      setError('Enter an amount greater than zero.');
+    if (!parsedAmount.ok) {
+      setError(parsedAmount.error);
       return;
     }
     if (!requestText) return;

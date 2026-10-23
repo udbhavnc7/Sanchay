@@ -12,7 +12,7 @@ import {
   Filter,
   Plus,
 } from 'lucide-react';
-import { formatMoney, relativeDay } from '../utils/money';
+import { addMoney, formatMoney, relativeDay } from '../utils/money';
 
 interface ActivityTabProps {
   transactions: Transaction[];
@@ -74,9 +74,9 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
 
     filtered.forEach((tx) => {
       if (tx.status !== 'Completed') return;
-      if (tx.kind === 'income') income += tx.amount;
-      else if (tx.kind === 'transfer') saved += tx.amount;
-      else expense += tx.amount;
+      if (tx.kind === 'income') income = addMoney(income, tx.amount);
+      else if (tx.kind === 'transfer') saved = addMoney(saved, tx.amount);
+      else expense = addMoney(expense, tx.amount);
     });
 
     return { income, expense, saved };
@@ -110,6 +110,17 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
         </div>
 
         <div className="activity-metrics" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              sound.click();
+              onAddTransaction();
+            }}
+            className="btn-action-dark"
+            style={{ padding: '9px 14px', fontSize: '12px' }}
+          >
+            <Plus size={14} />
+            Add
+          </button>
           <div className="activity-metric-box">
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, color: '#10b981' }}>
               In

@@ -23,7 +23,17 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { formatMoney, isValidAmount, monthKey, shortMonth, startOfMonth } from '../utils/money';
+import {
+  addMoney,
+  compareMoney,
+  formatMoney,
+  monthKey,
+  parseMoneyInput,
+  shortMonth,
+  startOfMonth,
+  subtractMoney,
+  sumMoney,
+} from '../utils/money';
 
 interface GoalsTabProps {
   goals: SavingsGoal[];
@@ -82,26 +92,34 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           new Date(tx.date) >= monthStart
       )
       .forEach((tx) => {
-        map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amount);
+        map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount));
       });
     return map;
   }, [transactions, monthStart]);
 
-  const totalSaved = goals.reduce((sum, goal) => sum + goal.savedAmount, 0);
-  const totalTarget = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const totalSaved = useMemo(
+    () => sumMoney(goals.map((goal) => goal.savedAmount)),
+    [goals]
+  );
+  const totalTarget = useMemo(
+    () => sumMoney(goals.map((goal) => goal.targetAmount)),
+    [goals]
+  );
   const overallPct = totalTarget > 0 ? Math.round((totalSaved / totalTarget) * 100) : 0;
 
   const monthlySaved = useMemo(
     () =>
-      transactions
-        .filter(
-          (tx) =>
-            tx.kind === 'transfer' &&
-            tx.category === 'Savings' &&
-            tx.status === 'Completed' &&
-            new Date(tx.date) >= monthStart
-        )
-        .reduce((sum, tx) => sum + tx.amount, 0),
+      sumMoney(
+        transactions
+          .filter(
+            (tx) =>
+              tx.kind === 'transfer' &&
+              tx.category === 'Savings' &&
+              tx.status === 'Completed' &&
+              new Date(tx.date) >= monthStart
+          )
+          .map((tx) => tx.amount)
+      ),
     [transactions, monthStart]
   );
 
@@ -119,7 +137,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       .filter((tx) => tx.kind === 'transfer' && tx.category === 'Savings' && tx.status === 'Completed')
       .forEach((tx) => {
         const bucket = byKey.get(monthKey(new Date(tx.date)));
-        if (bucket) bucket.amount += tx.amount;
+        if (bucket) bucket.amount = addMoney(bucket.amount, tx.amount);
       });
     return months;
   }, [transactions, monthStart]);
@@ -133,16 +151,17 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   const depositAccount =
     inrAccounts.find((account) => account.id === sourceAccountId) ?? inrAccounts[0];
 
-  const depositAmount = Number.parseFloat(depositInput);
+  const parsedDeposit = parseMoneyInput(depositInput);
+  const depositAmount = parsedDeposit.ok ? parsedDeposit.amount : 0;
   const depositError = (() => {
     if (!selectedGoal) return '';
-    if (!isValidAmount(depositAmount)) return 'Enter an amount greater than zero.';
+    if (!parsedDeposit.ok) return parsedDeposit.error;
     if (!depositAccount) return 'Add an active INR account to move money from.';
-    const remaining = Math.max(0, selectedGoal.targetAmount - selectedGoal.savedAmount);
-    if (depositAmount > remaining) {
+    const remaining = subtractMoney(selectedGoal.targetAmount, selectedGoal.savedAmount);
+    if (compareMoney(depositAmount, remaining) > 0) {
       return `Only ${formatMoney(remaining)} is left to fund this goal.`;
     }
-    if (depositAccount.balance < depositAmount) {
+    if (compareMoney(depositAccount.balance, depositAmount) < 0) {
       return `Not enough in ${depositAccount.name}. Available ${formatMoney(depositAccount.balance)}.`;
     }
     return '';
@@ -185,8 +204,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
 
   const handleCreateGoal = (event: React.FormEvent) => {
     event.preventDefault();
-    const target = Number.parseFloat(goalTarget);
-    if (!goalTitle.trim() || !isValidAmount(target)) return;
+    const parsedTarget = parseMoneyInput(goalTarget);
+    if (!goalTitle.trim() || !parsedTarget.ok) return;
 
     const [year, month] = goalDate.split('-').map(Number);
     const targetDate = Number.isFinite(year) && Number.isFinite(month)
@@ -201,7 +220,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       title: goalTitle.trim(),
       icon: goalIcon,
       savedAmount: 0,
-      targetAmount: target,
+      targetAmount: parsedTarget.amount,
       targetDate,
       color: goalColor,
     });
@@ -730,8 +749,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                       step={100}
                       value={budget.limit}
                       onChange={(event) => {
-                        const next = Number.parseFloat(event.target.value);
-                        onUpdateBudget(budget.id, Number.isFinite(next) && next >= 0 ? next : 0);
+                        const next = parseMoneyInput(event.target.value);
+                        onUpdateBudget(budget.id, next.ok ? next.amount : 0);
                       }}
                       className="font-mono-numbers"
                       style={{
@@ -779,8 +798,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   <span>{pct}% used</span>
                   <span>
                     {over
-                      ? `${formatMoney(spent - budget.limit)} over`
-                      : `${formatMoney(Math.max(0, budget.limit - spent))} left`}
+                      ? `${formatMoney(subtractMoney(spent, budget.limit))} over`
+                      : `${formatMoney(subtractMoney(budget.limit, spent))} left`}
                   </span>
                 </div>
               </div>
@@ -848,7 +867,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   Add to {selectedGoal.title}
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                  {formatMoney(Math.max(0, selectedGoal.targetAmount - selectedGoal.savedAmount))}{' '}
+                  {formatMoney(
+                    subtractMoney(selectedGoal.targetAmount, selectedGoal.savedAmount)
+                  )}{' '}
                   left to reach {formatMoney(selectedGoal.targetAmount)}.
                 </p>
 

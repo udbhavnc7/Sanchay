@@ -10,7 +10,17 @@ import {
   ReceiptText,
   TrendingUp,
 } from 'lucide-react';
-import { formatDate, formatMoney, monthKey, shortMonth, startOfMonth, startOfYear } from '../utils/money';
+import {
+  addMoney,
+  formatDate,
+  formatMoney,
+  monthKey,
+  shortMonth,
+  startOfMonth,
+  startOfYear,
+  subtractMoney,
+  sumMoney,
+} from '../utils/money';
 
 interface ReportsTabProps {
   transactions: Transaction[];
@@ -67,13 +77,18 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
     filtered.forEach((tx) => {
       if (tx.status !== 'Completed') return;
       if (tx.kind === 'transfer') {
-        if (tx.type === 'debit') saved += tx.amount;
+        if (tx.type === 'debit') saved = addMoney(saved, tx.amount);
         return;
       }
-      if (tx.type === 'credit') income += tx.amount;
-      else spending += tx.amount;
+      if (tx.type === 'credit') income = addMoney(income, tx.amount);
+      else spending = addMoney(spending, tx.amount);
     });
-    return { income, spending, saved, net: income - spending - saved };
+    return {
+      income,
+      spending,
+      saved,
+      net: subtractMoney(subtractMoney(income, spending), saved),
+    };
   }, [filtered]);
 
   const categories = useMemo(() => {
@@ -83,9 +98,9 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
         (tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer'
       )
       .forEach((tx) => {
-        map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amount);
+        map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount));
       });
-    const total = Array.from(map.values()).reduce((sum, value) => sum + value, 0);
+    const total = sumMoney(map.values());
     return Array.from(map.entries())
       .map(([category, amount]) => ({
         category,
@@ -104,7 +119,10 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       .forEach((tx) => {
         const name = tx.counterparty ?? tx.title;
         const current = map.get(name) ?? { amount: 0, count: 0 };
-        map.set(name, { amount: current.amount + tx.amount, count: current.count + 1 });
+        map.set(name, {
+          amount: addMoney(current.amount, tx.amount),
+          count: current.count + 1,
+        });
       });
     return Array.from(map.entries())
       .map(([name, value]) => ({ name, ...value }))
@@ -127,8 +145,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       .forEach((tx) => {
         const bucket = byKey.get(monthKey(new Date(tx.date)));
         if (!bucket || tx.kind === 'transfer') return;
-        if (tx.type === 'credit') bucket.income += tx.amount;
-        else bucket.spending += tx.amount;
+        if (tx.type === 'credit') bucket.income = addMoney(bucket.income, tx.amount);
+        else bucket.spending = addMoney(bucket.spending, tx.amount);
       });
     return months;
   }, [transactions, currentMonth]);
