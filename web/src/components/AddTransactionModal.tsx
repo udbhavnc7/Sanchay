@@ -18,10 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { compareMoney, formatMoney, parseMoneyInput } from '../utils/money';
-import {
-  applyTransactionToBalance,
-  replaceTransactionOnBalance,
-} from '../utils/ledger';
+import { balanceAfterTransactionEdit } from '../utils/ledger';
 import { buildRecentTemplates } from '../utils/transactionTemplates';
 import { suggestCategory } from '../utils/categorySuggestion';
 
@@ -124,15 +121,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     amount,
   };
 
+  const previousOnAccount =
+    transaction?.status === 'Completed' && transaction.accountId === account?.id
+      ? transaction
+      : null;
   const balanceAfter =
     account && parsedAmount.ok
-      ? transaction
-        ? transaction.status === 'Completed'
-          ? transaction.accountId === account.id
-            ? replaceTransactionOnBalance(account.balance, transaction, nextEffect)
-            : applyTransactionToBalance(account.balance, nextEffect)
-          : account.balance
-        : applyTransactionToBalance(account.balance, nextEffect)
+      ? transaction && transaction.status !== 'Completed'
+        ? account.balance
+        : balanceAfterTransactionEdit(account.balance, previousOnAccount, nextEffect)
       : null;
 
   useEffect(() => {

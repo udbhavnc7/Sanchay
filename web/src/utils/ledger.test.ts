@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyTransactionToBalance,
+  balanceAfterTransactionEdit,
   replaceTransactionOnBalance,
   reverseTransactionFromBalance,
   transactionMinorDelta,
@@ -45,5 +46,19 @@ describe('ledger balance effects', () => {
   it('handles decimal balances consistently', () => {
     expect(applyTransactionToBalance(1000, { type: 'credit', amount: 100.4 })).toBe(1100.4);
     expect(applyTransactionToBalance(1000, { type: 'debit', amount: 100.4 })).toBe(899.6);
+  });
+
+  it('previews an edit by replacing the old effect only on the same account', () => {
+    const previous = { type: 'debit' as const, amount: 100 };
+
+    expect(
+      balanceAfterTransactionEdit(1000, previous, { type: 'debit', amount: 250 })
+    ).toBe(850);
+    expect(
+      balanceAfterTransactionEdit(1000, null, { type: 'debit', amount: 250 })
+    ).toBe(750);
+    expect(
+      balanceAfterTransactionEdit(1000, previous, { type: 'credit', amount: 100 })
+    ).toBe(1200);
   });
 });

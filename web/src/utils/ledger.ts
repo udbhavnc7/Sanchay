@@ -32,3 +32,13 @@ export function replaceTransactionOnBalance(
     toMinorUnits(balance) - transactionMinorDelta(previous) + transactionMinorDelta(next)
   );
 }
+
+export function balanceAfterTransactionEdit(
+  balance: number,
+  previous: TransactionEffect | null,
+  next: TransactionEffect
+): number {
+  return previous
+    ? replaceTransactionOnBalance(balance, previous, next)
+    : applyTransactionToBalance(balance, next);
+}

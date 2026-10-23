@@ -43,7 +43,7 @@ import {
 } from './data/persistence';
 import {
   applyTransactionToBalance,
-  replaceTransactionOnBalance,
+  balanceAfterTransactionEdit,
   reverseTransactionFromBalance,
 } from './utils/ledger';
 import { buildSafeToSpend } from './utils/safeToSpend';
@@ -624,6 +624,12 @@ export const App: React.FC = () => {
     if (existing.kind === 'transfer') {
       return { ok: false, error: 'Savings transfers cannot be edited here.' };
     }
+    const existingAccount = existing.accountId
+      ? accounts.find((item) => item.id === existing.accountId)
+      : undefined;
+    if (existingAccount && existingAccount.currency !== 'INR') {
+      return { ok: false, error: 'Only INR transactions can be edited here.' };
+    }
 
     const account = accounts.find((item) => item.id === input.accountId);
     if (!account) {
@@ -655,11 +661,13 @@ export const App: React.FC = () => {
       amount,
     };
     const affectsBalance = existing.status === 'Completed';
+    const previousOnAccount = affectsBalance && existing.accountId === account.id ? existing : null;
     if (affectsBalance) {
-      const resultingBalance =
-        existing.accountId === account.id
-          ? replaceTransactionOnBalance(account.balance, existing, nextEffect)
-          : applyTransactionToBalance(account.balance, nextEffect);
+      const resultingBalance = balanceAfterTransactionEdit(
+        account.balance,
+        previousOnAccount,
+        nextEffect
+      );
       if (input.type === 'expense' && compareMoney(resultingBalance, 0) < 0) {
         return {
           ok: false,
@@ -704,10 +712,11 @@ export const App: React.FC = () => {
           if (item.id === account.id) {
             return {
               ...item,
-              balance:
-                existing.accountId === account.id
-                  ? replaceTransactionOnBalance(item.balance, existing, nextEffect)
-                  : applyTransactionToBalance(item.balance, nextEffect),
+              balance: balanceAfterTransactionEdit(
+                item.balance,
+                previousOnAccount,
+                nextEffect
+              ),
             };
           }
           return item;

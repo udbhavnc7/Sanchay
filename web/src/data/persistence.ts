@@ -110,13 +110,20 @@ function isTransaction(value: unknown): value is Transaction {
     isString(value.title) &&
     isCategory(value.category) &&
     isNumber(value.amount) &&
+    value.amount > 0 &&
     isString(value.type) &&
     TRANSACTION_TYPES.includes(value.type as Transaction['type']) &&
     isString(value.status) &&
     TRANSACTION_STATUSES.includes(value.status as Transaction['status']) &&
     isString(value.date) &&
     !Number.isNaN(Date.parse(value.date)) &&
+    (value.reference === undefined || isString(value.reference)) &&
+    (value.orderId === undefined || isString(value.orderId)) &&
     (value.accountId === undefined || isString(value.accountId)) &&
+    (value.counterparty === undefined || isString(value.counterparty)) &&
+    (value.recipient === undefined || isString(value.recipient)) &&
+    (value.note === undefined || isString(value.note)) &&
+    (value.wallet === undefined || isString(value.wallet)) &&
     (value.kind === undefined ||
       (isString(value.kind) &&
         TRANSACTION_KINDS.includes(value.kind as NonNullable<Transaction['kind']>))) &&

@@ -129,6 +129,19 @@ describe('local persistence', () => {
     expect(parsePersistedState(JSON.stringify({ version: STORAGE_VERSION }))).toBeNull();
   });
 
+  it('rejects invalid transaction amounts and text fields', () => {
+    const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      transactions: Array<{ amount: unknown; counterparty: unknown }>;
+    };
+
+    raw.transactions[0].amount = 0;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.transactions[0].amount = 100;
+    raw.transactions[0].counterparty = 42;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+  });
+
   it('accepts linked goal references but rejects malformed ones', () => {
     const input = snapshot();
     input.transactions = input.transactions.map((transaction, index) =>

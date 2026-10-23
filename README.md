@@ -82,7 +82,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Recent quick-fill is inferred from local transaction history; saved custom templates are not implemented.
 - Category suggestions use simple local text matching and only change the category when the user taps Use.
 - Goal monthly-pace figures assume equal contributions and do not schedule or move money automatically.
-- Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive account can still be edited.
+- Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive INR account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
 - Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
 - Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, and entered planned payments. It does not predict income beyond entered planned inflows, guarantee a balance, or include a user-defined buffer yet.
