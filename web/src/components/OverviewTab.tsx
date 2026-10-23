@@ -211,6 +211,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       <div
+        className="overview-stats-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -218,7 +219,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         }}
       >
         <div
-          className="orange-stat-card"
+          className="orange-stat-card overview-balance-card"
           style={{ gridColumn: 'span 1', display: 'flex', flexDirection: 'column', gap: '18px' }}
         >
           <div>
@@ -344,6 +345,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
 
         <div
+          className="overview-accounts-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
@@ -355,6 +357,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             return (
               <div
                 key={account.id}
+                className="overview-account-card"
                 style={{
                   padding: '16px',
                   borderRadius: '18px',
@@ -795,7 +798,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, hint, icon: Icon, ton
   const toneColor = tone === 'good' ? '#10b981' : tone === 'warn' ? '#ef4444' : 'var(--text-muted)';
   return (
     <div
-      className="s-card"
+      className="s-card stat-card"
       style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
     >
       <div

@@ -80,9 +80,9 @@ export const CardsTab: React.FC<CardsTabProps> = ({
       </div>
 
       {/* Main 2-Column Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '28px' }}>
+      <div className="accounts-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '28px' }}>
         {/* Left Column: 3D Card Studio + Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="accounts-column" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="s-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>Your card</h2>
@@ -96,8 +96,8 @@ export const CardsTab: React.FC<CardsTabProps> = ({
               monthlySpent={monthlySpent}
             />
 
-            <div style={{ marginTop: '22px', paddingTop: '18px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="cards-selector-row" style={{ marginTop: '22px', paddingTop: '18px', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div className="cards-selector-buttons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {cardsList.map((card, index) => (
                   <button
                     key={card.id}
@@ -135,7 +135,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 ))}
               </div>
 
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tap card to rotate & examine</div>
+              <div className="cards-rotate-hint" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tap card to rotate & examine</div>
             </div>
           </div>
 
@@ -264,7 +264,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
         </div>
 
         {/* Right Column: All Accounts + Spending Limit */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="accounts-column" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* All Accounts */}
           <div className="s-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>

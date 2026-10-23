@@ -447,7 +447,7 @@ export const App: React.FC = () => {
           <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
             <header className="header-bar">
               <div className="brand-badge" onClick={() => navigate('Overview')}>
-                <SanchayLogo size="md" />
+                <SanchayLogo size="md" className="brand-logo" />
               </div>
 
               <nav className="top-nav-capsule">
@@ -462,7 +462,7 @@ export const App: React.FC = () => {
                 ))}
               </nav>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={() => toggleTheme(!isDarkMode)}
                   className="dock-btn mobile-theme-btn"
@@ -489,7 +489,7 @@ export const App: React.FC = () => {
                     sound.click();
                     setShowRequest(true);
                   }}
-                  className="btn-action-dark"
+                  className="btn-action-dark header-request"
                   style={{ padding: '8px 14px', fontSize: '12px' }}
                 >
                   <ArrowDownLeft size={14} />
@@ -526,7 +526,7 @@ export const App: React.FC = () => {
 
                   {showNotifications && (
                     <div
-                      className="s-card"
+                      className="s-card notifications-popover"
                       style={{
                         position: 'absolute',
                         right: 0,
@@ -580,7 +580,7 @@ export const App: React.FC = () => {
 
                 <button
                   onClick={toggleAudio}
-                  className="dock-btn"
+                  className="dock-btn header-audio"
                   style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-card)' }}
                   title={isAudioEnabled ? 'Mute sounds' : 'Enable sounds'}
                 >
@@ -589,6 +589,7 @@ export const App: React.FC = () => {
 
                 <div
                   onClick={() => sound.click()}
+                  className="header-profile"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -616,7 +617,7 @@ export const App: React.FC = () => {
                   >
                     U
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                  <div className="header-profile-text" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                     <span
                       style={{
                         fontSize: '12px',

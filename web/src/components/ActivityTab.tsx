@@ -106,7 +106,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="activity-metrics" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div className="activity-metric-box">
             <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800, color: '#10b981' }}>
               In
@@ -137,10 +137,10 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="s-card" style={{ padding: '20px 24px' }}>
+      <div className="s-card activity-filter-card" style={{ padding: '20px 24px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
           {/* Search Input */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '280px', maxWidth: '420px' }}>
+          <div className="activity-search" style={{ position: 'relative', flex: '1', minWidth: '280px', maxWidth: '420px' }}>
             <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
@@ -152,7 +152,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
           </div>
 
           {/* Filter Pills Row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+          <div className="activity-filter-pills" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
             {/* Direction Filter */}
             <div className="pill-group">
               {(['All', 'In', 'Out', 'Saved'] as const).map((value) => (
@@ -227,7 +227,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
       </div>
 
       {/* Transaction Table Card */}
-      <div className="s-card" style={{ padding: '8px 12px', overflow: 'hidden' }}>
+      <div className="s-card activity-table-card" style={{ padding: '8px 12px', overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: '64px 20px', textAlign: 'center' }}>
             <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--bg-pill)', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
@@ -250,7 +250,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
             )}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
+          <div className="activity-table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
             <table className="activity-table">
               <thead>
                 <tr>

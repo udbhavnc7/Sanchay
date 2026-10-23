@@ -215,6 +215,518 @@ body {
     letter-spacing: -0.01em !important;
     white-space: nowrap !important;
   }
+
+  /* Mobile layout polish */
+  html,
+  body,
+  #root {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  main {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  main > div[style] {
+    gap: 16px !important;
+  }
+
+  main h1 {
+    font-size: 27px !important;
+    line-height: 1.12 !important;
+  }
+
+  main h1 + p {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    margin-top: 5px !important;
+  }
+
+  main .s-card {
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  /* Compact header */
+  .header-bar {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .brand-badge {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .brand-logo {
+    gap: 8px !important;
+  }
+
+  .brand-logo .brand-mark {
+    width: 30px !important;
+    height: 38px !important;
+  }
+
+  .brand-logo .brand-name {
+    font-size: 18px !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  .brand-logo .brand-tagline {
+    display: none !important;
+  }
+
+  .header-actions {
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    min-width: 0 !important;
+  }
+
+  .header-actions .dock-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .header-actions .header-request,
+  .header-actions .header-audio {
+    display: none !important;
+  }
+
+  .header-actions .header-profile {
+    padding: 0 !important;
+    gap: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .header-actions .header-profile-text,
+  .header-actions .header-profile > svg {
+    display: none !important;
+  }
+
+  .header-actions .header-profile > div:first-child {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .notifications-popover {
+    position: fixed !important;
+    top: 96px !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    max-height: 60vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Overview */
+  .overview-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .overview-balance-card {
+    grid-column: 1 / -1 !important;
+    padding: 18px !important;
+    border-radius: 22px !important;
+  }
+
+  .overview-balance-card .font-mono-numbers {
+    font-size: 32px !important;
+  }
+
+  .overview-stats-grid > .stat-card {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .overview-stats-grid > .stat-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .overview-stats-grid > .stat-card > div:first-child {
+    margin-bottom: 8px !important;
+  }
+
+  .overview-stats-grid > .stat-card > div:first-child > span {
+    font-size: 9px !important;
+  }
+
+  .overview-stats-grid > .stat-card > div:first-child > div {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 9px !important;
+  }
+
+  .overview-stats-grid > .stat-card .font-mono-numbers {
+    font-size: 21px !important;
+  }
+
+  .overview-stats-grid > .stat-card > div:last-child > div:last-child {
+    font-size: 10px !important;
+  }
+
+  .overview-accounts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .overview-account-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .overview-account-card .font-mono-numbers {
+    font-size: 15px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* Activity */
+  .activity-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .activity-metric-box {
+    min-width: 0 !important;
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .activity-metric-box > div:first-child {
+    font-size: 9px !important;
+  }
+
+  .activity-metric-box .font-mono-numbers {
+    font-size: 14px !important;
+    white-space: nowrap !important;
+  }
+
+  .activity-filter-card > div {
+    gap: 10px !important;
+  }
+
+  .activity-search {
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .activity-filter-pills {
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  main .activity-table-card {
+    padding: 4px 6px !important;
+    border-radius: 20px !important;
+  }
+
+  .activity-table-wrap {
+    overflow: visible !important;
+  }
+
+  .activity-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-spacing: 0 !important;
+  }
+
+  .activity-table thead {
+    display: none !important;
+  }
+
+  .activity-table tbody {
+    display: block !important;
+  }
+
+  .activity-table tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'tx amount'
+      'account status'
+      'category date';
+    gap: 6px 10px !important;
+    padding: 12px 8px !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+  }
+
+  .activity-table tr:last-child {
+    border-bottom: none !important;
+  }
+
+  .activity-table td {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    white-space: normal !important;
+    min-width: 0 !important;
+  }
+
+  .activity-table td:nth-child(1) {
+    grid-area: tx;
+  }
+
+  .activity-table td:nth-child(2) {
+    grid-area: account;
+    font-size: 10px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .activity-table td:nth-child(3) {
+    grid-area: category;
+    align-self: center;
+  }
+
+  .activity-table td:nth-child(4) {
+    grid-area: amount;
+    text-align: right !important;
+    align-self: start;
+  }
+
+  .activity-table td:nth-child(5) {
+    grid-area: status;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .activity-table td:nth-child(6) {
+    grid-area: date;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .activity-table .tx-kind-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 12px !important;
+  }
+
+  .activity-table td:nth-child(1) div > div:first-child {
+    font-size: 13px !important;
+  }
+
+  .activity-table td:nth-child(4) span {
+    font-size: 13px !important;
+  }
+
+  .activity-table .badge-category {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
+
+  .activity-table .badge-status {
+    font-size: 9px !important;
+    padding: 3px 7px !important;
+  }
+
+  /* Accounts */
+  .accounts-layout-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .accounts-column {
+    gap: 16px !important;
+    min-width: 0 !important;
+  }
+
+  .control-card-item,
+  .account-card-item {
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .control-card-item > div:first-child,
+  .account-card-item > div:first-child {
+    min-width: 0 !important;
+  }
+
+  .control-card-item > div:first-child > div:last-child {
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+  }
+
+  .cards-selector-row {
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .cards-selector-buttons {
+    width: 100% !important;
+  }
+
+  .cards-selector-buttons > button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    padding: 8px 8px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .cards-rotate-hint {
+    display: none !important;
+  }
+
+  .card-action-tile {
+    padding: 10px 4px !important;
+    gap: 4px !important;
+    border-radius: 14px !important;
+  }
+
+  .card-action-tile span {
+    font-size: 10px !important;
+  }
+
+  /* Payees */
+  .payees-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .quick-transfer-row {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+    justify-items: center !important;
+  }
+
+  .quick-transfer-row > button {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .quick-transfer-row > button > div:first-child {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 13px !important;
+  }
+
+  .quick-transfer-row > button > span {
+    font-size: 10px !important;
+  }
+
+  .payee-form-card {
+    margin-top: 16px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Reports */
+  .reports-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .reports-metrics-grid > .s-card {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .reports-metrics-grid .font-mono-numbers {
+    font-size: 20px !important;
+  }
+
+  .reports-split-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .reports-split-grid > .s-card {
+    grid-column: auto !important;
+  }
+
+  .reports-statement-wrap {
+    overflow: visible !important;
+  }
+
+  .reports-statement-table {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-spacing: 0 !important;
+  }
+
+  .reports-statement-table thead {
+    display: none !important;
+  }
+
+  .reports-statement-table tbody {
+    display: block !important;
+  }
+
+  .reports-statement-table tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'desc amount'
+      'category status'
+      'date account';
+    gap: 4px 10px !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+  }
+
+  .reports-statement-table tr:last-child {
+    border-bottom: none !important;
+  }
+
+  .reports-statement-table td {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    white-space: normal !important;
+    min-width: 0 !important;
+  }
+
+  .reports-statement-table td:nth-child(1) {
+    grid-area: date;
+    font-size: 10px !important;
+  }
+
+  .reports-statement-table td:nth-child(2) {
+    grid-area: desc;
+    font-size: 12px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .reports-statement-table td:nth-child(3) {
+    grid-area: category;
+    font-size: 10px !important;
+  }
+
+  .reports-statement-table td:nth-child(4) {
+    grid-area: account;
+    text-align: right !important;
+    font-size: 10px !important;
+  }
+
+  .reports-statement-table td:nth-child(5) {
+    grid-area: status;
+    justify-self: start;
+  }
+
+  .reports-statement-table td:nth-child(6) {
+    grid-area: amount;
+    text-align: right !important;
+    font-size: 12px !important;
+  }
 }
 
 /* Floating Vertical Dock */

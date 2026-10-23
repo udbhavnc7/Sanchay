@@ -249,8 +249,9 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
         </button>
       </div>
 
-      <div className="s-card">
+      <div className="s-card payees-hero-card">
         <div
+          className="payees-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
@@ -267,6 +268,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
             </p>
 
             <div
+              className="quick-transfer-row"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -369,6 +371,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
             </div>
 
             <div
+              className="payee-form-card"
               style={{
                 marginTop: '24px',
                 padding: '16px',

@@ -256,6 +256,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       </div>
 
       <div
+        className="reports-metrics-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -293,6 +294,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       </div>
 
       <div
+        className="reports-split-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
@@ -570,8 +572,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
             Nothing to export in this range yet.
           </p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+          <div className="reports-statement-wrap" style={{ overflowX: 'auto' }}>
+            <table className="reports-statement-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
               <thead>
                 <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
                   {['Date', 'Description', 'Category', 'Account', 'Status', 'Amount'].map(

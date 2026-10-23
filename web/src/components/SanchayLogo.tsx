@@ -34,6 +34,7 @@ export const SanchayLogo: React.FC<SanchayLogoProps> = ({
       <img
         src="/sanchay-mark.png"
         alt="Sanchay Mark"
+        className="brand-mark"
         style={{
           width: `${markDimensions.width}px`,
           height: `${markDimensions.height}px`,
@@ -43,8 +44,9 @@ export const SanchayLogo: React.FC<SanchayLogoProps> = ({
       />
 
       {showText && (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="brand-copy" style={{ display: 'flex', flexDirection: 'column' }}>
           <span
+            className="brand-name"
             style={{
               fontSize,
               fontWeight: 900,
@@ -57,6 +59,7 @@ export const SanchayLogo: React.FC<SanchayLogoProps> = ({
             SANCHAY
           </span>
           <span
+            className="brand-tagline"
             style={{
               fontSize: '10px',
               fontWeight: 600,
