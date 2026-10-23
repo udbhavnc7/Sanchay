@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { Account, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
+import { saveTextFile } from '../utils/fileSave';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -187,15 +188,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
         .join(',');
     });
     const csv = [header.map(csvCell).join(','), ...rows].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sanchay-${range}-statement.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    saveTextFile(`sanchay-${range}-statement.csv`, csv, 'text/csv');
   };
 
   return (

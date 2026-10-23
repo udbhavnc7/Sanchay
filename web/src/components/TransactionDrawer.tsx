@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { formatDateTime, formatMoney } from '../utils/money';
+import { saveTextFile } from '../utils/fileSave';
 
 interface TransactionDrawerProps {
   transaction: Transaction | null;
@@ -101,15 +102,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
       'Generated locally by Sanchay. No bank connection was used.',
     ];
 
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sanchay-${transaction.reference}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    saveTextFile(`sanchay-${transaction.reference}.txt`, lines.join('\r\n'), 'text/plain');
     sound.success();
   };
 

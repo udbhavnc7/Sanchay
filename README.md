@@ -60,6 +60,8 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Privacy panel that explains local storage, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
 - Backups include accounts, transactions, payees, goals, budgets, and preferences.
 - Restoring a backup replaces the current data on this device after a confirmation preview.
+- On Android, exports and receipt/CSV downloads are written to `Downloads/Sanchay` through a native bridge, and imports use the system file picker.
+- In a desktop browser, exports use normal browser downloads.
 - All dashboard data is stored in the WebView's `localStorage` under `sanchay.local.v1`.
 - Nothing is uploaded or synced by the dashboard.
 

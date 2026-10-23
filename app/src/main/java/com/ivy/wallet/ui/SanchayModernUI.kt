@@ -1,14 +1,21 @@
 package com.ivy.wallet.ui
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.ViewGroup
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,13 +25,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
 fun SanchayModernUI(
     modifier: Modifier = Modifier
 ) {
     var webViewRef by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
+    var fileChooserCallback by remember {
+        mutableStateOf<ValueCallback<Array<Uri>>?>(null)
+    }
+
+    val fileChooserLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val callback = fileChooserCallback
+        fileChooserCallback = null
+        callback?.onReceiveValue(
+            if (result.resultCode == Activity.RESULT_OK) {
+                WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
+            } else {
+                null
+            }
+        )
+    }
 
     BackHandler(enabled = canGoBack) {
         webViewRef?.let { wv ->
@@ -69,6 +93,39 @@ fun SanchayModernUI(
                     mediaPlaybackRequiresUserGesture = false
                     cacheMode = WebSettings.LOAD_DEFAULT
                     mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                }
+
+                addJavascriptInterface(
+                    SanchayFileBridge(context.applicationContext),
+                    "SanchayAndroid"
+                )
+
+                webChromeClient = object : WebChromeClient() {
+                    override fun onShowFileChooser(
+                        webView: WebView?,
+                        callback: ValueCallback<Array<Uri>>?,
+                        fileChooserParams: FileChooserParams?
+                    ): Boolean {
+                        fileChooserCallback?.onReceiveValue(null)
+                        fileChooserCallback = callback
+
+                        val intent = try {
+                            fileChooserParams?.createIntent()
+                        } catch (_: Exception) {
+                            null
+                        } ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "application/json"
+                        }
+
+                        return try {
+                            fileChooserLauncher.launch(intent)
+                            true
+                        } catch (_: Exception) {
+                            fileChooserCallback = null
+                            false
+                        }
+                    }
                 }
 
                 webViewClient = object : WebViewClient() {

@@ -19,6 +19,7 @@ import type {
   UpdateTransactionInput,
 } from './types/finance';
 import { sound } from './utils/audio';
+import { saveTextFile } from './utils/fileSave';
 import {
   addMoney,
   compareMoney,
@@ -796,18 +797,21 @@ export const App: React.FC = () => {
         isCardFrozen,
       },
     });
-    const blob = new Blob([JSON.stringify(state, null, 2)], {
-      type: 'application/json;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `sanchay-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    setBackupStatus(`Backup downloaded with ${transactions.length} transactions.`);
+    const result = saveTextFile(
+      `sanchay-backup-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(state, null, 2),
+      'application/json'
+    );
+    if (result.via === 'failed') {
+      setBackupStatus('Could not save the backup file.');
+      sound.click();
+      return;
+    }
+    setBackupStatus(
+      result.via === 'android'
+        ? `Backup saved to ${result.location} with ${transactions.length} transactions.`
+        : `Backup downloaded with ${transactions.length} transactions.`
+    );
     sound.success();
   };
 
