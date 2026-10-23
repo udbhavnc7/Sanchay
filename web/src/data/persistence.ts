@@ -112,7 +112,8 @@ function isTransaction(value: unknown): value is Transaction {
     (value.kind === undefined ||
       (isString(value.kind) &&
         TRANSACTION_KINDS.includes(value.kind as NonNullable<Transaction['kind']>))) &&
-    (value.fee === undefined || isNumber(value.fee))
+    (value.fee === undefined || isNumber(value.fee)) &&
+    (value.goalId === undefined || isString(value.goalId))
   );
 }
 
@@ -183,13 +184,29 @@ function isPersistedState(value: unknown): value is PersistedState {
   );
 }
 
+export function createPersistedState(input: PersistedStateInput): PersistedState {
+  return {
+    version: STORAGE_VERSION,
+    savedAt: new Date().toISOString(),
+    ...input,
+  };
+}
+
+export function parsePersistedState(raw: string): PersistedState | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return isPersistedState(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function loadPersistedState(storage: StorageLike | null = browserStorage()): PersistedState | null {
   if (!storage) return null;
   try {
     const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    return isPersistedState(parsed) ? parsed : null;
+    return parsePersistedState(raw);
   } catch {
     return null;
   }
@@ -203,11 +220,7 @@ export function savePersistedState(
     return { ok: false, error: 'Local storage is unavailable in this browser.' };
   }
 
-  const state: PersistedState = {
-    version: STORAGE_VERSION,
-    savedAt: new Date().toISOString(),
-    ...input,
-  };
+  const state = createPersistedState(input);
 
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(state));

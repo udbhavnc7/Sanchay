@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAccounts,
   initialBudgets,
@@ -16,6 +16,7 @@ import type {
   PaymentInput,
   SavingsGoal,
   Transaction,
+  UpdateTransactionInput,
 } from './types/finance';
 import { sound } from './utils/audio';
 import {
@@ -29,7 +30,19 @@ import {
   sumMoney,
   toMinorUnits,
 } from './utils/money';
-import { clearPersistedState, loadPersistedState, savePersistedState } from './data/persistence';
+import {
+  clearPersistedState,
+  createPersistedState,
+  loadPersistedState,
+  parsePersistedState,
+  savePersistedState,
+  type PersistedState,
+} from './data/persistence';
+import {
+  applyTransactionToBalance,
+  replaceTransactionOnBalance,
+  reverseTransactionFromBalance,
+} from './utils/ledger';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
 import { CardsTab } from './components/CardsTab';
@@ -60,6 +73,9 @@ import {
   ArrowDownLeft,
   CheckCircle2,
   Undo2,
+  Download,
+  Upload,
+  Trash2,
 } from 'lucide-react';
 
 export type MainTab = 'Overview' | 'Activity' | 'Accounts' | 'Plan' | 'Payees' | 'Reports';
@@ -119,9 +135,14 @@ export const App: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [storageError, setStorageError] = useState('');
+  const [backupStatus, setBackupStatus] = useState('');
+  const [pendingImport, setPendingImport] = useState<PersistedState | null>(null);
   const [lastAdded, setLastAdded] = useState<Transaction | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<Transaction | null>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
   const [showSplash, setShowSplash] = useState(() => {
     try {
       if (new URLSearchParams(window.location.search).has('splash')) return true;
@@ -189,6 +210,12 @@ export const App: React.FC = () => {
     const timer = window.setTimeout(() => setLastAdded(null), 8000);
     return () => window.clearTimeout(timer);
   }, [lastAdded]);
+
+  useEffect(() => {
+    if (!lastDeleted) return;
+    const timer = window.setTimeout(() => setLastDeleted(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [lastDeleted]);
 
   const monthStart = useMemo(() => startOfMonth(), []);
 
@@ -423,6 +450,7 @@ export const App: React.FC = () => {
       counterparty: goal.title,
       note: 'Savings transfer — not counted as spending.',
       kind: 'transfer',
+      goalId: goal.id,
     };
 
     setAccounts((prev) =>
@@ -537,20 +565,198 @@ export const App: React.FC = () => {
     return { ok: true, transaction };
   };
 
-  const handleUndoAdd = () => {
-    if (!lastAdded) return;
-    const transaction = lastAdded;
-    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
-    if (transaction.accountId) {
+  const handleUpdateTransaction = (input: UpdateTransactionInput): MoneyResult => {
+    const existing = transactions.find((item) => item.id === input.id);
+    if (!existing) {
+      return { ok: false, error: 'That transaction no longer exists.' };
+    }
+    if (existing.kind === 'transfer') {
+      return { ok: false, error: 'Savings transfers cannot be edited here.' };
+    }
+
+    const account = accounts.find((item) => item.id === input.accountId);
+    if (!account) {
+      return { ok: false, error: 'Choose an account for this transaction.' };
+    }
+    if (account.status !== 'Active') {
+      return { ok: false, error: `${account.name} is not active right now.` };
+    }
+    if (account.currency !== 'INR') {
+      return { ok: false, error: 'Transaction editing currently supports INR accounts only.' };
+    }
+    if (!isValidAmount(input.amount)) {
+      return { ok: false, error: 'Enter an amount greater than zero.' };
+    }
+
+    const amount = fromMinorUnits(toMinorUnits(input.amount));
+    const occurredAt = new Date(`${input.date}T12:00:00`);
+    if (Number.isNaN(occurredAt.getTime())) {
+      return { ok: false, error: 'Choose a valid date.' };
+    }
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (occurredAt > today) {
+      return { ok: false, error: 'Use today or an earlier date.' };
+    }
+
+    const nextEffect = {
+      type: input.type === 'expense' ? ('debit' as const) : ('credit' as const),
+      amount,
+    };
+    const affectsBalance = existing.status === 'Completed';
+    if (affectsBalance) {
+      const resultingBalance =
+        existing.accountId === account.id
+          ? replaceTransactionOnBalance(account.balance, existing, nextEffect)
+          : applyTransactionToBalance(account.balance, nextEffect);
+      if (input.type === 'expense' && compareMoney(resultingBalance, 0) < 0) {
+        return {
+          ok: false,
+          error: `Not enough in ${account.name}. This change would leave ${formatMoney(resultingBalance)}.`,
+        };
+      }
+    }
+
+    const title = input.title.trim() || input.category;
+    const updated: Transaction = {
+      ...existing,
+      title,
+      category: input.category,
+      amount,
+      type: nextEffect.type,
+      date: occurredAt.toISOString(),
+      accountId: account.id,
+      counterparty: existing.reference?.startsWith('ADD-')
+        ? title
+        : existing.counterparty ?? title,
+      note: input.note?.trim() || undefined,
+      kind: input.type,
+      goalId: undefined,
+    };
+
+    setTransactions((prev) =>
+      prev.map((item) => (item.id === updated.id ? updated : item))
+    );
+    if (affectsBalance) {
+      setAccounts((prev) =>
+        prev.map((item) => {
+          if (
+            existing.accountId &&
+            item.id === existing.accountId &&
+            item.id !== account.id
+          ) {
+            return {
+              ...item,
+              balance: reverseTransactionFromBalance(item.balance, existing),
+            };
+          }
+          if (item.id === account.id) {
+            return {
+              ...item,
+              balance:
+                existing.accountId === account.id
+                  ? replaceTransactionOnBalance(item.balance, existing, nextEffect)
+                  : applyTransactionToBalance(item.balance, nextEffect),
+            };
+          }
+          return item;
+        })
+      );
+    }
+
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
+    setLastAdded(null);
+    sound.success();
+    return { ok: true, transaction: updated };
+  };
+
+  const handleDeleteTransaction = (id: string): MoneyResult => {
+    const transaction = transactions.find((item) => item.id === id);
+    if (!transaction) {
+      return { ok: false, error: 'That transaction no longer exists.' };
+    }
+
+    if (transaction.status === 'Completed' && transaction.accountId) {
       setAccounts((prev) =>
         prev.map((item) =>
           item.id === transaction.accountId
             ? {
                 ...item,
-                balance:
-                  transaction.type === 'credit'
-                    ? subtractMoney(item.balance, transaction.amount)
-                    : addMoney(item.balance, transaction.amount),
+                balance: reverseTransactionFromBalance(item.balance, transaction),
+              }
+            : item
+        )
+      );
+    }
+    if (transaction.goalId) {
+      setGoals((prev) =>
+        prev.map((goal) => {
+          if (goal.id !== transaction.goalId) return goal;
+          const nextSaved = subtractMoney(goal.savedAmount, transaction.amount);
+          return {
+            ...goal,
+            savedAmount: compareMoney(nextSaved, 0) < 0 ? 0 : nextSaved,
+          };
+        })
+      );
+    }
+
+    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
+    setLastAdded(null);
+    setLastDeleted(transaction);
+    sound.success();
+    return { ok: true, transaction };
+  };
+
+  const handleUndoDelete = () => {
+    if (!lastDeleted) return;
+    const transaction = lastDeleted;
+
+    setTransactions((prev) =>
+      prev.some((item) => item.id === transaction.id)
+        ? prev
+        : [transaction, ...prev]
+    );
+    if (transaction.status === 'Completed' && transaction.accountId) {
+      setAccounts((prev) =>
+        prev.map((item) =>
+          item.id === transaction.accountId
+            ? {
+                ...item,
+                balance: applyTransactionToBalance(item.balance, transaction),
+              }
+            : item
+        )
+      );
+    }
+    if (transaction.goalId) {
+      setGoals((prev) =>
+        prev.map((goal) =>
+          goal.id === transaction.goalId
+            ? { ...goal, savedAmount: addMoney(goal.savedAmount, transaction.amount) }
+            : goal
+        )
+      );
+    }
+
+    setLastDeleted(null);
+    sound.success();
+  };
+
+  const handleUndoAdd = () => {
+    if (!lastAdded) return;
+    const transaction = lastAdded;
+    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
+    if (transaction.status === 'Completed' && transaction.accountId) {
+      setAccounts((prev) =>
+        prev.map((item) =>
+          item.id === transaction.accountId
+            ? {
+                ...item,
+                balance: reverseTransactionFromBalance(item.balance, transaction),
               }
             : item
         )
@@ -558,6 +764,101 @@ export const App: React.FC = () => {
     }
     setLastAdded(null);
     sound.click();
+  };
+
+  const handleOpenPrivacy = () => {
+    sound.click();
+    setConfirmReset(false);
+    setPendingImport(null);
+    setBackupStatus('');
+    setShowPrivacy(true);
+  };
+
+  const handleClosePrivacy = () => {
+    setShowPrivacy(false);
+    setConfirmReset(false);
+    setPendingImport(null);
+    setBackupStatus('');
+  };
+
+  const handleExportBackup = () => {
+    const state = createPersistedState({
+      accounts,
+      transactions,
+      contacts,
+      goals,
+      budgets,
+      preferences: {
+        isDarkMode,
+        isAudioEnabled,
+        isCardFrozen,
+      },
+    });
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: 'application/json;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sanchay-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setBackupStatus(`Backup downloaded with ${transactions.length} transactions.`);
+    sound.success();
+  };
+
+  const handleBackupFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    setStorageError('');
+    setBackupStatus('');
+    setPendingImport(null);
+
+    if (file.size > 5_000_000) {
+      setStorageError('That backup is larger than 5 MB. Choose a Sanchay JSON backup.');
+      return;
+    }
+
+    try {
+      const parsed = parsePersistedState(await file.text());
+      if (!parsed) {
+        setStorageError('That file is not a valid Sanchay backup.');
+        return;
+      }
+      setPendingImport(parsed);
+    } catch {
+      setStorageError('That backup could not be read.');
+    }
+  };
+
+  const handleRestoreBackup = () => {
+    if (!pendingImport) return;
+
+    setAccounts(pendingImport.accounts);
+    setTransactions(pendingImport.transactions);
+    setContacts(pendingImport.contacts);
+    setGoals(pendingImport.goals);
+    setBudgets(pendingImport.budgets);
+    setIsDarkMode(pendingImport.preferences.isDarkMode);
+    setIsAudioEnabled(pendingImport.preferences.isAudioEnabled);
+    setIsCardFrozen(pendingImport.preferences.isCardFrozen);
+    sound.enabled = pendingImport.preferences.isAudioEnabled;
+    setStorageError('');
+    setPendingImport(null);
+    setConfirmReset(false);
+    setLastAdded(null);
+    setLastDeleted(null);
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
+    setBackupStatus(
+      `Backup restored with ${pendingImport.transactions.length} transactions.`
+    );
+    sound.success();
   };
 
   const handleResetLocalData = () => {
@@ -577,7 +878,12 @@ export const App: React.FC = () => {
     setIsCardFrozen(false);
     sound.enabled = true;
     setStorageError('');
+    setBackupStatus('');
+    setPendingImport(null);
     setLastAdded(null);
+    setLastDeleted(null);
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
     setShowPrivacy(false);
     setConfirmReset(false);
     sound.success();
@@ -641,10 +947,7 @@ export const App: React.FC = () => {
                 <Search size={16} />
               </button>
               <button
-                onClick={() => {
-                  sound.click();
-                  setShowPrivacy(true);
-                }}
+                onClick={handleOpenPrivacy}
                 className="dock-btn"
                 title="Privacy"
               >
@@ -921,6 +1224,11 @@ export const App: React.FC = () => {
         <TransactionDrawer
           transaction={selectedTransaction}
           account={selectedAccount}
+          onEdit={(transaction) => {
+            setSelectedTransaction(null);
+            setEditingTransaction(transaction);
+          }}
+          onDelete={handleDeleteTransaction}
           onClose={() => setSelectedTransaction(null)}
         />
 
@@ -947,6 +1255,17 @@ export const App: React.FC = () => {
             accounts={accounts}
             onAdd={handleAddTransaction}
             onClose={() => setShowAddTransaction(false)}
+          />
+        )}
+
+        {editingTransaction && (
+          <AddTransactionModal
+            key={editingTransaction.id}
+            transaction={editingTransaction}
+            accounts={accounts}
+            onAdd={handleAddTransaction}
+            onUpdate={handleUpdateTransaction}
+            onClose={() => setEditingTransaction(null)}
           />
         )}
 
@@ -978,6 +1297,34 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {lastDeleted && (
+          <div className="sanchay-toast sanchay-toast-danger" role="status" aria-live="polite">
+            <div className="sanchay-toast-icon sanchay-toast-icon-danger">
+              <Trash2 size={17} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                Transaction deleted
+              </div>
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: 'var(--text-muted)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {lastDeleted.title} · {formatMoney(lastDeleted.amount)}
+              </div>
+            </div>
+            <button type="button" onClick={handleUndoDelete} className="sanchay-toast-undo">
+              <Undo2 size={13} />
+              Undo
+            </button>
+          </div>
+        )}
+
         {showPrivacy && (
           <div
             style={{
@@ -991,14 +1338,11 @@ export const App: React.FC = () => {
               backdropFilter: 'blur(4px)',
               padding: '16px',
             }}
-            onClick={() => {
-              setShowPrivacy(false);
-              setConfirmReset(false);
-            }}
+            onClick={handleClosePrivacy}
           >
             <div
-              className="s-card"
-              style={{ maxWidth: '460px', width: '100%' }}
+              className="s-card privacy-panel"
+              style={{ maxWidth: '480px', width: '100%', maxHeight: '88vh', overflowY: 'auto' }}
               onClick={(event) => event.stopPropagation()}
             >
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -1016,6 +1360,104 @@ export const App: React.FC = () => {
                 local storage on this device. Nothing is uploaded or synced. Search, reports and
                 receipts are generated locally.
               </p>
+
+              <div className="privacy-data-actions">
+                <button type="button" onClick={handleExportBackup} className="btn-action-light">
+                  <Download size={14} />
+                  Export backup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.click();
+                    backupInputRef.current?.click();
+                  }}
+                  className="btn-action-light"
+                >
+                  <Upload size={14} />
+                  Import backup
+                </button>
+              </div>
+              <input
+                ref={backupInputRef}
+                className="privacy-file-input"
+                type="file"
+                accept="application/json,.json"
+                onChange={(event) => {
+                  void handleBackupFile(event);
+                }}
+              />
+              <p
+                style={{
+                  fontSize: '10px',
+                  color: 'var(--text-muted)',
+                  marginTop: '7px',
+                  lineHeight: 1.5,
+                }}
+              >
+                The JSON backup includes accounts, transactions, payees, goals, budgets and
+                preferences. Importing replaces the data on this device.
+              </p>
+
+              {backupStatus && (
+                <div
+                  role="status"
+                  style={{
+                    marginTop: '10px',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#047857',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                  }}
+                >
+                  {backupStatus}
+                </div>
+              )}
+
+              {pendingImport && (
+                <div className="privacy-import-preview">
+                  <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Restore this backup?
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      marginTop: '4px',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Saved {pendingImport.savedAt.slice(0, 10)}. Contains{' '}
+                    {pendingImport.transactions.length} transactions,{' '}
+                    {pendingImport.accounts.length} accounts, {pendingImport.goals.length} goals
+                    and {pendingImport.contacts.length} payees.
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.click();
+                        setPendingImport(null);
+                      }}
+                      className="btn-action-light"
+                      style={{ flex: 1, padding: '8px 0' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRestoreBackup}
+                      className="btn-action-dark"
+                      style={{ flex: 1.3, padding: '8px 0' }}
+                    >
+                      Restore backup
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {storageError && (
                 <div
                   style={{
@@ -1031,13 +1473,10 @@ export const App: React.FC = () => {
                   {storageError}
                 </div>
               )}
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                 <button
-                  onClick={() => {
-                    sound.click();
-                    setShowPrivacy(false);
-                    setConfirmReset(false);
-                  }}
+                  onClick={handleClosePrivacy}
                   className="btn-action-dark"
                   style={{ flex: 1 }}
                 >

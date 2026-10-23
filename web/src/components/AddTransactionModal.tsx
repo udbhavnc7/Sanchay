@@ -4,6 +4,8 @@ import type {
   Category,
   MoneyResult,
   NewTransactionInput,
+  Transaction,
+  UpdateTransactionInput,
 } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
@@ -14,17 +16,17 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
+import { compareMoney, formatMoney, parseMoneyInput } from '../utils/money';
 import {
-  addMoney,
-  compareMoney,
-  formatMoney,
-  parseMoneyInput,
-  subtractMoney,
-} from '../utils/money';
+  applyTransactionToBalance,
+  replaceTransactionOnBalance,
+} from '../utils/ledger';
 
 interface AddTransactionModalProps {
   accounts: Account[];
+  transaction?: Transaction | null;
   onAdd: (input: NewTransactionInput) => MoneyResult;
+  onUpdate?: (input: UpdateTransactionInput) => MoneyResult;
   onClose: () => void;
 }
 
@@ -49,35 +51,76 @@ function todayDateValue(): string {
   return new Date(today.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
+function dateValueFromIso(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return todayDateValue();
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
+}
+
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   accounts,
+  transaction,
   onAdd,
+  onUpdate,
   onClose,
 }) => {
+  const isEditing = Boolean(transaction);
+  const initialType: 'expense' | 'income' =
+    transaction?.kind === 'income' || transaction?.type === 'credit' ? 'income' : 'expense';
+
   const inrAccounts = useMemo(
-    () => accounts.filter((account) => account.currency === 'INR' && account.status === 'Active'),
-    [accounts]
+    () =>
+      accounts.filter(
+        (account) =>
+          account.currency === 'INR' &&
+          (account.status === 'Active' || account.id === transaction?.accountId)
+      ),
+    [accounts, transaction?.accountId]
   );
 
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [amountInput, setAmountInput] = useState('');
-  const [accountId, setAccountId] = useState(inrAccounts[0]?.id ?? '');
-  const [category, setCategory] = useState<Category>(EXPENSE_CATEGORIES[0]);
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState(todayDateValue);
-  const [note, setNote] = useState('');
+  const [type, setType] = useState<'expense' | 'income'>(initialType);
+  const [amountInput, setAmountInput] = useState(
+    transaction ? transaction.amount.toFixed(2) : ''
+  );
+  const [accountId, setAccountId] = useState(
+    transaction?.accountId ?? inrAccounts[0]?.id ?? ''
+  );
+  const [category, setCategory] = useState<Category>(
+    transaction?.category ??
+      (initialType === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0])
+  );
+  const [title, setTitle] = useState(transaction?.title ?? '');
+  const [date, setDate] = useState(
+    transaction ? dateValueFromIso(transaction.date) : todayDateValue()
+  );
+  const [note, setNote] = useState(transaction?.note ?? '');
   const [error, setError] = useState('');
 
-  const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const categories = useMemo(() => {
+    const base = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    return transaction?.category && !base.includes(transaction.category)
+      ? [transaction.category, ...base]
+      : base;
+  }, [type, transaction?.category]);
+
   const account = inrAccounts.find((item) => item.id === accountId) ?? inrAccounts[0];
   const parsedAmount = parseMoneyInput(amountInput);
   const amount = parsedAmount.ok ? parsedAmount.amount : 0;
+  const nextEffect = {
+    type: type === 'expense' ? ('debit' as const) : ('credit' as const),
+    amount,
+  };
 
   const balanceAfter =
     account && parsedAmount.ok
-      ? type === 'expense'
-        ? subtractMoney(account.balance, amount)
-        : addMoney(account.balance, amount)
+      ? transaction
+        ? transaction.status === 'Completed'
+          ? transaction.accountId === account.id
+            ? replaceTransactionOnBalance(account.balance, transaction, nextEffect)
+            : applyTransactionToBalance(account.balance, nextEffect)
+          : account.balance
+        : applyTransactionToBalance(account.balance, nextEffect)
       : null;
 
   useEffect(() => {
@@ -98,16 +141,24 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!account) {
-      setError('Add an active INR account before recording a transaction.');
+      setError(
+        isEditing
+          ? 'Choose an INR account before saving this transaction.'
+          : 'Add an active INR account before recording a transaction.'
+      );
       return;
     }
     if (!parsedAmount.ok) {
       setError(parsedAmount.error);
       return;
     }
-    if (type === 'expense' && compareMoney(account.balance, amount) < 0) {
+    if (
+      type === 'expense' &&
+      balanceAfter !== null &&
+      compareMoney(balanceAfter, 0) < 0
+    ) {
       setError(
-        `Not enough in ${account.name}. Available ${formatMoney(account.balance)}.`
+        `Not enough in ${account.name}. This change would leave ${formatMoney(balanceAfter)}.`
       );
       return;
     }
@@ -116,7 +167,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       return;
     }
 
-    const result = onAdd({
+    const payload = {
       type,
       title:
         title.trim() ||
@@ -126,10 +177,22 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       accountId: account.id,
       date,
       note: note.trim() || undefined,
-    });
+    };
+
+    if (isEditing && (!transaction || !onUpdate)) {
+      setError('This transaction cannot be edited right now.');
+      return;
+    }
+
+    const result =
+      isEditing && transaction && onUpdate
+        ? onUpdate({ ...payload, id: transaction.id })
+        : onAdd(payload);
 
     if (!result.ok) {
-      setError(result.error ?? 'Could not add this transaction.');
+      setError(
+        result.error ?? (isEditing ? 'Could not save this transaction.' : 'Could not add this transaction.')
+      );
       return;
     }
 
@@ -180,7 +243,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 letterSpacing: '-0.02em',
               }}
             >
-              Add transaction
+              {isEditing ? 'Edit transaction' : 'Add transaction'}
             </h3>
             <p
               style={{
@@ -190,7 +253,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 lineHeight: 1.5,
               }}
             >
-              Record money that already moved. Your account balance updates with it.
+              {isEditing
+                ? 'Update the details and Sanchay will correct the affected balances.'
+                : 'Record money that already moved. Your account balance updates with it.'}
             </p>
           </div>
           <button
@@ -460,7 +525,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               style={{ flex: 1.4, padding: '11px 0', gap: '6px' }}
             >
               <Check size={15} />
-              Add {type}
+              {isEditing ? 'Save changes' : `Add ${type}`}
             </button>
           </div>
         </form>

@@ -54,6 +54,7 @@ export interface Transaction {
   kind?: TxKind;
   fee?: number;
   wallet?: string;
+  goalId?: string;
 }
 
 export interface Contact {
@@ -111,6 +112,10 @@ export interface NewTransactionInput {
   accountId: string;
   date: string;
   note?: string;
+}
+
+export interface UpdateTransactionInput extends NewTransactionInput {
+  id: string;
 }
 
 export interface MoneyResult {

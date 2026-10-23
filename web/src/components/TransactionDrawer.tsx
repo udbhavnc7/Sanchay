@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Account, Transaction } from '../types/finance';
+import type { Account, MoneyResult, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
   X,
@@ -13,21 +13,36 @@ import {
   ArrowDownLeft,
   ArrowLeftRight,
   ShieldCheck,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { formatDateTime, formatMoney } from '../utils/money';
 
 interface TransactionDrawerProps {
   transaction: Transaction | null;
   account?: Account;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (id: string) => MoneyResult;
   onClose: () => void;
 }
 
 export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   transaction,
   account,
+  onEdit,
+  onDelete,
   onClose,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  useEffect(() => {
+    setCopied(false);
+    setConfirmDelete(false);
+    setDeleteError('');
+  }, [transaction?.id]);
 
   useEffect(() => {
     if (!transaction) return;
@@ -43,6 +58,23 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   const currency = account?.currency ?? 'INR';
   const isIncome = transaction.kind === 'income';
   const isTransfer = transaction.kind === 'transfer';
+  const canEdit = !isTransfer && currency === 'INR';
+
+  const handleDelete = () => {
+    sound.click();
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setDeleteError('');
+      return;
+    }
+
+    const result = onDelete(transaction.id);
+    if (!result.ok) {
+      setDeleteError(result.error ?? 'Could not delete this transaction.');
+      return;
+    }
+    onClose();
+  };
 
   const handleCopy = async () => {
     try {
@@ -223,7 +255,58 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
         </div>
 
         <div className="pt-6 border-t border-slate-200/70 dark:border-white/10">
-          <button onClick={handleDownload} className="w-full btn-primary py-3 text-xs">
+          <div className="transaction-drawer-actions">
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.click();
+                  onEdit(transaction);
+                }}
+                className="btn-action-light"
+                style={{ flex: 1, padding: '10px 0' }}
+              >
+                <Pencil size={14} />
+                Edit
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="btn-action-light"
+              style={{
+                flex: 1,
+                padding: '10px 0',
+                color: confirmDelete ? '#ef4444' : undefined,
+                borderColor: confirmDelete ? 'rgba(239, 68, 68, 0.35)' : undefined,
+              }}
+            >
+              <Trash2 size={14} />
+              {confirmDelete ? 'Confirm delete' : 'Delete'}
+            </button>
+          </div>
+
+          {confirmDelete && (
+            <div className="transaction-delete-warning">
+              <AlertTriangle size={13} />
+              <span>
+                This removes the entry and reverses its account balance. Linked goal progress is
+                also reversed.
+              </span>
+            </div>
+          )}
+          {deleteError && (
+            <div className="transaction-delete-warning" style={{ color: '#ef4444' }}>
+              <AlertTriangle size={13} />
+              <span>{deleteError}</span>
+            </div>
+          )}
+
+          <button
+            onClick={handleDownload}
+            className="w-full btn-primary py-3 text-xs"
+            style={{ marginTop: '10px' }}
+          >
             <Download size={14} />
             <span>Download receipt</span>
           </button>
