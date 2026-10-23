@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   clearPersistedState,
+  createPersistedState,
   loadPersistedState,
+  parsePersistedState,
   savePersistedState,
   STORAGE_KEY,
   STORAGE_VERSION,
@@ -110,6 +112,34 @@ describe('local persistence', () => {
     expect(loadPersistedState(failingStorage)).toBeNull();
     expect(savePersistedState(snapshot(), failingStorage)).toMatchObject({ ok: false });
     expect(() => clearPersistedState(failingStorage)).not.toThrow();
+  });
+
+  it('creates and parses an exportable backup', () => {
+    const input = snapshot();
+    const created = createPersistedState(input);
+    const raw = JSON.stringify(created);
+
+    expect(created.version).toBe(STORAGE_VERSION);
+    expect(created.savedAt).toEqual(expect.any(String));
+    expect(parsePersistedState(raw)).toEqual(created);
+    expect(parsePersistedState('{broken')).toBeNull();
+    expect(parsePersistedState(JSON.stringify({ version: STORAGE_VERSION }))).toBeNull();
+  });
+
+  it('accepts linked goal references but rejects malformed ones', () => {
+    const input = snapshot();
+    input.transactions = input.transactions.map((transaction, index) =>
+      index === 0 ? { ...transaction, goalId: 'g1' } : transaction
+    );
+
+    const raw = JSON.stringify(createPersistedState(input));
+    expect(parsePersistedState(raw)?.transactions[0].goalId).toBe('g1');
+
+    const invalid = JSON.parse(raw) as {
+      transactions: Array<{ goalId: unknown }>;
+    };
+    invalid.transactions[0].goalId = 42;
+    expect(parsePersistedState(JSON.stringify(invalid))).toBeNull();
   });
 
   it('clears saved data', () => {

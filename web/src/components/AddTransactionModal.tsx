@@ -97,12 +97,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const [note, setNote] = useState(transaction?.note ?? '');
   const [error, setError] = useState('');
 
-  const categories = useMemo(() => {
-    const base = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-    return transaction?.category && !base.includes(transaction.category)
-      ? [transaction.category, ...base]
-      : base;
-  }, [type, transaction?.category]);
+  const categoryOptions = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const categories =
+    transaction?.category && !categoryOptions.includes(transaction.category)
+      ? [transaction.category, ...categoryOptions]
+      : categoryOptions;
 
   const account = inrAccounts.find((item) => item.id === accountId) ?? inrAccounts[0];
   const parsedAmount = parseMoneyInput(amountInput);

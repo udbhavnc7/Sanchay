@@ -561,6 +561,7 @@ export const App: React.FC = () => {
     );
     setTransactions((prev) => [transaction, ...prev]);
     setLastAdded(transaction);
+    setLastDeleted(null);
 
     return { ok: true, transaction };
   };
@@ -578,7 +579,7 @@ export const App: React.FC = () => {
     if (!account) {
       return { ok: false, error: 'Choose an account for this transaction.' };
     }
-    if (account.status !== 'Active') {
+    if (account.status !== 'Active' && account.id !== existing.accountId) {
       return { ok: false, error: `${account.name} is not active right now.` };
     }
     if (account.currency !== 'INR') {
@@ -667,6 +668,7 @@ export const App: React.FC = () => {
     setSelectedTransaction(null);
     setEditingTransaction(null);
     setLastAdded(null);
+    setLastDeleted(null);
     sound.success();
     return { ok: true, transaction: updated };
   };
@@ -1222,6 +1224,7 @@ export const App: React.FC = () => {
         </div>
 
         <TransactionDrawer
+          key={selectedTransaction?.id ?? 'none'}
           transaction={selectedTransaction}
           account={selectedAccount}
           onEdit={(transaction) => {

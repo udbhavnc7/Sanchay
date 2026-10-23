@@ -39,12 +39,6 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
-    setCopied(false);
-    setConfirmDelete(false);
-    setDeleteError('');
-  }, [transaction?.id]);
-
-  useEffect(() => {
     if (!transaction) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();

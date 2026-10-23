@@ -1733,3 +1733,54 @@ body {
     box-shadow: 0 -10px 20px -18px rgba(0, 0, 0, 0.45);
   }
 }
+
+.sanchay-toast-danger .sanchay-toast-icon-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.privacy-data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.privacy-data-actions .btn-action-light {
+  justify-content: center;
+  padding: 9px 10px;
+  font-size: 11px;
+}
+
+.privacy-file-input {
+  display: none;
+}
+
+.privacy-import-preview {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg-pill);
+  border: 1px solid var(--border-subtle);
+}
+
+.transaction-drawer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.transaction-delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #ef4444;
+}
+
+@media (max-width: 380px) {
+  .privacy-data-actions {
+    grid-template-columns: 1fr;
+  }
+}
