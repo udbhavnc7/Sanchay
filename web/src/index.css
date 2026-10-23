@@ -187,6 +187,19 @@ body {
     overscroll-behavior: contain;
   }
 
+  .request-modal-panel {
+    padding: 16px !important;
+  }
+
+  .request-modal-panel > div:nth-child(2) {
+    margin-top: 16px !important;
+    gap: 14px !important;
+  }
+
+  .request-modal-panel > div:last-child {
+    margin-top: 18px !important;
+  }
+
   .sanchay-modal-overlay {
     padding: 12px !important;
   }

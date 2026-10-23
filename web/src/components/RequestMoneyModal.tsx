@@ -64,7 +64,7 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="modal-dialog-panel"
+        className="modal-dialog-panel request-modal-panel"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Header */}
