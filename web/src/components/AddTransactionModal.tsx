@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   Check,
   ShieldCheck,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { compareMoney, formatMoney, parseMoneyInput } from '../utils/money';
@@ -22,6 +23,7 @@ import {
   replaceTransactionOnBalance,
 } from '../utils/ledger';
 import { buildRecentTemplates } from '../utils/transactionTemplates';
+import { suggestCategory } from '../utils/categorySuggestion';
 
 interface AddTransactionModalProps {
   accounts: Account[];
@@ -110,6 +112,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const recentTemplates = useMemo(
     () => (isEditing ? [] : buildRecentTemplates(transactions, inrAccounts, type)),
     [inrAccounts, isEditing, transactions, type]
+  );
+  const categorySuggestion = useMemo(
+    () => (isEditing ? null : suggestCategory(transactions, type, title, categoryOptions)),
+    [categoryOptions, isEditing, title, transactions, type]
   );
   const parsedAmount = parseMoneyInput(amountInput);
   const amount = parsedAmount.ok ? parsedAmount.amount : 0;
@@ -455,6 +461,49 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 </select>
               </div>
             </div>
+
+            {categorySuggestion && categorySuggestion.category !== category && (
+              <div
+                aria-live="polite"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  border: '1px solid rgba(56, 189, 248, 0.24)',
+                  color: 'var(--text-main)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <Sparkles size={14} color="#38bdf8" style={{ flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800 }}>
+                      Suggested: {categorySuggestion.category}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                      Based on {categorySuggestion.matchCount} earlier{' '}
+                      {categorySuggestion.matchCount === 1 ? 'entry' : 'entries'} like{' '}
+                      {categorySuggestion.matchedText}.
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.click();
+                    setCategory(categorySuggestion.category);
+                    setError('');
+                  }}
+                  className="btn-action-light"
+                  style={{ padding: '6px 10px', fontSize: '10px', flexShrink: 0 }}
+                >
+                  Use
+                </button>
+              </div>
+            )}
 
             <div className="add-transaction-row">
               <div>
