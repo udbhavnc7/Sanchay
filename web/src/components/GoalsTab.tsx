@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Gift,
   Laptop,
+  Pencil,
   PiggyBank,
   Plane,
   Plus,
@@ -34,6 +35,7 @@ import {
   subtractMoney,
   sumMoney,
 } from '../utils/money';
+import { buildGoalProjection, goalTargetMonthValue } from '../utils/goalProjection';
 
 interface GoalsTabProps {
   goals: SavingsGoal[];
@@ -42,6 +44,7 @@ interface GoalsTabProps {
   transactions: Transaction[];
   onDepositToGoal: (input: GoalDepositInput) => MoneyResult;
   onAddGoal: (goal: SavingsGoal) => void;
+  onUpdateGoal: (goal: SavingsGoal) => void;
   onUpdateBudget: (budgetId: string, limit: number) => void;
 }
 
@@ -58,6 +61,19 @@ const GOAL_COLORS = ['#ff5722', '#38bdf8', '#10b981', '#f59e0b', '#a855f7', '#f4
 
 const ICON_CHOICES = ['laptop', 'plane', 'shield', 'car', 'gift', 'wallet'];
 
+function currentMonthValue(now = new Date()): string {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function formatMonthValue(value: string): string {
+  const [year, month] = value.split('-').map(Number);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return 'No date set';
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export const GoalsTab: React.FC<GoalsTabProps> = ({
   goals,
   budgets,
@@ -65,6 +81,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   transactions,
   onDepositToGoal,
   onAddGoal,
+  onUpdateGoal,
   onUpdateBudget,
 }) => {
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
@@ -73,11 +90,13 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   const [depositResult, setDepositResult] = useState<MoneyResult | null>(null);
 
   const [showNewGoal, setShowNewGoal] = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [goalTitle, setGoalTitle] = useState('');
   const [goalTarget, setGoalTarget] = useState('50000');
   const [goalDate, setGoalDate] = useState('2027-06');
   const [goalIcon, setGoalIcon] = useState('shield');
   const [goalColor, setGoalColor] = useState(GOAL_COLORS[0]);
+  const [goalError, setGoalError] = useState('');
 
   const monthStart = useMemo(() => startOfMonth(), []);
 
@@ -151,6 +170,14 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   const depositAccount =
     inrAccounts.find((account) => account.id === sourceAccountId) ?? inrAccounts[0];
 
+  const editingGoal = goals.find((goal) => goal.id === editingGoalId) ?? null;
+  const parsedGoalTarget = parseMoneyInput(goalTarget);
+  const goalPreview = buildGoalProjection({
+    savedAmount: editingGoal?.savedAmount ?? 0,
+    targetAmount: parsedGoalTarget.ok ? parsedGoalTarget.amount : 0,
+    targetDate: goalDate,
+  });
+
   const parsedDeposit = parseMoneyInput(depositInput);
   const depositAmount = parsedDeposit.ok ? parsedDeposit.amount : 0;
   const depositError = (() => {
@@ -202,36 +229,91 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
     }
   };
 
-  const handleCreateGoal = (event: React.FormEvent) => {
-    event.preventDefault();
-    const parsedTarget = parseMoneyInput(goalTarget);
-    if (!goalTitle.trim() || !parsedTarget.ok) return;
-
-    const [year, month] = goalDate.split('-').map(Number);
-    const targetDate = Number.isFinite(year) && Number.isFinite(month)
-      ? new Date(year, month - 1, 1).toLocaleDateString('en-US', {
-          month: 'short',
-          year: 'numeric',
-        })
-      : 'No date set';
-
-    onAddGoal({
-      id: `g_${Date.now()}`,
-      title: goalTitle.trim(),
-      icon: goalIcon,
-      savedAmount: 0,
-      targetAmount: parsedTarget.amount,
-      targetDate,
-      color: goalColor,
-    });
-
-    sound.success();
+  const resetGoalForm = () => {
     setShowNewGoal(false);
+    setEditingGoalId(null);
+    setGoalError('');
     setGoalTitle('');
     setGoalTarget('50000');
     setGoalDate('2027-06');
     setGoalIcon('shield');
     setGoalColor(GOAL_COLORS[0]);
+  };
+
+  const openNewGoal = () => {
+    sound.click();
+    resetGoalForm();
+    setShowNewGoal(true);
+  };
+
+  const openEditGoal = (goal: SavingsGoal) => {
+    sound.click();
+    setEditingGoalId(goal.id);
+    setGoalTitle(goal.title);
+    setGoalTarget(String(goal.targetAmount));
+    setGoalDate(goalTargetMonthValue(goal.targetDate) || currentMonthValue());
+    setGoalIcon(goal.icon);
+    setGoalColor(goal.color);
+    setGoalError('');
+    setShowNewGoal(true);
+  };
+
+  const handleSaveGoal = (event: React.FormEvent) => {
+    event.preventDefault();
+    const parsedTarget = parseMoneyInput(goalTarget);
+    if (!goalTitle.trim()) {
+      setGoalError('Give this goal a name.');
+      return;
+    }
+    if (!parsedTarget.ok) {
+      setGoalError(parsedTarget.error);
+      return;
+    }
+    if (!goalDate) {
+      setGoalError('Choose a target month.');
+      return;
+    }
+    if (editingGoalId && !editingGoal) {
+      setGoalError('This goal is no longer available.');
+      return;
+    }
+    const preview = buildGoalProjection({
+      savedAmount: editingGoal?.savedAmount ?? 0,
+      targetAmount: parsedTarget.amount,
+      targetDate: goalDate,
+    });
+    if (preview.status === 'past-due') {
+      setGoalError('Choose this month or a later month.');
+      return;
+    }
+    if (preview.status === 'no-date') {
+      setGoalError('Choose a valid target month.');
+      return;
+    }
+
+    if (editingGoal) {
+      onUpdateGoal({
+        ...editingGoal,
+        title: goalTitle.trim(),
+        icon: goalIcon,
+        targetAmount: parsedTarget.amount,
+        targetDate: formatMonthValue(goalDate),
+        color: goalColor,
+      });
+    } else {
+      onAddGoal({
+        id: `g_${crypto.randomUUID()}`,
+        title: goalTitle.trim(),
+        icon: goalIcon,
+        savedAmount: 0,
+        targetAmount: parsedTarget.amount,
+        targetDate: formatMonthValue(goalDate),
+        color: goalColor,
+      });
+    }
+
+    sound.success();
+    resetGoalForm();
   };
 
   return (
@@ -265,13 +347,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            sound.click();
-            setShowNewGoal(true);
-          }}
-          className="btn-action-dark"
-        >
+        <button onClick={openNewGoal} className="btn-action-dark">
           <Plus size={15} />
           <span>New goal</span>
         </button>
@@ -429,6 +505,15 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                 Math.round((goal.savedAmount / goal.targetAmount) * 100)
               );
               const Icon = GOAL_ICONS[goal.icon] ?? Target;
+              const projection = buildGoalProjection(goal);
+              const projectionLabel =
+                projection.status === 'complete'
+                  ? 'Fully funded'
+                  : projection.status === 'planned' && projection.requiredMonthly !== null
+                    ? `${formatMoney(projection.requiredMonthly)}/month to reach ${goal.targetDate}`
+                    : projection.status === 'past-due'
+                      ? 'Target month has passed'
+                      : 'Set a target month for a monthly pace';
               const radius = 34;
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (pct / 100) * circumference;
@@ -557,16 +642,38 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                       </span>{' '}
                       of {formatMoney(goal.targetAmount)}
                     </div>
+                    <div
+                      style={{
+                        fontSize: '9px',
+                        textAlign: 'center',
+                        color: 'var(--text-muted)',
+                        marginTop: '4px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {projectionLabel}
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => openDeposit(goal)}
-                    className="btn-action-light"
-                    style={{ width: '100%', padding: '8px 0', fontSize: '11px', marginTop: '14px' }}
-                  >
-                    <Plus size={12} />
-                    <span>Add money</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                    <button
+                      onClick={() => openEditGoal(goal)}
+                      className="btn-action-light"
+                      aria-label={`Edit ${goal.title}`}
+                      style={{ padding: '8px 10px', fontSize: '11px' }}
+                    >
+                      <Pencil size={12} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={() => openDeposit(goal)}
+                      className="btn-action-light"
+                      style={{ flex: 1, padding: '8px 0', fontSize: '11px' }}
+                    >
+                      <Plus size={12} />
+                      <span>Add money</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -1028,7 +1135,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
             backdropFilter: 'blur(4px)',
             padding: '16px',
           }}
-          onClick={() => setShowNewGoal(false)}
+          onClick={resetGoalForm}
         >
           <div
             className="s-card"
@@ -1036,7 +1143,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
             onClick={(event) => event.stopPropagation()}
           >
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
-              New savings goal
+              {editingGoal ? 'Edit savings goal' : 'New savings goal'}
             </h3>
             <p
               style={{
@@ -1046,11 +1153,13 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                 marginBottom: '16px',
               }}
             >
-              Give it a name, a target, and a date you are aiming for.
+              {editingGoal
+                ? 'Update the target or date and the monthly pace recalculates.'
+                : 'Give it a name, a target, and a date you are aiming for.'}
             </p>
 
             <form
-              onSubmit={handleCreateGoal}
+              onSubmit={handleSaveGoal}
               style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
               <div>
@@ -1060,7 +1169,10 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   required
                   placeholder="e.g. Japan trip"
                   value={goalTitle}
-                  onChange={(event) => setGoalTitle(event.target.value)}
+                  onChange={(event) => {
+                    setGoalTitle(event.target.value);
+                    setGoalError('');
+                  }}
                   style={goalInputStyle}
                 />
               </div>
@@ -1073,7 +1185,10 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                     min={1}
                     required
                     value={goalTarget}
-                    onChange={(event) => setGoalTarget(event.target.value)}
+                    onChange={(event) => {
+                      setGoalTarget(event.target.value);
+                      setGoalError('');
+                    }}
                     style={goalInputStyle}
                     className="font-mono-numbers"
                   />
@@ -1083,11 +1198,40 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   <input
                     type="month"
                     value={goalDate}
-                    onChange={(event) => setGoalDate(event.target.value)}
+                    min={currentMonthValue()}
+                    onChange={(event) => {
+                      setGoalDate(event.target.value);
+                      setGoalError('');
+                    }}
                     style={goalInputStyle}
                   />
                 </div>
               </div>
+
+              {parsedGoalTarget.ok && goalDate && (
+                <p
+                  style={{
+                    fontSize: '11px',
+                    color:
+                      goalPreview.status === 'past-due' ? '#ef4444' : 'var(--text-muted)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {goalPreview.status === 'planned' && goalPreview.requiredMonthly !== null
+                    ? `About ${formatMoney(goalPreview.requiredMonthly)}/month reaches ${formatMonthValue(goalDate)}.`
+                    : goalPreview.status === 'complete'
+                      ? 'This goal is already fully funded.'
+                      : goalPreview.status === 'past-due'
+                        ? 'Choose this month or a later month.'
+                        : 'Choose a target month to estimate a monthly pace.'}
+                </p>
+              )}
+
+              {goalError && (
+                <p role="alert" style={{ fontSize: '11px', color: '#ef4444' }}>
+                  {goalError}
+                </p>
+              )}
 
               <div>
                 <label style={goalLabelStyle}>Icon</label>
@@ -1146,14 +1290,14 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => setShowNewGoal(false)}
+                  onClick={resetGoalForm}
                   className="btn-action-light"
                   style={{ flex: 1, padding: '10px 0' }}
                 >
                   Cancel
                 </button>
                 <button type="submit" className="btn-action-dark" style={{ flex: 1, padding: '10px 0' }}>
-                  Create goal
+                  {editingGoal ? 'Save changes' : 'Create goal'}
                 </button>
               </div>
             </form>

@@ -477,6 +477,23 @@ export const App: React.FC = () => {
     setGoals((prev) => [...prev, goal]);
   };
 
+  const handleUpdateGoal = (goal: SavingsGoal) => {
+    setGoals((prev) =>
+      prev.map((item) =>
+        item.id === goal.id
+          ? {
+              ...item,
+              title: goal.title,
+              icon: goal.icon,
+              targetAmount: goal.targetAmount,
+              targetDate: goal.targetDate,
+              color: goal.color,
+            }
+          : item
+      )
+    );
+  };
+
   const handleAddContact = (contact: Contact) => {
     setContacts((prev) => [contact, ...prev]);
   };
@@ -1207,6 +1224,7 @@ export const App: React.FC = () => {
                 transactions={transactions}
                 onDepositToGoal={handleDepositToGoal}
                 onAddGoal={handleAddGoal}
+                onUpdateGoal={handleUpdateGoal}
                 onUpdateBudget={handleUpdateBudget}
               />
             )}

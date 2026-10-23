@@ -40,6 +40,8 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Create savings goals with a target amount, target month, icon, and color.
 - Deposit money into a goal from an active INR account.
 - View goal progress and amounts still needed.
+- See the equal monthly amount implied by each goal's remaining balance and target month.
+- Edit a goal's name, target, date, icon, or colour and see the pace recalculate.
 
 ### Payees and payments
 
@@ -73,6 +75,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 - Categories are fixed; custom category management is not implemented.
 - Recent quick-fill is inferred from local transaction history; saved custom templates are not implemented.
+- Goal monthly-pace figures assume equal contributions and do not schedule or move money automatically.
 - Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
 - Recurring payments, planned-payment workflows, loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
