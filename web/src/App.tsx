@@ -172,7 +172,7 @@ export const App: React.FC = () => {
         isCardFrozen,
       },
     });
-    setStorageError(result.ok ? '' : result.error);
+    queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
   }, [
     accounts,
     transactions,
@@ -496,6 +496,11 @@ export const App: React.FC = () => {
     const occurredAt = new Date(`${input.date}T12:00:00`);
     if (Number.isNaN(occurredAt.getTime())) {
       return { ok: false, error: 'Choose a valid date.' };
+    }
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (occurredAt > today) {
+      return { ok: false, error: 'Use today or an earlier date.' };
     }
 
     const transaction: Transaction = {

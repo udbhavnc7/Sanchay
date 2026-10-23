@@ -1,4 +1,4 @@
-# Sanchay — Personal Finance Manager
+# Sanchay - Personal Finance Manager
 
 <p align="center">
   <strong>Simple. Private. Your Money, Your Way.</strong>
@@ -6,157 +6,153 @@
 
 Sanchay (संचय) means **saving, accumulation, or the gathering of wealth**.
 
-Sanchay is an open-source Android personal finance application designed to make everyday money management simple, intuitive, and customizable.
+Sanchay is an open-source Android personal finance project focused on simple, local-first money management. It is an early-stage fork of Ivy Wallet with a custom React dashboard running inside an Android WebView shell.
 
-It helps you keep track of your income, expenses, accounts, budgets, planned payments, and financial goals — without turning personal finance into a complicated process.
-
----
-
-## ✨ Features
-
-### 💰 Money Management
-
-* Track income and expenses
-* Manage multiple accounts
-* Organize transactions with customizable categories
-* Add notes, tags, and other transaction details
-* Transfer money between accounts
-* Track loans and related transactions
-
-### 📊 Financial Insights
-
-* View spending statistics
-* Analyze income and expenses
-* Monitor account balances
-* Understand where your money is going
-* Generate financial reports
-
-### 🎯 Planning
-
-* Set and monitor budgets
-* Create planned and recurring payments
-* Track financial goals
-* Plan upcoming expenses
-
-### 🎨 Customization
-
-* Custom categories
-* Multiple currencies
-* Customizable themes and appearance
-* Flexible transaction organization
-* Clean and intuitive interface
-
-### 🔒 Privacy First
-
-Sanchay is designed around the idea that your financial information should remain under your control.
-
-The application is built primarily around local storage, allowing you to manage your finances without depending on a cloud-based financial account.
+> **Project status:** early development. The dashboard uses seeded demo data and local browser storage. It is not a production banking or accounting application.
 
 ---
 
-## 📱 Screenshots
+## What is implemented today
 
-> Screenshots coming soon.
+### Transactions
 
----
+- Add income or expense transactions from Overview or Activity.
+- Record amount, active INR account, category, date, and an optional note.
+- Account balances update immediately, with an 8-second Undo action.
+- Future-dated quick-add transactions are rejected.
+- Search transactions and filter by status, category, or direction.
+- Open a transaction to view its details and copy a receipt.
 
-## 🛠️ Tech Stack
+### Accounts and cards
 
-Sanchay is built using modern Android development technologies.
+- View account type, currency, balance, and status.
+- Freeze or unfreeze the card presentation state.
+- Preference state is saved locally.
 
-### Core
+### Budgets and goals
 
-* **Kotlin**
-* **Jetpack Compose**
-* **Material 3**
-* **Kotlin Coroutines**
-* **Kotlin Flow**
-* **Hilt**
-* **ArrowKt**
+- View monthly budgets and spending progress.
+- Adjust category budget limits.
+- Create savings goals with a target amount, target month, icon, and color.
+- Deposit money into a goal from an active INR account.
+- View goal progress and amounts still needed.
 
-### Testing
+### Payees and payments
 
-* **JUnit 4**
-* **Kotest**
-* **Paparazzi**
+- Add payees with a currency and account/UPI reference.
+- Mark payees as favorites.
+- Review a payment before sending it.
+- Payments are **simulated locally**; no real bank, UPI, or card transfer occurs.
+- View a local receipt after a simulated payment.
 
-### Local Persistence
+### Reports
 
-* **DataStore**
-* **Room Database**
+- View cash-flow and category summaries calculated from local transactions.
+- Export the transaction list as a CSV file.
 
-### Networking
+### Privacy and preferences
 
-* **Ktor Client**
-* **Kotlinx Serialization**
-
-### Build & CI
-
-* **Gradle Kotlin DSL**
-* **Gradle Convention Plugins**
-* **Gradle Version Catalogs**
-* **GitHub Actions**
-* **Fastlane**
-
-### Other
-
-* **Firebase Crashlytics**
-* **Timber**
-* **Detekt**
-* **Ktlint**
-* **Compose Lints**
+- Light and dark themes.
+- Sound on/off preference.
+- Privacy panel that explains local storage and offers a two-step reset to demo data.
+- All dashboard data is stored in the WebView's `localStorage` under `sanchay.local.v1`.
+- Nothing is uploaded or synced by the dashboard.
 
 ---
 
-## 🚀 Getting Started
+## Current limitations
+
+- Categories are fixed; custom category management is not implemented.
+- Quick-add and goal deposits currently require an active INR account.
+- USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
+- Recurring payments, planned-payment workflows, loans, bank sync, imports, backups, and cloud sync are not connected to the dashboard.
+- Transactions cannot yet be edited or deleted from the UI.
+- The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
+- The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
+- Data can be lost if Android clears WebView storage or the app's data.
+
+---
+
+## Tech stack
+
+### Visible dashboard
+
+- React 19
+- TypeScript
+- Vite
+- Plain CSS
+- Lucide icons
+- Vitest
+- WebView-hosted static assets
+
+### Android shell and inherited modules
+
+- Kotlin
+- Jetpack Compose
+- Hilt
+- Kotlin Coroutines and Flow
+- Room and DataStore in native modules
+- Gradle Kotlin DSL
+
+Some inherited Ivy Wallet features are present in the repository but are not currently reachable from the Sanchay dashboard.
+
+---
+
+## Getting started
 
 ### Requirements
 
-* Java 17+
-* Latest stable version of Android Studio
+- Node.js and pnpm
+- Java 17+
+- Android Studio or the Android SDK
+- A connected Android device or emulator for installation
 
-### Clone the repository
+### Run the web dashboard
 
 ```bash
-git clone https://github.com/udbhavnc7/Sanchay
-cd Sanchay
+cd web
+pnpm install
+pnpm dev
 ```
 
-Open the project in Android Studio and allow Gradle to synchronize the project.
+The development server prints its local URL.
 
-You can then build and run Sanchay on an Android device or emulator.
+### Test and build the dashboard
 
----
+```bash
+cd web
+pnpm test
+pnpm lint
+pnpm build
+```
 
-## 🧭 Roadmap
+The production files are written to `web/dist`. Copy them into `app/src/main/assets/web/` before building the Android app.
 
-Sanchay is an evolving project.
+### Build the Android APK
 
-The goal is not simply to rename an existing application, but to gradually develop Sanchay into its own financial management experience.
+```bash
+./gradlew.bat :app:assembleDebug
+```
 
-Planned areas include:
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-* UI and UX improvements
-* New financial insights
-* Better budgeting tools
-* Improved financial goals
-* Additional customization options
-* Accessibility improvements
-* Performance improvements
-* Modern Android platform support
-* Additional privacy-focused features
-* Improved data import and export
-* More powerful financial analytics
-
-Features and priorities may change as development progresses.
+The Android app loads the bundled dashboard from `https://sanchay.local/index.html` through a WebView.
 
 ---
 
-## 🌱 Why Sanchay?
+## Data safety
 
-Managing money shouldn't require a spreadsheet or complicated financial software.
+This project is not a bank and does not move real money. The payment and request flows are demonstrations that write transactions to local storage.
 
-Sanchay aims to provide a simple place where you can answer questions like:
+Before relying on Sanchay for real records, verify behavior on your device, keep your own backups, and do not enter sensitive banking credentials.
+
+---
+
+## Why Sanchay?
+
+Managing money should not require a spreadsheet or complicated financial software.
+
+Sanchay aims to answer simple questions:
 
 **How much money do I have?**
 
@@ -166,59 +162,55 @@ Sanchay aims to provide a simple place where you can answer questions like:
 
 **Am I moving toward my financial goals?**
 
-The idea behind Sanchay is simple:
-
 > **Understand your money. Build better habits. Grow your savings.**
 
 ---
 
-## 📖 Based on Ivy Wallet
+## Roadmap
 
-Sanchay is a customized fork of **Ivy Wallet**, an open-source Android money management application.
+Planned areas include:
 
-The original Ivy Wallet project was created by Ivy Apps and was released under the **GNU General Public License v3.0 (GPL-3.0)**. The original repository is no longer maintained and was archived in April 2026.
+- On-device verification and Android storage hardening
+- Transaction editing, deletion, and restore flows
+- Recurring and planned payments
+- Custom categories and account management
+- Complete multi-currency handling
+- Import, backup, and restore
+- Stronger reports and accessibility
+- Connecting or retiring the inherited native Ivy Wallet ledger
 
-Sanchay builds upon the existing Ivy Wallet codebase while introducing its own branding, design changes, customizations, improvements, and future development.
+Priorities may change as development continues.
 
-The original project can be found here:
+---
 
-**Ivy Wallet:** https://github.com/Ivy-Apps/ivy-wallet
+## Based on Ivy Wallet
+
+Sanchay is a customized fork of **Ivy Wallet**, an open-source Android money management application created by Ivy Apps and released under the **GNU General Public License v3.0 (GPL-3.0)**. The original repository was archived in April 2026.
+
+Sanchay adds its own branding, dashboard, design changes, and local-first behavior.
+
+Original project: https://github.com/Ivy-Apps/ivy-wallet
 
 This project is not affiliated with or endorsed by Ivy Apps Ltd.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions, suggestions, bug reports, and ideas are welcome.
 
-If you'd like to contribute:
-
-1. Fork the repository
-2. Create a new branch
-3. Make your changes
-4. Test your changes
-5. Open a pull request
-
-Please make sure your changes follow the project's existing architecture and coding conventions.
+1. Fork the repository.
+2. Create a new branch.
+3. Make focused changes.
+4. Run the web tests and build.
+5. Open a pull request.
 
 ---
 
-## 📄 License
+## License
 
 Sanchay is distributed under the **GNU General Public License v3.0 (GPL-3.0)**.
 
 This project is based on Ivy Wallet and complies with the licensing requirements of the original project.
 
-Original project:
-
-**Ivy Wallet — Ivy Apps Ltd.**
-https://github.com/Ivy-Apps/ivy-wallet
-
 See [LICENSE](LICENSE) for the complete license text.
-
----
-
-<p align="center">
-  Made with ❤️ for better personal finance
-</p>

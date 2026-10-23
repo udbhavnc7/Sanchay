@@ -256,18 +256,19 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
+                flexDirection: 'column',
+                gap: '2px',
                 marginTop: '12px',
                 paddingTop: '10px',
                 borderTop: '1px solid rgba(255,255,255,0.24)',
-                fontSize: '12px',
                 fontWeight: 700,
               }}
             >
-              <span style={{ opacity: 0.85 }}>Free after budgets</span>
-              <span className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 900 }}>
+              <span style={{ opacity: 0.85, fontSize: '11px' }}>Free after budgets</span>
+              <span
+                className="font-mono-numbers"
+                style={{ fontSize: '18px', fontWeight: 900, lineHeight: 1.25 }}
+              >
                 {formatMoney(freeToSpend)}
               </span>
             </div>

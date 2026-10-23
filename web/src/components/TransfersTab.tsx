@@ -99,7 +99,6 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
   const parsedAmount = parseMoneyInput(amountInput, payeeCurrency);
   const amount = parsedAmount.ok ? parsedAmount.amount : 0;
-  const amountValid = parsedAmount.ok;
   const presets = payeeCurrency === 'INR' ? [500, 1000, 2500, 5000] : [50, 100, 250, 500];
 
   const favorites = contacts.filter((contact) => contact.isFavorite);

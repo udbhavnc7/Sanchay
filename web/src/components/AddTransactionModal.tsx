@@ -360,6 +360,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <input
                   type="date"
                   value={date}
+                  max={todayDateValue()}
                   onChange={(event) => {
                     setDate(event.target.value);
                     setError('');
@@ -444,7 +445,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '22px' }}>
+          <div className="add-transaction-actions">
             <button
               type="button"
               onClick={onClose}
