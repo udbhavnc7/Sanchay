@@ -4,15 +4,19 @@ import { sound } from '../utils/audio';
 import { saveTextFile } from '../utils/fileSave';
 import {
   ArrowDownLeft,
+  ArrowDownRight,
   ArrowUpRight,
   BarChart3,
   Download,
+  Minus,
   PiggyBank,
   ReceiptText,
+  ShieldCheck,
   TrendingUp,
 } from 'lucide-react';
 import {
   addMoney,
+  compareMoney,
   formatDate,
   formatMoney,
   monthKey,
@@ -22,6 +26,10 @@ import {
   subtractMoney,
   sumMoney,
 } from '../utils/money';
+import {
+  absoluteMoney,
+  buildMonthlyComparison,
+} from '../utils/spendingComparison';
 
 interface ReportsTabProps {
   transactions: Transaction[];
@@ -91,6 +99,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       net: subtractMoney(subtractMoney(income, spending), saved),
     };
   }, [filtered]);
+
+  const comparison = useMemo(() => buildMonthlyComparison(transactions), [transactions]);
 
   const categories = useMemo(() => {
     const map = new Map<string, number>();
@@ -302,6 +312,138 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
           icon={TrendingUp}
           tone={totals.net >= 0 ? '#10b981' : '#ef4444'}
         />
+      </div>
+
+      <div className="s-card">
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '10px',
+            marginBottom: '16px',
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Month in context
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              {comparison.currentLabel} compared with {comparison.previousLabel}
+            </p>
+          </div>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '9999px',
+              background: 'var(--bg-pill)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              fontSize: '10px',
+              fontWeight: 700,
+            }}
+          >
+            <ShieldCheck size={12} />
+            Calculated locally
+          </span>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          <ComparisonMetric
+            label="Spending"
+            current={comparison.current.spending}
+            previous={comparison.previous.spending}
+            delta={comparison.spendingDelta}
+            previousLabel={comparison.previousLabel}
+          />
+          <ComparisonMetric
+            label="Income"
+            current={comparison.current.income}
+            previous={comparison.previous.income}
+            delta={comparison.incomeDelta}
+            previousLabel={comparison.previousLabel}
+          />
+        </div>
+
+        <div style={{ marginTop: '16px' }}>
+          <h3
+            style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              marginBottom: '10px',
+            }}
+          >
+            Biggest category changes
+          </h3>
+
+          {comparison.topMovements.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              No completed category spending in either window yet.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+              {comparison.topMovements.map((movement) => {
+                const increased = compareMoney(movement.delta, 0) > 0;
+                return (
+                  <div
+                    key={movement.category}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      background: 'var(--bg-pill)',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-main)' }}>
+                      <strong>{movement.category}</strong>{' '}
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        is {increased ? 'higher' : 'lower'} than {comparison.previousLabel}
+                      </span>
+                    </span>
+                    <span
+                      className="font-mono-numbers"
+                      style={{
+                        fontWeight: 800,
+                        color: 'var(--text-main)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {increased ? '+' : '-'}
+                      {formatMoney(absoluteMoney(movement.delta))}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <details className="calc-note" style={{ marginTop: '14px' }}>
+          <summary>How this comparison works</summary>
+          <p>
+            Compares the elapsed part of this month with the same days last month. It counts
+            completed income and expenses only; transfers and pending rows are excluded. A
+            shorter previous month is compared only up to its final day.
+          </p>
+        </details>
       </div>
 
       <div
@@ -677,6 +819,80 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({ transactions, accounts }
       >
         <ReceiptText size={13} />
         <span>Reports are generated locally from the transactions in this prototype.</span>
+      </div>
+    </div>
+  );
+};
+
+const ComparisonMetric: React.FC<{
+  label: string;
+  current: number;
+  previous: number;
+  delta: number;
+  previousLabel: string;
+}> = ({ label, current, previous, delta, previousLabel }) => {
+  const unchanged = compareMoney(delta, 0) === 0;
+  const increased = compareMoney(delta, 0) > 0;
+  const DeltaIcon = unchanged ? Minus : increased ? ArrowUpRight : ArrowDownRight;
+
+  return (
+    <div
+      style={{
+        padding: '14px',
+        borderRadius: '16px',
+        background: 'var(--bg-pill)',
+        border: '1px solid var(--border-subtle)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: '10px',
+          fontWeight: 800,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        className="font-mono-numbers"
+        style={{
+          fontSize: '23px',
+          fontWeight: 900,
+          color: 'var(--text-main)',
+          marginTop: '4px',
+        }}
+      >
+        {formatMoney(current)}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '8px',
+          marginTop: '8px',
+          fontSize: '11px',
+          color: 'var(--text-muted)',
+        }}
+      >
+        <span>{previousLabel}: {formatMoney(previous)}</span>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '3px',
+            fontWeight: 800,
+            color: 'var(--text-main)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <DeltaIcon size={12} />
+          {unchanged
+            ? 'No change'
+            : `${increased ? '+' : '-'}${formatMoney(absoluteMoney(delta))}`}
+        </span>
       </div>
     </div>
   );

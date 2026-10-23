@@ -17,6 +17,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ### Transactions
 
 - Add income or expense transactions from Overview or Activity.
+- Start from up to three recent matching transactions to prefill account, amount, category, and description.
 - Record amount, active INR account, category, date, and an optional note.
 - Account balances update immediately, with an 8-second Undo action.
 - Edit a transaction's amount, category, account, date, and note; affected balances are recalculated.
@@ -51,6 +52,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ### Reports
 
 - View cash-flow and category summaries calculated from local transactions.
+- Compare month-to-date spending and income with the same days last month, including the largest category changes.
 - Export the transaction list as a CSV file.
 
 ### Privacy and preferences
@@ -70,6 +72,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ## Current limitations
 
 - Categories are fixed; custom category management is not implemented.
+- Recent quick-fill is inferred from local transaction history; saved custom templates are not implemented.
 - Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
 - Recurring payments, planned-payment workflows, loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.

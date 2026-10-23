@@ -1260,6 +1260,7 @@ export const App: React.FC = () => {
         {showAddTransaction && (
           <AddTransactionModal
             accounts={accounts}
+            transactions={transactions}
             onAdd={handleAddTransaction}
             onClose={() => setShowAddTransaction(false)}
           />
@@ -1270,6 +1271,7 @@ export const App: React.FC = () => {
             key={editingTransaction.id}
             transaction={editingTransaction}
             accounts={accounts}
+            transactions={transactions}
             onAdd={handleAddTransaction}
             onUpdate={handleUpdateTransaction}
             onClose={() => setEditingTransaction(null)}

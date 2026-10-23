@@ -21,9 +21,11 @@ import {
   applyTransactionToBalance,
   replaceTransactionOnBalance,
 } from '../utils/ledger';
+import { buildRecentTemplates } from '../utils/transactionTemplates';
 
 interface AddTransactionModalProps {
   accounts: Account[];
+  transactions: Transaction[];
   transaction?: Transaction | null;
   onAdd: (input: NewTransactionInput) => MoneyResult;
   onUpdate?: (input: UpdateTransactionInput) => MoneyResult;
@@ -60,6 +62,7 @@ function dateValueFromIso(iso: string): string {
 
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   accounts,
+  transactions,
   transaction,
   onAdd,
   onUpdate,
@@ -104,6 +107,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       : categoryOptions;
 
   const account = inrAccounts.find((item) => item.id === accountId) ?? inrAccounts[0];
+  const recentTemplates = useMemo(
+    () => (isEditing ? [] : buildRecentTemplates(transactions, inrAccounts, type)),
+    [inrAccounts, isEditing, transactions, type]
+  );
   const parsedAmount = parseMoneyInput(amountInput);
   const amount = parsedAmount.ok ? parsedAmount.amount : 0;
   const nextEffect = {
@@ -134,6 +141,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     sound.click();
     setType(next);
     setCategory(next === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
+    setError('');
+  };
+
+  const applyTemplate = (template: (typeof recentTemplates)[number]) => {
+    sound.click();
+    setAmountInput(template.amount.toFixed(2));
+    setTitle(template.title);
+    setCategory(template.category);
+    setAccountId(template.accountId);
     setError('');
   };
 
@@ -307,6 +323,28 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             Income
           </button>
         </div>
+
+        {!isEditing && recentTemplates.length > 0 && (
+          <div className="recent-templates">
+            <span className="recent-templates-label">Use a recent</span>
+            <div className="recent-templates-list">
+              {recentTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  className="recent-template"
+                  onClick={() => applyTemplate(template)}
+                  aria-label={`Use ${template.title} for ${formatMoney(template.amount)}`}
+                >
+                  <span className="recent-template-title">{template.title}</span>
+                  <span className="recent-template-meta">
+                    {formatMoney(template.amount)} · {template.category}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '18px' }}>
