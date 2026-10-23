@@ -144,7 +144,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
             <Search size={16} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search by name, account, note or reference…"
+              placeholder="Search transactions or notes"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               className="search-pill-input"

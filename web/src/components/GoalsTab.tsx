@@ -372,13 +372,14 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       </div>
 
       <div
+        className="goals-split-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
           gap: '24px',
         }}
       >
-        <div className="s-card" style={{ gridColumn: 'span 2' }}>
+        <div className="s-card goals-list-card" style={{ gridColumn: 'span 2' }}>
           <div
             style={{
               display: 'flex',
@@ -396,6 +397,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           </div>
 
           <div
+            className="goals-cards-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
@@ -789,6 +791,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
 
       {selectedGoal && (
         <div
+          className="sanchay-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -992,6 +995,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
 
       {showNewGoal && (
         <div
+          className="sanchay-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,

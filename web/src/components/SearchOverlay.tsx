@@ -130,11 +130,11 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[8vh] bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="search-overlay fixed inset-0 z-50 flex items-start justify-center p-4 pt-[8vh] bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={close}
     >
       <div
-        className="w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden"
+        className="search-panel w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-200/70 dark:border-white/10">

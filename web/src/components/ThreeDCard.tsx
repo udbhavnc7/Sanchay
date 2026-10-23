@@ -476,7 +476,7 @@ export const ThreeDCard: React.FC<ThreeDCardProps> = ({
       <div className="relative group perspective-1000 cursor-grab active:cursor-grabbing">
         <div
           ref={mountRef}
-          className="w-full h-[280px] flex items-center justify-center transition-all duration-300"
+          className="card-3d-viewport w-full h-[280px] flex items-center justify-center transition-all duration-300"
         />
 
         {/* Live Status Badges */}
@@ -498,13 +498,13 @@ export const ThreeDCard: React.FC<ThreeDCardProps> = ({
               </>
             )}
           </span>
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium text-slate-400 bg-black/40 backdrop-blur-md border border-white/5">
+          <span className="card-visa-badge px-2 py-0.5 rounded-full text-xs font-medium text-slate-400 bg-black/40 backdrop-blur-md border border-white/5">
             VISA INFINITE
           </span>
         </div>
 
         {/* Interactive Tilt Hint */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[11px] text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-1 pointer-events-none">
+        <div className="card-webgl-hint absolute bottom-2 left-1/2 -translate-x-1/2 text-[11px] text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity flex items-center gap-1 pointer-events-none">
           <Sparkles size={11} className="text-amber-400" />
           <span>Interactive 3D WebGL • Move cursor to tilt</span>
         </div>

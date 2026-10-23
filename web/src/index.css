@@ -154,7 +154,7 @@ body {
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    z-index: 90 !important;
+    z-index: 40 !important;
     background: rgba(255, 255, 255, 0.88) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
@@ -169,6 +169,32 @@ body {
     background: rgba(10, 12, 16, 0.92) !important;
     border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  body:has(.sanchay-modal-overlay) .mobile-bottom-dock {
+    display: none !important;
+  }
+
+  .modal-overlay-backdrop {
+    padding: 12px !important;
+  }
+
+  .modal-dialog-panel {
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+    padding: 20px !important;
+    border-radius: 24px !important;
+    overscroll-behavior: contain;
+  }
+
+  .sanchay-modal-overlay {
+    padding: 12px !important;
+  }
+
+  .sanchay-modal-overlay .s-card {
+    max-height: calc(100dvh - 24px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
   }
 
   .mobile-tab-btn {
@@ -591,6 +617,35 @@ body {
     font-size: 10px !important;
   }
 
+  .card-webgl-hint,
+  .card-visa-badge {
+    display: none !important;
+  }
+
+  .card-3d-viewport {
+    height: 220px !important;
+  }
+
+  /* Plan */
+  .goals-split-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px !important;
+  }
+
+  .goals-list-card {
+    grid-column: auto !important;
+  }
+
+  .goals-cards-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .goals-cards-grid > div {
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
   /* Payees */
   .payees-grid {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -726,6 +781,25 @@ body {
     grid-area: amount;
     text-align: right !important;
     font-size: 12px !important;
+  }
+
+  /* Search & transaction overlays */
+  .search-overlay {
+    padding: max(16px, env(safe-area-inset-top, 16px)) 12px 16px !important;
+    align-items: flex-start !important;
+  }
+
+  .search-panel {
+    max-height: calc(100dvh - 32px) !important;
+    border-radius: 22px !important;
+  }
+
+  .search-panel > div:last-child {
+    max-height: calc(100dvh - 120px) !important;
+  }
+
+  .transaction-drawer-panel {
+    padding: max(20px, env(safe-area-inset-top, 20px)) 18px calc(20px + env(safe-area-inset-bottom, 20px)) !important;
   }
 }
 

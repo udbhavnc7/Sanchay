@@ -103,11 +103,11 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="transaction-drawer-overlay fixed inset-0 z-50 flex items-center justify-end bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md h-full bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto border-l border-slate-200 dark:border-white/10"
+        className="transaction-drawer-panel w-full max-w-md h-full bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto border-l border-slate-200 dark:border-white/10"
         onClick={(event) => event.stopPropagation()}
       >
         <div>

@@ -913,6 +913,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
       {reviewOpen && !result && selectedContact && sourceAccount && (
         <div
+          className="sanchay-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1006,6 +1007,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
       {reviewOpen && result && (
         <div
+          className="sanchay-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1125,6 +1127,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
       {showAddModal && (
         <div
+          className="sanchay-modal-overlay"
           style={{
             position: 'fixed',
             inset: 0,
