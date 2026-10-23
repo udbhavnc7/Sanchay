@@ -19,9 +19,12 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Add income or expense transactions from Overview or Activity.
 - Record amount, active INR account, category, date, and an optional note.
 - Account balances update immediately, with an 8-second Undo action.
+- Edit a transaction's amount, category, account, date, and note; affected balances are recalculated.
+- Delete a completed transaction with a balance warning and an 8-second Undo action.
+- Goal deposits are linked to their goal so deleting or restoring them adjusts goal progress.
 - Future-dated quick-add transactions are rejected.
 - Search transactions and filter by status, category, or direction.
-- Open a transaction to view its details and copy a receipt.
+- Open a transaction to view its details, edit or delete it, and copy a receipt.
 
 ### Accounts and cards
 
@@ -54,7 +57,9 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 - Light and dark themes.
 - Sound on/off preference.
-- Privacy panel that explains local storage and offers a two-step reset to demo data.
+- Privacy panel that explains local storage, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
+- Backups include accounts, transactions, payees, goals, budgets, and preferences.
+- Restoring a backup replaces the current data on this device after a confirmation preview.
 - All dashboard data is stored in the WebView's `localStorage` under `sanchay.local.v1`.
 - Nothing is uploaded or synced by the dashboard.
 
@@ -63,10 +68,10 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ## Current limitations
 
 - Categories are fixed; custom category management is not implemented.
-- Quick-add and goal deposits currently require an active INR account.
+- Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
-- Recurring payments, planned-payment workflows, loans, bank sync, imports, backups, and cloud sync are not connected to the dashboard.
-- Transactions cannot yet be edited or deleted from the UI.
+- Recurring payments, planned-payment workflows, loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
+- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
 - The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
 - Data can be lost if Android clears WebView storage or the app's data.
@@ -171,11 +176,10 @@ Sanchay aims to answer simple questions:
 Planned areas include:
 
 - On-device verification and Android storage hardening
-- Transaction editing, deletion, and restore flows
 - Recurring and planned payments
 - Custom categories and account management
 - Complete multi-currency handling
-- Import, backup, and restore
+- Encrypted and automatic backup options
 - Stronger reports and accessibility
 - Connecting or retiring the inherited native Ivy Wallet ledger
 
