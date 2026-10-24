@@ -55,6 +55,8 @@ export interface Transaction {
   fee?: number;
   wallet?: string;
   goalId?: string;
+  paymentAttemptId?: string;
+  userReference?: string;
 }
 
 export interface Contact {
@@ -64,6 +66,7 @@ export interface Contact {
   type: 'Person' | 'Business';
   bank: string;
   accountNumber?: string;
+  upiId?: string;
   currency?: Currency;
   initials: string;
   avatarColor: string;
@@ -101,12 +104,52 @@ export interface PlannedPayment {
   note?: string;
 }
 
+export type PaymentAttemptStatus =
+  | 'prepared'
+  | 'needs_reconciliation'
+  | 'marked_paid_by_user'
+  | 'cancelled_or_failed';
+
+export interface PaymentAttempt {
+  id: string;
+  payeeId: string;
+  payeeName: string;
+  upiId: string;
+  amount: number;
+  currency: Currency;
+  accountId: string;
+  category: Category;
+  note?: string;
+  status: PaymentAttemptStatus;
+  createdAt: string;
+  updatedAt: string;
+  transactionId?: string;
+  userReference?: string;
+}
+
 export interface PaymentInput {
   payee: Contact;
   amount: number;
   accountId: string;
   category: Category;
   note?: string;
+}
+
+export interface PaymentAttemptInput {
+  payee: Contact;
+  upiId: string;
+  amount: number;
+  accountId: string;
+  category: Category;
+  note?: string;
+}
+
+export interface PaymentAttemptResult {
+  ok: boolean;
+  error?: string;
+  attempt?: PaymentAttempt;
+  transaction?: Transaction;
+  duplicate?: boolean;
 }
 
 export interface GoalDepositInput {

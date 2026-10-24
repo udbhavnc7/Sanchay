@@ -166,6 +166,73 @@ describe('local persistence', () => {
     expect(parsed?.plannedPayments).toEqual([]);
   });
 
+  it('loads older backups without payment attempts as an empty list', () => {
+    const state = createPersistedState(snapshot()) as unknown as Record<string, unknown>;
+    delete state.paymentAttempts;
+
+    const parsed = parsePersistedState(JSON.stringify(state));
+    expect(parsed?.paymentAttempts).toEqual([]);
+  });
+
+  it('round-trips payment attempts and custom transaction/contact fields', () => {
+    const input = snapshot();
+    input.contacts[0].upiId = 'ayesha.k@okhdfcbank';
+    input.transactions[0].paymentAttemptId = 'pa_123';
+    input.transactions[0].userReference = 'UTR-999';
+    input.paymentAttempts = [
+      {
+        id: 'pa_123',
+        payeeId: input.contacts[0].id,
+        payeeName: input.contacts[0].name,
+        upiId: 'ayesha.k@okhdfcbank',
+        amount: 1500,
+        currency: 'INR',
+        accountId: input.accounts[0].id,
+        category: 'Dining',
+        status: 'prepared',
+        createdAt: '2026-10-24T10:00:00.000Z',
+        updatedAt: '2026-10-24T10:00:00.000Z',
+      },
+    ];
+
+    const raw = JSON.stringify(createPersistedState(input));
+    const parsed = parsePersistedState(raw);
+    expect(parsed?.contacts[0].upiId).toBe('ayesha.k@okhdfcbank');
+    expect(parsed?.transactions[0].paymentAttemptId).toBe('pa_123');
+    expect(parsed?.transactions[0].userReference).toBe('UTR-999');
+    expect(parsed?.paymentAttempts).toHaveLength(1);
+    expect(parsed?.paymentAttempts[0].status).toBe('prepared');
+  });
+
+  it('rejects malformed payment attempts', () => {
+    const input = snapshot();
+    input.paymentAttempts = [
+      {
+        id: 'pa_123',
+        payeeId: input.contacts[0].id,
+        payeeName: input.contacts[0].name,
+        upiId: 'ayesha.k@okhdfcbank',
+        amount: 1500,
+        currency: 'INR',
+        accountId: input.accounts[0].id,
+        category: 'Dining',
+        status: 'prepared',
+        createdAt: '2026-10-24T10:00:00.000Z',
+        updatedAt: '2026-10-24T10:00:00.000Z',
+      },
+    ];
+    const raw = JSON.parse(JSON.stringify(createPersistedState(input))) as {
+      paymentAttempts: Array<{ status: unknown; amount: unknown }>;
+    };
+
+    raw.paymentAttempts[0].status = 'not_a_valid_status';
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.paymentAttempts[0].status = 'prepared';
+    raw.paymentAttempts[0].amount = -50;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+  });
+
   it('rejects malformed planned payments', () => {
     const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
       plannedPayments: Array<{ direction: unknown; amount: unknown }>;

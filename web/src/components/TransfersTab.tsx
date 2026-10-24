@@ -1,5 +1,13 @@
-import React, { useMemo, useState } from 'react';
-import type { Account, Category, Contact, Currency, MoneyResult } from '../types/finance';
+import React, { useEffect, useMemo, useState } from 'react';
+import type {
+  Account,
+  Category,
+  Contact,
+  Currency,
+  MoneyResult,
+  PaymentAttempt,
+  PaymentAttemptInput,
+} from '../types/finance';
 import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import {
@@ -20,14 +28,34 @@ import {
   formatMoney,
   initialsFromName,
   parseMoneyInput,
-  subtractMoney,
 } from '../utils/money';
+import {
+  isLikelyUpiId,
+  paymentAttemptStatusLabel,
+  paymentDetailsText,
+} from '../utils/paymentAttempts';
 import { MetalAction } from './MetalAction';
 
-interface TransfersTabProps {
+export interface TransfersTabProps {
   accounts: Account[];
   contacts: Contact[];
-  onSendPayment: (input: {
+  paymentAttempts?: PaymentAttempt[];
+  onPreparePaymentAttempt?: (input: PaymentAttemptInput) => {
+    ok: true;
+    attempt: PaymentAttempt;
+  } | {
+    ok: false;
+    error: string;
+  };
+  onConfirmPaymentAttempt?: (
+    attemptId: string,
+    userReference?: string
+  ) => MoneyResult & { duplicate?: boolean; attempt?: PaymentAttempt };
+  onUpdatePaymentAttemptStatus?: (
+    attemptId: string,
+    status: 'needs_reconciliation' | 'cancelled_or_failed'
+  ) => void;
+  onSendPayment?: (input: {
     payee: Contact;
     amount: number;
     accountId: string;
@@ -58,6 +86,10 @@ const AVATAR_COLORS = ['#ff9800', '#3b82f6', '#a855f7', '#10b981', '#f43f5e'];
 export const TransfersTab: React.FC<TransfersTabProps> = ({
   accounts,
   contacts,
+  paymentAttempts = [],
+  onPreparePaymentAttempt,
+  onConfirmPaymentAttempt,
+  onUpdatePaymentAttemptStatus,
   onSendPayment,
   onAddContact,
   onToggleFavorite,
@@ -71,13 +103,22 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [result, setResult] = useState<MoneyResult | null>(null);
+  const [result, setResult] = useState<
+    (MoneyResult & { duplicate?: boolean; attempt?: PaymentAttempt }) | null
+  >(null);
   const [copied, setCopied] = useState(false);
+
+  const [activeAttempt, setActiveAttempt] = useState<PaymentAttempt | null>(null);
+  const [reconcileAttempt, setReconcileAttempt] = useState<PaymentAttempt | null>(null);
+  const [userReference, setUserReference] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [copiedDetails, setCopiedDetails] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newAccountNumber, setNewAccountNumber] = useState('');
   const [newBank, setNewBank] = useState('');
+  const [newUpiId, setNewUpiId] = useState('');
   const [newType, setNewType] = useState<'Person' | 'Business'>('Person');
   const [newCurrency, setNewCurrency] = useState<Currency>('INR');
   const [newFavorite, setNewFavorite] = useState(true);
@@ -85,6 +126,20 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
   const selectedContact =
     contacts.find((contact) => contact.id === selectedContactId) ?? contacts[0];
   const payeeCurrency = selectedContact?.currency ?? 'INR';
+
+  const [payeeUpiId, setPayeeUpiId] = useState(selectedContact?.upiId ?? '');
+
+  useEffect(() => {
+    if (selectedContact) {
+      setPayeeUpiId(selectedContact.upiId ?? '');
+    }
+  }, [selectedContact?.id, selectedContact?.upiId]);
+
+  const unresolvedAttempts = useMemo(() => {
+    return (paymentAttempts ?? []).filter(
+      (a) => a.status === 'prepared' || a.status === 'needs_reconciliation'
+    );
+  }, [paymentAttempts]);
 
   const matchingAccounts = useMemo(
     () =>
@@ -107,6 +162,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
     const matchesSearch =
       contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contact.handle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (contact.upiId ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (contact.accountNumber ?? '').includes(searchQuery);
     if (filterType === 'favorites') return matchesSearch && contact.isFavorite;
     if (filterType === 'businesses') return matchesSearch && contact.type === 'Business';
@@ -115,6 +171,8 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
   const validationError = (() => {
     if (!selectedContact) return 'Choose someone to pay.';
+    if (!payeeUpiId.trim()) return 'Enter the payee UPI ID you were given.';
+    if (!isLikelyUpiId(payeeUpiId)) return 'Enter a valid UPI ID (e.g. name@bank).';
     if (!parsedAmount.ok) return parsedAmount.error;
     if (!sourceAccount) return `You have no active ${payeeCurrency} account to pay from.`;
     if (compareMoney(sourceAccount.balance, amount) < 0) {
@@ -129,25 +187,65 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
   };
 
   const handleReview = () => {
-    if (validationError) return;
-    sound.click();
-    setResult(null);
-    setReviewOpen(true);
-  };
-
-  const handleConfirmPayment = () => {
-    if (!selectedContact || !sourceAccount || validationError || isSending) return;
-    setIsSending(true);
+    if (validationError || !selectedContact || !sourceAccount) return;
     sound.click();
 
-    window.setTimeout(() => {
-      const paymentResult = onSendPayment({
+    if (onPreparePaymentAttempt) {
+      const prepResult = onPreparePaymentAttempt({
         payee: selectedContact,
+        upiId: payeeUpiId.trim(),
         amount,
         accountId: sourceAccount.id,
         category,
         note,
       });
+
+      if (!prepResult.ok) {
+        return;
+      }
+      setActiveAttempt(prepResult.attempt);
+    } else {
+      setActiveAttempt({
+        id: `pa_${Date.now()}`,
+        payeeId: selectedContact.id,
+        payeeName: selectedContact.name,
+        upiId: payeeUpiId.trim(),
+        amount,
+        currency: payeeCurrency,
+        accountId: sourceAccount.id,
+        category,
+        note,
+        status: 'prepared',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    setUserReference('');
+    setResult(null);
+    setReviewOpen(true);
+  };
+
+  const handleConfirmAttempt = (attempt: PaymentAttempt) => {
+    if (!sourceAccount || isSending) return;
+    setIsSending(true);
+    sound.click();
+
+    window.setTimeout(() => {
+      let paymentResult: MoneyResult & { duplicate?: boolean; attempt?: PaymentAttempt };
+      if (onConfirmPaymentAttempt) {
+        paymentResult = onConfirmPaymentAttempt(attempt.id, userReference.trim() || undefined);
+      } else if (onSendPayment) {
+        paymentResult = onSendPayment({
+          payee: selectedContact,
+          amount: attempt.amount,
+          accountId: attempt.accountId,
+          category: attempt.category,
+          note: attempt.note,
+        });
+      } else {
+        paymentResult = { ok: false, error: 'Payment processing unavailable.' };
+      }
 
       setIsSending(false);
       setResult(paymentResult);
@@ -162,8 +260,44 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
         });
         setAmountInput('');
         setNote('');
+        setReconcileAttempt(null);
       }
-    }, 500);
+    }, 350);
+  };
+
+  const handleUpdateStatus = (
+    attemptId: string,
+    status: 'needs_reconciliation' | 'cancelled_or_failed'
+  ) => {
+    sound.click();
+    if (onUpdatePaymentAttemptStatus) {
+      onUpdatePaymentAttemptStatus(attemptId, status);
+    }
+    setReviewOpen(false);
+    setReconcileAttempt(null);
+    setActiveAttempt(null);
+  };
+
+  const handleCopyUpiId = async (upi: string) => {
+    try {
+      await navigator.clipboard.writeText(upi);
+      setCopiedUpi(true);
+      sound.click();
+      window.setTimeout(() => setCopiedUpi(false), 2000);
+    } catch {
+      setCopiedUpi(false);
+    }
+  };
+
+  const handleCopyPaymentDetails = async (attempt: PaymentAttempt) => {
+    try {
+      await navigator.clipboard.writeText(paymentDetailsText(attempt));
+      setCopiedDetails(true);
+      sound.click();
+      window.setTimeout(() => setCopiedDetails(false), 2000);
+    } catch {
+      setCopiedDetails(false);
+    }
   };
 
   const handleCopyReference = async () => {
@@ -179,15 +313,16 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
 
   const handleCreateContact = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!newName.trim() || !newAccountNumber.trim()) return;
+    if (!newName.trim() || (!newAccountNumber.trim() && !newUpiId.trim())) return;
 
     const newContact: Contact = {
       id: `c_${Date.now()}`,
       name: newName.trim(),
-      handle: `••${newAccountNumber.trim().slice(-4)}`,
+      handle: `••${(newAccountNumber.trim() || newUpiId.trim()).slice(-4)}`,
       type: newType,
       bank: newBank.trim() || 'Sanchay partner bank',
-      accountNumber: newAccountNumber.trim(),
+      accountNumber: newAccountNumber.trim() || undefined,
+      upiId: newUpiId.trim() || undefined,
       currency: newCurrency,
       initials: initialsFromName(newName) || 'CO',
       avatarColor: AVATAR_COLORS[contacts.length % AVATAR_COLORS.length],
@@ -202,6 +337,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
     setNewName('');
     setNewAccountNumber('');
     setNewBank('');
+    setNewUpiId('');
     setNewType('Person');
     setNewCurrency('INR');
     setNewFavorite(true);
@@ -436,6 +572,35 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                 </span>
               </div>
 
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                    Payee UPI ID
+                  </label>
+                  <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--accent-orange)' }}>
+                    User-entered · Not verified
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={payeeUpiId}
+                  onChange={(event) => setPayeeUpiId(event.target.value)}
+                  placeholder="e.g. name@okhdfcbank"
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    padding: '9px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-main)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
               <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
                 Pay from
               </label>
@@ -616,7 +781,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
-                What happens next
+                How payment assistance works
               </h2>
               <ShieldCheck size={16} color="#10b981" />
             </div>
@@ -624,16 +789,16 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
               {[
                 {
-                  title: '1. Check the details',
-                  body: 'You review the payee, account, amount, category and note before anything moves.',
+                  title: '1. Copy payee details',
+                  body: 'Copy the payee UPI ID and payment details to your clipboard.',
                 },
                 {
-                  title: '2. Confirm once',
-                  body: 'The payment is recorded locally and the balance updates immediately.',
+                  title: '2. Pay in your UPI app',
+                  body: 'Open Google Pay, PhonePe, Paytm, or BHIM, check the payee name matches, and enter your UPI PIN.',
                 },
                 {
-                  title: '3. Keep the receipt',
-                  body: 'Every payment gets a reference you can copy from the transaction drawer.',
+                  title: '3. Record in Sanchay',
+                  body: 'Return to Sanchay and confirm payment to record the expense in your local ledger.',
                 },
               ].map((step) => (
                 <div
@@ -672,18 +837,134 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                 marginTop: '16px',
                 padding: '12px 14px',
                 borderRadius: '14px',
-                background: 'rgba(255,87,34,0.08)',
-                color: 'var(--accent-orange)',
+                background: 'rgba(56, 189, 248, 0.08)',
+                color: '#0284c7',
                 fontSize: '11px',
                 lineHeight: 1.5,
               }}
             >
-              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
-              <span>Payments can only be sent from an active account in the payee's currency.</span>
+              <ShieldCheck size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span>
+                Sanchay does not connect to the UPI network or process funds. Balances are user-maintained records.
+              </span>
             </div>
           </div>
         </div>
       </div>
+
+      {unresolvedAttempts.length > 0 && (
+        <div
+          className="s-card animate-fade-in"
+          style={{
+            marginBottom: '24px',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'rgba(245, 158, 11, 0.04)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: '#b45309',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AlertTriangle size={15} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Unresolved payment assistance ({unresolvedAttempts.length})
+                </h3>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Pending confirmation — not recorded as an expense yet.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {unresolvedAttempts.map((attempt) => (
+              <div
+                key={attempt.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '14px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
+                      {attempt.payeeName}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        background:
+                          attempt.status === 'prepared'
+                            ? 'rgba(56, 189, 248, 0.15)'
+                            : 'rgba(245, 158, 11, 0.15)',
+                        color: attempt.status === 'prepared' ? '#0369a1' : '#b45309',
+                      }}
+                    >
+                      {paymentAttemptStatusLabel(attempt.status)}
+                    </span>
+                  </div>
+                  <div
+                    className="font-mono-numbers"
+                    style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}
+                  >
+                    UPI ID: {attempt.upiId} · {formatMoney(attempt.amount, attempt.currency)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setReconcileAttempt(attempt);
+                      setUserReference(attempt.userReference ?? '');
+                      setResult(null);
+                    }}
+                    className="btn-action-dark"
+                    style={{ padding: '6px 14px', fontSize: '11px' }}
+                  >
+                    Reconcile
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(attempt.id, 'cancelled_or_failed')}
+                    className="btn-action-light"
+                    style={{ padding: '6px 12px', fontSize: '11px', color: '#ef4444' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="s-card">
         <div
@@ -917,104 +1198,269 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
         )}
       </div>
 
-      {reviewOpen && !result && selectedContact && sourceAccount && (
-        <div
-          className="sanchay-modal-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
-            padding: '16px',
-          }}
-          onClick={() => !isSending && setReviewOpen(false)}
-        >
+      {(reviewOpen || reconcileAttempt !== null) && !result && Boolean(reconcileAttempt || activeAttempt) && (() => {
+        const currentAttempt = reconcileAttempt ?? activeAttempt;
+        if (!currentAttempt) return null;
+        const attemptAccount = accounts.find((acc) => acc.id === currentAttempt.accountId) ?? sourceAccount;
+        const isReconciling = Boolean(reconcileAttempt);
+
+        return (
           <div
-            className="s-card"
-            style={{ maxWidth: '420px', width: '100%' }}
-            onClick={(event) => event.stopPropagation()}
+            className="sanchay-modal-overlay"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 100,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              padding: '16px',
+            }}
+            onClick={() => {
+              if (!isSending) {
+                setReviewOpen(false);
+                setReconcileAttempt(null);
+              }
+            }}
           >
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
-              Review payment
-            </h3>
-            <p
-              style={{
-                fontSize: '12px',
-                color: 'var(--text-muted)',
-                marginTop: '4px',
-                marginBottom: '16px',
-              }}
-            >
-              Nothing moves until you confirm.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <SummaryRow label="Paying" value={selectedContact.name} />
-              <SummaryRow
-                label="Account"
-                value={`${selectedContact.bank} · ${selectedContact.accountNumber ?? '—'}`}
-              />
-              <SummaryRow label="From" value={sourceAccount.name} />
-              <SummaryRow
-                label="Amount"
-                value={formatMoney(amount, payeeCurrency)}
-                strong
-              />
-              <SummaryRow label="Category" value={category} />
-              {note.trim() && <SummaryRow label="Note" value={note.trim()} />}
-              <SummaryRow
-                label="Balance after"
-                value={formatMoney(
-                  subtractMoney(sourceAccount.balance, amount),
-                  sourceAccount.currency
-                )}
-              />
-            </div>
-
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '6px',
-                marginTop: '14px',
-                fontSize: '10px',
-                color: 'var(--text-muted)',
-                lineHeight: 1.5,
-              }}
+              className="s-card"
+              style={{ maxWidth: '440px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+              onClick={(event) => event.stopPropagation()}
             >
-              <ShieldCheck size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '1px' }} />
-              <span>This payment is simulated locally. No real money leaves an account.</span>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {isReconciling ? 'Reconcile payment attempt' : 'Review & pay externally'}
+                </h3>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    background: 'var(--bg-pill)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  {paymentAttemptStatusLabel(currentAttempt.status)}
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-muted)',
+                  marginBottom: '16px',
+                  lineHeight: 1.4,
+                }}
+              >
+                Sanchay assists with details and records your ledger. Pay securely inside your external UPI app.
+              </p>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button
-                type="button"
-                onClick={() => setReviewOpen(false)}
-                disabled={isSending}
-                className="btn-action-light"
-                style={{ flex: 1, padding: '11px 0' }}
+              <div
+                style={{
+                  background: 'var(--bg-pill)',
+                  borderRadius: '14px',
+                  padding: '14px',
+                  border: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  marginBottom: '14px',
+                }}
               >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmPayment}
-                disabled={isSending}
-                className="btn-action-dark"
-                style={{ flex: 1, padding: '11px 0' }}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Payee</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {currentAttempt.payeeName}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Recipient UPI ID</span>
+                    <span
+                      className="font-mono-numbers"
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {currentAttempt.upiId}
+                    </span>
+                    <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+                      Entered by you · Not verified by Sanchay
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyUpiId(currentAttempt.upiId)}
+                    className="btn-action-light"
+                    style={{ padding: '6px 10px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}
+                  >
+                    {copiedUpi ? <Check size={12} color="#10b981" /> : <Copy size={12} />}
+                    {copiedUpi ? 'Copied' : 'Copy UPI'}
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Amount</span>
+                  <span
+                    className="font-mono-numbers"
+                    style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}
+                  >
+                    {formatMoney(currentAttempt.amount, currentAttempt.currency)}
+                  </span>
+                </div>
+
+                {attemptAccount && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Source Account</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 600 }}>
+                      {attemptAccount.name}
+                    </span>
+                  </div>
+                )}
+
+                {currentAttempt.note && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Note</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      {currentAttempt.note}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ paddingTop: '6px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyPaymentDetails(currentAttempt)}
+                    className="btn-action-light"
+                    style={{ padding: '6px 10px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  >
+                    {copiedDetails ? <Check size={11} color="#10b981" /> : <Copy size={11} />}
+                    {copiedDetails ? 'Details Copied' : 'Copy all payment text'}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'rgba(255, 152, 0, 0.06)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  border: '1px solid rgba(255, 152, 0, 0.2)',
+                  fontSize: '11px',
+                  lineHeight: 1.5,
+                  color: 'var(--text-muted)',
+                  marginBottom: '14px',
+                }}
               >
-                {isSending ? 'Sending…' : `Send ${formatMoney(amount, payeeCurrency)}`}
-              </button>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+                  Next steps in your UPI app:
+                </div>
+                <ol style={{ margin: 0, paddingLeft: '18px' }}>
+                  <li>Open your preferred UPI app (PhonePe, Google Pay, Paytm, BHIM, etc.).</li>
+                  <li>Paste the UPI ID and check that the payee name matches.</li>
+                  <li>Pay {formatMoney(currentAttempt.amount, currentAttempt.currency)} and verify bank debit.</li>
+                </ol>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--text-main)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Bank / UPI reference or UTR (optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 12-digit UTR from your bank or UPI app"
+                  value={userReference}
+                  onChange={(event) => setUserReference(event.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    fontSize: '12px',
+                  }}
+                />
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', display: 'block' }}>
+                  For your own reconciliation. Sanchay does not verify this with your bank.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmAttempt(currentAttempt)}
+                  disabled={isSending}
+                  className="btn-action-dark"
+                  style={{ width: '100%', padding: '12px 0', fontSize: '13px', fontWeight: 700 }}
+                >
+                  {isSending ? 'Recording…' : 'I completed this payment'}
+                </button>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(currentAttempt.id, 'needs_reconciliation')}
+                    disabled={isSending}
+                    className="btn-action-light"
+                    style={{ flex: 1, padding: '10px 0', fontSize: '11px' }}
+                  >
+                    I'm not sure / Check later
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateStatus(currentAttempt.id, 'cancelled_or_failed')}
+                    disabled={isSending}
+                    className="btn-action-light"
+                    style={{ flex: 1, padding: '10px 0', fontSize: '11px', color: '#ef4444' }}
+                  >
+                    Cancelled / Failed
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReviewOpen(false);
+                    setReconcileAttempt(null);
+                  }}
+                  disabled={isSending}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '11px',
+                    padding: '6px 0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close without changing
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {reviewOpen && result && (
+      {result && (
         <div
           className="sanchay-modal-overlay"
           style={{
@@ -1028,11 +1474,15 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
             backdropFilter: 'blur(4px)',
             padding: '16px',
           }}
-          onClick={() => setReviewOpen(false)}
+          onClick={() => {
+            setResult(null);
+            setReviewOpen(false);
+            setReconcileAttempt(null);
+          }}
         >
           <div
             className="s-card"
-            style={{ maxWidth: '420px', width: '100%', textAlign: 'center' }}
+            style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}
             onClick={(event) => event.stopPropagation()}
           >
             {result.ok && result.transaction ? (
@@ -1052,13 +1502,34 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                 >
                   <CheckCircle2 size={26} />
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Payment sent
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Marked paid by you — not verified by Sanchay
                 </h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {formatMoney(result.transaction.amount, payeeCurrency)} to {selectedContact?.name}
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  {formatMoney(result.transaction.amount, payeeCurrency)} recorded to {selectedContact?.name ?? 'payee'}
                   {activeAccount ? ` from ${activeAccount.name}` : ''}.
                 </p>
+
+                {result.duplicate && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(245, 158, 11, 0.12)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      color: '#d97706',
+                      fontSize: '11px',
+                      textAlign: 'left',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                    <span>This payment attempt was already confirmed. No duplicate expense recorded.</span>
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -1068,34 +1539,72 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                     background: 'var(--bg-pill)',
                     border: '1px solid var(--border-subtle)',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '10px',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    textAlign: 'left',
                   }}
                 >
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>Reference</div>
-                    <div
-                      className="font-mono-numbers"
-                      style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}
-                    >
-                      {result.transaction.reference}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                    <div>
+                      <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>Sanchay Reference</div>
+                      <div
+                        className="font-mono-numbers"
+                        style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}
+                      >
+                        {result.transaction.reference}
+                      </div>
                     </div>
+                    <button
+                      onClick={handleCopyReference}
+                      className="btn-action-light"
+                      style={{ padding: '6px 10px', fontSize: '10px' }}
+                    >
+                      {copied ? <Check size={12} /> : <Copy size={12} />}
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
-                  <button
-                    onClick={handleCopyReference}
-                    className="btn-action-light"
-                    style={{ padding: '7px 10px', fontSize: '10px' }}
-                  >
-                    {copied ? <Check size={12} /> : <Copy size={12} />}
-                    {copied ? 'Copied' : 'Copy'}
-                  </button>
+
+                  {result.transaction.userReference && (
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
+                      <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>User-entered UTR</div>
+                      <div
+                        className="font-mono-numbers"
+                        style={{ fontSize: '11px', color: 'var(--text-main)' }}
+                      >
+                        {result.transaction.userReference}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '6px',
+                    marginTop: '14px',
+                    marginBottom: '16px',
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    textAlign: 'left',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <ShieldCheck size={13} color="#10b981" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <span>
+                    Recorded in Sanchay ledger based on your confirmation. Sanchay has no access to your bank or UPI network.
+                  </span>
                 </div>
 
                 <MetalAction
                   className="metal-action--receipt"
                   text="Done"
-                  onClick={() => setReviewOpen(false)}
+                  onClick={() => {
+                    setResult(null);
+                    setReviewOpen(false);
+                    setReconcileAttempt(null);
+                    setActiveAttempt(null);
+                  }}
                 />
               </>
             ) : (
@@ -1116,7 +1625,7 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                   <AlertTriangle size={26} />
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Payment not sent
+                  Payment not recorded
                 </h3>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
                   {result.error}
@@ -1179,11 +1688,20 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
                 />
               </Field>
 
+              <Field label="UPI ID (optional)">
+                <input
+                  type="text"
+                  placeholder="e.g. ananya@okhdfcbank"
+                  value={newUpiId}
+                  onChange={(event) => setNewUpiId(event.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+
               <Field label="Account number">
                 <input
                   type="text"
-                  required
-                  placeholder="Account or UPI reference"
+                  placeholder="Account or bank reference"
                   value={newAccountNumber}
                   onChange={(event) => setNewAccountNumber(event.target.value)}
                   style={inputStyle}
@@ -1292,33 +1810,5 @@ const Field: React.FC<{
   </div>
 );
 
-const SummaryRow: React.FC<{ label: string; value: string; strong?: boolean }> = ({
-  label,
-  value,
-  strong,
-}) => (
-  <div
-    style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      gap: '14px',
-      fontSize: '12px',
-      paddingBottom: '8px',
-      borderBottom: '1px solid var(--border-subtle)',
-    }}
-  >
-    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-    <span
-      className={strong ? 'font-mono-numbers' : undefined}
-      style={{
-        fontWeight: strong ? 900 : 700,
-        color: 'var(--text-main)',
-        textAlign: 'right',
-        fontSize: strong ? '14px' : '12px',
-      }}
-    >
-      {value}
-    </span>
-  </div>
-);
+
 

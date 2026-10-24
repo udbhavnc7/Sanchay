@@ -4,6 +4,7 @@ import type {
   Category,
   Contact,
   Currency,
+  PaymentAttempt,
   PlannedPayment,
   SavingsGoal,
   Transaction,
@@ -27,14 +28,16 @@ export interface PersistedState {
   goals: SavingsGoal[];
   budgets: Budget[];
   plannedPayments: PlannedPayment[];
+  paymentAttempts: PaymentAttempt[];
   preferences: PersistedPreferences;
 }
 
 export type PersistedStateInput = Omit<
   PersistedState,
-  'version' | 'savedAt' | 'plannedPayments'
+  'version' | 'savedAt' | 'plannedPayments' | 'paymentAttempts'
 > & {
   plannedPayments?: PlannedPayment[];
+  paymentAttempts?: PaymentAttempt[];
 };
 
 export interface StorageLike {
@@ -128,7 +131,9 @@ function isTransaction(value: unknown): value is Transaction {
       (isString(value.kind) &&
         TRANSACTION_KINDS.includes(value.kind as NonNullable<Transaction['kind']>))) &&
     (value.fee === undefined || isNumber(value.fee)) &&
-    (value.goalId === undefined || isString(value.goalId))
+    (value.goalId === undefined || isString(value.goalId)) &&
+    (value.paymentAttemptId === undefined || isString(value.paymentAttemptId)) &&
+    (value.userReference === undefined || isString(value.userReference))
   );
 }
 
@@ -144,7 +149,10 @@ function isContact(value: unknown): value is Contact {
     isString(value.initials) &&
     isString(value.avatarColor) &&
     typeof value.isFavorite === 'boolean' &&
-    (value.currency === undefined || isCurrency(value.currency))
+    (value.currency === undefined || isCurrency(value.currency)) &&
+    (value.accountNumber === undefined || isString(value.accountNumber)) &&
+    (value.upiId === undefined || isString(value.upiId)) &&
+    (value.lastTransfer === undefined || isString(value.lastTransfer))
   );
 }
 
@@ -188,6 +196,37 @@ function isPlannedPayment(value: unknown): value is PlannedPayment {
   );
 }
 
+const PAYMENT_ATTEMPT_STATUS_VALUES: PaymentAttempt['status'][] = [
+  'prepared',
+  'needs_reconciliation',
+  'marked_paid_by_user',
+  'cancelled_or_failed',
+];
+
+function isPaymentAttempt(value: unknown): value is PaymentAttempt {
+  if (!isRecord(value)) return false;
+  return (
+    isString(value.id) &&
+    isString(value.payeeId) &&
+    isString(value.payeeName) &&
+    isString(value.upiId) &&
+    isNumber(value.amount) &&
+    value.amount > 0 &&
+    isCurrency(value.currency) &&
+    isString(value.accountId) &&
+    isCategory(value.category) &&
+    (value.note === undefined || isString(value.note)) &&
+    isString(value.status) &&
+    PAYMENT_ATTEMPT_STATUS_VALUES.includes(value.status as PaymentAttempt['status']) &&
+    isString(value.createdAt) &&
+    !Number.isNaN(Date.parse(value.createdAt)) &&
+    isString(value.updatedAt) &&
+    !Number.isNaN(Date.parse(value.updatedAt)) &&
+    (value.transactionId === undefined || isString(value.transactionId)) &&
+    (value.userReference === undefined || isString(value.userReference))
+  );
+}
+
 function isPreferences(value: unknown): value is PersistedPreferences {
   if (!isRecord(value)) return false;
   return (
@@ -197,8 +236,9 @@ function isPreferences(value: unknown): value is PersistedPreferences {
   );
 }
 
-type PersistedStateBase = Omit<PersistedState, 'plannedPayments'> & {
+type PersistedStateBase = Omit<PersistedState, 'plannedPayments' | 'paymentAttempts'> & {
   plannedPayments?: PlannedPayment[];
+  paymentAttempts?: PaymentAttempt[];
 };
 
 function isPersistedStateBase(value: unknown): value is PersistedStateBase {
@@ -219,6 +259,9 @@ function isPersistedStateBase(value: unknown): value is PersistedStateBase {
     (value.plannedPayments === undefined ||
       (Array.isArray(value.plannedPayments) &&
         value.plannedPayments.every(isPlannedPayment))) &&
+    (value.paymentAttempts === undefined ||
+      (Array.isArray(value.paymentAttempts) &&
+        value.paymentAttempts.every(isPaymentAttempt))) &&
     isPreferences(value.preferences)
   );
 }
@@ -229,6 +272,7 @@ export function createPersistedState(input: PersistedStateInput): PersistedState
     savedAt: new Date().toISOString(),
     ...input,
     plannedPayments: input.plannedPayments ?? [],
+    paymentAttempts: input.paymentAttempts ?? [],
   };
 }
 
@@ -236,7 +280,11 @@ export function parsePersistedState(raw: string): PersistedState | null {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!isPersistedStateBase(parsed)) return null;
-    return { ...parsed, plannedPayments: parsed.plannedPayments ?? [] };
+    return {
+      ...parsed,
+      plannedPayments: parsed.plannedPayments ?? [],
+      paymentAttempts: parsed.paymentAttempts ?? [],
+    };
   } catch {
     return null;
   }

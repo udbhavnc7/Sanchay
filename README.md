@@ -47,13 +47,16 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - See a 30-day safe-to-spend estimate after remaining budgets, goal pace, planned outflows, and planned inflows. Overdue outflows stay in the estimate until you delete them.
 - Review the planned payments behind the estimate; planned entries never change the ledger or account balances.
 
-### Payees and payments
+### Payees and payments (Path A payment assistance)
 
-- Add payees with a currency and account/UPI reference.
-- Mark payees as favorites.
-- Review a payment before sending it.
-- Payments are **simulated locally**; no real bank, UPI, or card transfer occurs.
-- View a local receipt after a simulated payment.
+- Add payees with a currency, optional UPI ID, and account reference.
+- Mark payees as favorites for quick access.
+- Safe external payment assistance: copy payee UPI ID (flagged as user-entered and not verified by Sanchay) and payment details for manual entry into your external UPI app.
+- Sanchay does **not** move money, connect to the UPI network, generate `upi://pay` deep links, or generate QR codes in Path A.
+- Local reconciliation lifecycle with explicit states (`prepared`, `needs_reconciliation`, `marked_paid_by_user`, `cancelled_or_failed`).
+- Confirming an attempt records a local ledger expense explicitly labeled **"Marked paid by you — not verified by Sanchay"** with optional user-entered UTR/reference, protected against duplicate confirmations.
+- Unresolved payment attempts remain visible in a dedicated queue for later reconciliation.
+- Request money helper generates plain text payment request messages to share; it does not issue UPI Collect requests.
 
 ### Reports
 
@@ -90,6 +93,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
 - The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
+- UPI / Bank integration: Operates under Path A (payment assistance and local ledger reconciliation only). Sanchay does not connect to bank or UPI networks, does not verify bank settlement or UTRs, and does not initiate fund transfers.
 - Data can be lost if Android clears WebView storage or the app's data.
 
 ---

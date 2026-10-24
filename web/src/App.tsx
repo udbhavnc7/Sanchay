@@ -4,6 +4,7 @@ import {
   initialBudgets,
   initialContacts,
   initialGoals,
+  initialPaymentAttempts,
   initialPlannedPayments,
   initialTransactions,
 } from './data/mockData';
@@ -14,12 +15,20 @@ import type {
   GoalDepositInput,
   MoneyResult,
   NewTransactionInput,
+  PaymentAttempt,
+  PaymentAttemptInput,
   PaymentInput,
   PlannedPayment,
   SavingsGoal,
   Transaction,
   UpdateTransactionInput,
 } from './types/finance';
+import {
+  confirmPaymentAttempt,
+  createPaymentAttempt,
+  paymentAttemptInputError,
+  updatePaymentAttemptStatus,
+} from './utils/paymentAttempts';
 import { sound } from './utils/audio';
 import { saveTextFile } from './utils/fileSave';
 import {
@@ -132,6 +141,9 @@ export const App: React.FC = () => {
   const [plannedPayments, setPlannedPayments] = useState<PlannedPayment[]>(
     initialSnapshot?.plannedPayments ?? initialPlannedPayments
   );
+  const [paymentAttempts, setPaymentAttempts] = useState<PaymentAttempt[]>(
+    initialSnapshot?.paymentAttempts ?? initialPaymentAttempts
+  );
 
   const [isCardFrozen, setIsCardFrozen] = useState(
     initialSnapshot?.preferences.isCardFrozen ?? false
@@ -195,6 +207,7 @@ export const App: React.FC = () => {
       goals,
       budgets,
       plannedPayments,
+      paymentAttempts,
       preferences: {
         isDarkMode,
         isAudioEnabled,
@@ -209,6 +222,7 @@ export const App: React.FC = () => {
     goals,
     budgets,
     plannedPayments,
+    paymentAttempts,
     isDarkMode,
     isAudioEnabled,
     isCardFrozen,
@@ -423,6 +437,79 @@ export const App: React.FC = () => {
     );
 
     return { ok: true, transaction };
+  };
+
+  const handlePreparePaymentAttempt = (
+    input: PaymentAttemptInput
+  ): { ok: true; attempt: PaymentAttempt } | { ok: false; error: string } => {
+    const error = paymentAttemptInputError(input, accounts);
+    if (error) {
+      return { ok: false, error };
+    }
+    const attempt = createPaymentAttempt(input, {
+      id: `pa_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      now: new Date().toISOString(),
+    });
+    setPaymentAttempts((prev) => [attempt, ...prev]);
+    return { ok: true, attempt };
+  };
+
+  const handleConfirmPaymentAttempt = (
+    attemptId: string,
+    userReference?: string
+  ): MoneyResult & { duplicate?: boolean; attempt?: PaymentAttempt } => {
+    const attempt = paymentAttempts.find((item) => item.id === attemptId);
+    if (!attempt) {
+      return { ok: false, error: 'Payment attempt not found.' };
+    }
+    const account = accounts.find((item) => item.id === attempt.accountId);
+    const result = confirmPaymentAttempt(attempt, account, transactions, {
+      now: new Date().toISOString(),
+      userReference,
+    });
+
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+
+    if (!result.duplicate) {
+      setAccounts((prev) =>
+        prev.map((item) =>
+          item.id === attempt.accountId
+            ? { ...item, balance: subtractMoney(item.balance, attempt.amount) }
+            : item
+        )
+      );
+      setTransactions((prev) => [result.transaction, ...prev]);
+      setContacts((prev) =>
+        prev.map((contact) =>
+          contact.id === attempt.payeeId ? { ...contact, lastTransfer: 'Just now' } : contact
+        )
+      );
+    }
+
+    setPaymentAttempts((prev) =>
+      prev.map((item) => (item.id === attempt.id ? result.attempt : item))
+    );
+
+    return {
+      ok: true,
+      transaction: result.transaction,
+      duplicate: result.duplicate,
+      attempt: result.attempt,
+    };
+  };
+
+  const handleUpdatePaymentAttemptStatus = (
+    attemptId: string,
+    status: 'needs_reconciliation' | 'cancelled_or_failed'
+  ) => {
+    const now = new Date().toISOString();
+    setPaymentAttempts((prev) =>
+      prev.map((item) =>
+        item.id === attemptId ? updatePaymentAttemptStatus(item, status, now) : item
+      )
+    );
   };
 
   const handleDepositToGoal = (input: GoalDepositInput): MoneyResult => {
@@ -850,6 +937,7 @@ export const App: React.FC = () => {
       goals,
       budgets,
       plannedPayments,
+      paymentAttempts,
       preferences: {
         isDarkMode,
         isAudioEnabled,
@@ -910,6 +998,7 @@ export const App: React.FC = () => {
     setGoals(pendingImport.goals);
     setBudgets(pendingImport.budgets);
     setPlannedPayments(pendingImport.plannedPayments);
+    setPaymentAttempts(pendingImport.paymentAttempts);
     setIsDarkMode(pendingImport.preferences.isDarkMode);
     setIsAudioEnabled(pendingImport.preferences.isAudioEnabled);
     setIsCardFrozen(pendingImport.preferences.isCardFrozen);
@@ -940,6 +1029,7 @@ export const App: React.FC = () => {
     setGoals(initialGoals);
     setBudgets(initialBudgets);
     setPlannedPayments(initialPlannedPayments);
+    setPaymentAttempts(initialPaymentAttempts);
     setIsDarkMode(false);
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
@@ -1281,6 +1371,10 @@ export const App: React.FC = () => {
               <TransfersTab
                 accounts={accounts}
                 contacts={contacts}
+                paymentAttempts={paymentAttempts}
+                onPreparePaymentAttempt={handlePreparePaymentAttempt}
+                onConfirmPaymentAttempt={handleConfirmPaymentAttempt}
+                onUpdatePaymentAttemptStatus={handleUpdatePaymentAttemptStatus}
                 onSendPayment={handleSendPayment}
                 onAddContact={handleAddContact}
                 onToggleFavorite={handleToggleFavorite}

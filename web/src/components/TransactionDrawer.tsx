@@ -97,10 +97,15 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
       `Category:     ${transaction.category}`,
       `Date:         ${formatDateTime(transaction.date)}`,
       `Fee:          ${formatMoney(transaction.fee ?? 0, currency)}`,
+      transaction.recipient ? `Payee UPI ID: ${transaction.recipient}` : '',
+      transaction.userReference ? `User Reference / UTR: ${transaction.userReference}` : '',
+      transaction.paymentAttemptId ? `Payment Attempt ID: ${transaction.paymentAttemptId}` : '',
       `Note:         ${transaction.note ?? '—'}`,
       '',
-      'Generated locally by Sanchay. No bank connection was used.',
-    ];
+      transaction.paymentAttemptId
+        ? 'Notice: Recorded in Sanchay; marked paid by you; not bank-verified.'
+        : 'Generated locally by Sanchay. No bank connection was used.',
+    ].filter(Boolean);
 
     saveTextFile(`sanchay-${transaction.reference}.txt`, lines.join('\r\n'), 'text/plain');
     sound.success();
@@ -222,6 +227,22 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
                 {formatMoney(transaction.fee ?? 0, currency)}
               </span>
             </div>
+            {transaction.recipient && (
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-400">Payee UPI ID</span>
+                <span className="font-mono-numbers font-semibold text-slate-900 dark:text-white text-right">
+                  {transaction.recipient}
+                </span>
+              </div>
+            )}
+            {transaction.userReference && (
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-400">Reference / UTR</span>
+                <span className="font-mono-numbers font-semibold text-slate-900 dark:text-white text-right">
+                  {transaction.userReference}
+                </span>
+              </div>
+            )}
             {transaction.note && (
               <div className="flex justify-between gap-4">
                 <span className="text-slate-400">Note</span>
@@ -235,9 +256,15 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
           <div className="mt-5 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
             <div className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
               <ShieldCheck size={13} />
-              <span>Local record</span>
+              <span>
+                {transaction.paymentAttemptId
+                  ? 'Marked paid by you — not verified by Sanchay'
+                  : 'Local record'}
+              </span>
             </div>
-            This entry exists only in this browser. No bank was contacted and no money moved.
+            {transaction.paymentAttemptId
+              ? 'Recorded in Sanchay based on your confirmation. Sanchay does not connect to the UPI network and has not independently verified settlement with your bank.'
+              : 'This entry exists only in this browser. No bank was contacted and no money moved.'}
           </div>
         </div>
 

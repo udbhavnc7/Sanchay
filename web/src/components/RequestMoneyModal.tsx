@@ -10,7 +10,8 @@ import {
   AlertTriangle,
   RotateCcw,
 } from 'lucide-react';
-import { formatMoney, parseMoneyInput } from '../utils/money';
+import { parseMoneyInput } from '../utils/money';
+import { buildPaymentRequestText } from '../utils/paymentAttempts';
 
 interface RequestMoneyModalProps {
   contacts: Contact[];
@@ -24,6 +25,7 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
   const [contactId, setContactId] = useState(contacts[0]?.id ?? '');
   const [amountInput, setAmountInput] = useState('1000');
   const [note, setNote] = useState('');
+  const [myUpiId, setMyUpiId] = useState('');
   const [reference] = useState(() => `REQ-${String(Date.now()).slice(-6)}`);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -35,12 +37,15 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
 
   const requestText = useMemo(() => {
     if (!contact || !amountValid) return '';
-    const notePart = note.trim() ? ` for ${note.trim()}` : '';
-    return `Hi ${contact.name}, could you send me ${formatMoney(
+    return buildPaymentRequestText({
+      payerName: contact.name,
       amount,
-      contact.currency
-    )}${notePart}? Reference: ${reference}.`;
-  }, [contact, amount, amountValid, note, reference]);
+      currency: contact.currency ?? 'INR',
+      note: note.trim() || undefined,
+      myUpiId,
+      reference,
+    });
+  }, [contact, amount, amountValid, note, myUpiId, reference]);
 
   const handleCopy = async () => {
     if (!parsedAmount.ok) {
@@ -199,6 +204,29 @@ export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
               maxLength={60}
               onChange={(event) => setNote(event.target.value)}
               placeholder="e.g. split dinner"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '16px',
+                fontSize: '13px',
+                backgroundColor: 'var(--bg-pill)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-main)',
+                outline: 'none',
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Your UPI ID (to receive payment)
+            </label>
+            <input
+              type="text"
+              value={myUpiId}
+              maxLength={60}
+              onChange={(event) => setMyUpiId(event.target.value)}
+              placeholder="e.g. name@okhdfcbank"
               style={{
                 width: '100%',
                 padding: '12px 16px',
