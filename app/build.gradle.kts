@@ -70,7 +70,7 @@ android {
             signingConfig = signingConfigs.getByName("debug")
 
             applicationIdSuffix = ".debug"
-            resValue("string", "app_name", "Sanchay Debug")
+            resValue("string", "app_name", "Sanchay")
         }
 
         create("demo") {
