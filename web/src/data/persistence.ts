@@ -8,6 +8,7 @@ import type {
   PlannedPayment,
   SavingsGoal,
   Transaction,
+  UserProfile,
 } from '../types/finance';
 
 export const STORAGE_KEY = 'sanchay.local.v1';
@@ -17,6 +18,8 @@ export interface PersistedPreferences {
   isDarkMode: boolean;
   isAudioEnabled: boolean;
   isCardFrozen: boolean;
+  userProfile?: UserProfile;
+  appLockPin?: string;
 }
 
 export interface PersistedState {
@@ -227,12 +230,19 @@ function isPaymentAttempt(value: unknown): value is PaymentAttempt {
   );
 }
 
+function isUserProfile(value: unknown): value is UserProfile {
+  if (!isRecord(value)) return false;
+  return isString(value.name) && isString(value.email);
+}
+
 function isPreferences(value: unknown): value is PersistedPreferences {
   if (!isRecord(value)) return false;
   return (
     typeof value.isDarkMode === 'boolean' &&
     typeof value.isAudioEnabled === 'boolean' &&
-    typeof value.isCardFrozen === 'boolean'
+    typeof value.isCardFrozen === 'boolean' &&
+    (value.userProfile === undefined || isUserProfile(value.userProfile)) &&
+    (value.appLockPin === undefined || isString(value.appLockPin))
   );
 }
 

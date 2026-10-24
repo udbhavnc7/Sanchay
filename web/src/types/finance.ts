@@ -177,3 +177,28 @@ export interface MoneyResult {
   error?: string;
   transaction?: Transaction;
 }
+
+export type PreferredUpiApp =
+  | 'Google Pay'
+  | 'PhonePe'
+  | 'Paytm'
+  | 'BHIM'
+  | 'Cred'
+  | 'Navi'
+  | 'Other';
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  upiId?: string;
+  preferredUpiApp?: PreferredUpiApp;
+  avatarColor?: string;
+}
+
+export interface ConnectAccountInput {
+  name: string;
+  type: Account['type'];
+  currency: Currency;
+  balance: number;
+  status?: Account['status'];
+}

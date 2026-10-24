@@ -12,6 +12,7 @@ import {
   PiggyBank,
   ShieldCheck,
   ChevronRight,
+  Plus,
 } from 'lucide-react';
 import { formatMoney, formatPercent } from '../utils/money';
 
@@ -22,6 +23,7 @@ interface CardsTabProps {
   monthlyBudget: number;
   monthlySpent: number;
   onOpenPlan: () => void;
+  onOpenConnectAccount?: () => void;
 }
 
 export const CardsTab: React.FC<CardsTabProps> = ({
@@ -31,6 +33,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   monthlyBudget,
   monthlySpent,
   onOpenPlan,
+  onOpenConnectAccount,
 }) => {
   const [onlinePayments, setOnlinePayments] = useState(true);
   const [contactless, setContactless] = useState(true);
