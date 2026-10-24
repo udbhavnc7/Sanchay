@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type {
   Account,
   Category,
@@ -128,12 +128,12 @@ export const TransfersTab: React.FC<TransfersTabProps> = ({
   const payeeCurrency = selectedContact?.currency ?? 'INR';
 
   const [payeeUpiId, setPayeeUpiId] = useState(selectedContact?.upiId ?? '');
+  const [prevContactId, setPrevContactId] = useState(selectedContact?.id);
 
-  useEffect(() => {
-    if (selectedContact) {
-      setPayeeUpiId(selectedContact.upiId ?? '');
-    }
-  }, [selectedContact?.id, selectedContact?.upiId]);
+  if (selectedContact && selectedContact.id !== prevContactId) {
+    setPrevContactId(selectedContact.id);
+    setPayeeUpiId(selectedContact.upiId ?? '');
+  }
 
   const unresolvedAttempts = useMemo(() => {
     return (paymentAttempts ?? []).filter(

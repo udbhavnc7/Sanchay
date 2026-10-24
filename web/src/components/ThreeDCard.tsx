@@ -12,6 +12,38 @@ interface ThreeDCardProps {
 
 export type CardFinish = 'obsidian' | 'gold' | 'platinum' | 'emerald';
 
+// Card finish color palettes
+const finishConfigs = {
+  obsidian: {
+    color: 0x111317,
+    metalness: 0.85,
+    roughness: 0.25,
+    accent: '#FF5722',
+    glow: 'rgba(255, 87, 34, 0.4)',
+  },
+  gold: {
+    color: 0xd4af37,
+    metalness: 0.95,
+    roughness: 0.18,
+    accent: '#fef08a',
+    glow: 'rgba(212, 175, 55, 0.45)',
+  },
+  platinum: {
+    color: 0xcccccc,
+    metalness: 0.98,
+    roughness: 0.15,
+    accent: '#38bdf8',
+    glow: 'rgba(56, 189, 248, 0.4)',
+  },
+  emerald: {
+    color: 0x064e3b,
+    metalness: 0.88,
+    roughness: 0.22,
+    accent: '#10b981',
+    glow: 'rgba(16, 185, 129, 0.45)',
+  },
+};
+
 export const ThreeDCard: React.FC<ThreeDCardProps> = ({
   isFrozen,
   onToggleFreeze,
@@ -31,38 +63,6 @@ export const ThreeDCard: React.FC<ThreeDCardProps> = ({
   const lightRef = useRef<THREE.PointLight | null>(null);
   const targetRotationY = useRef(0);
   const frostParticlesRef = useRef<THREE.Points | null>(null);
-
-  // Card finish color palettes
-  const finishConfigs = {
-    obsidian: {
-      color: 0x111317,
-      metalness: 0.85,
-      roughness: 0.25,
-      accent: '#FF5722',
-      glow: 'rgba(255, 87, 34, 0.4)',
-    },
-    gold: {
-      color: 0xd4af37,
-      metalness: 0.95,
-      roughness: 0.18,
-      accent: '#fef08a',
-      glow: 'rgba(212, 175, 55, 0.45)',
-    },
-    platinum: {
-      color: 0xcccccc,
-      metalness: 0.98,
-      roughness: 0.15,
-      accent: '#38bdf8',
-      glow: 'rgba(56, 189, 248, 0.4)',
-    },
-    emerald: {
-      color: 0x064e3b,
-      metalness: 0.88,
-      roughness: 0.22,
-      accent: '#10b981',
-      glow: 'rgba(16, 185, 129, 0.45)',
-    },
-  };
 
   useEffect(() => {
     const container = mountRef.current;
