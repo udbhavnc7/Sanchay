@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type {
   Account,
-  ConnectAccountInput,
   PreferredUpiApp,
   UserProfile,
 } from '../types/finance';
@@ -11,7 +10,6 @@ import {
   Shield,
   CreditCard,
   Lock,
-  Unlock,
   Plus,
   Trash2,
   Moon,
@@ -20,7 +18,6 @@ import {
   VolumeX,
   Download,
   Upload,
-  RotateCcw,
   Check,
   X,
   Smartphone,
@@ -36,7 +33,6 @@ interface ProfileSettingsModalProps {
   accounts: Account[];
   isDarkMode: boolean;
   isAudioEnabled: boolean;
-  isCardFrozen: boolean;
   appLockPin?: string;
   onUpdateProfile: (profile: UserProfile) => void;
   onUpdatePreferences: (updates: {
@@ -45,7 +41,6 @@ interface ProfileSettingsModalProps {
     isCardFrozen?: boolean;
     appLockPin?: string;
   }) => void;
-  onConnectAccount: (account: ConnectAccountInput) => void;
   onToggleAccountStatus: (accountId: string) => void;
   onDeleteAccount: (accountId: string) => void;
   onExportBackup: () => void;
@@ -83,11 +78,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   accounts,
   isDarkMode,
   isAudioEnabled,
-  isCardFrozen,
   appLockPin,
   onUpdateProfile,
   onUpdatePreferences,
-  onConnectAccount,
   onToggleAccountStatus,
   onDeleteAccount,
   onExportBackup,

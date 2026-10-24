@@ -16,16 +16,18 @@ import { buildPaymentRequestText } from '../utils/paymentAttempts';
 interface RequestMoneyModalProps {
   contacts: Contact[];
   onClose: () => void;
+  defaultUpiId?: string;
 }
 
 export const RequestMoneyModal: React.FC<RequestMoneyModalProps> = ({
   contacts,
   onClose,
+  defaultUpiId,
 }) => {
   const [contactId, setContactId] = useState(contacts[0]?.id ?? '');
   const [amountInput, setAmountInput] = useState('1000');
   const [note, setNote] = useState('');
-  const [myUpiId, setMyUpiId] = useState('');
+  const [myUpiId, setMyUpiId] = useState(defaultUpiId ?? '');
   const [reference] = useState(() => `REQ-${String(Date.now()).slice(-6)}`);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');

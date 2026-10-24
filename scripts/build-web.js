@@ -20,4 +20,10 @@ execSync('npm run build', { cwd: webDir, stdio: 'inherit' });
 console.log('==> Copying web/dist to root dist/...');
 fs.cpSync(webDist, rootDist, { recursive: true });
 
+const androidAssetsWeb = path.join(rootDir, 'app', 'src', 'main', 'assets', 'web');
+if (fs.existsSync(androidAssetsWeb)) {
+  console.log('==> Syncing web/dist to Android assets (app/src/main/assets/web)...');
+  fs.cpSync(webDist, androidAssetsWeb, { recursive: true });
+}
+
 console.log('==> Build completed successfully! Both dist/ and web/dist/ are ready.');

@@ -11,6 +11,7 @@ import {
 import type {
   Account,
   Budget,
+  ConnectAccountInput,
   Contact,
   GoalDepositInput,
   MoneyResult,
@@ -22,6 +23,7 @@ import type {
   SavingsGoal,
   Transaction,
   UpdateTransactionInput,
+  UserProfile,
 } from './types/finance';
 import {
   confirmPaymentAttempt,
@@ -66,6 +68,9 @@ import { TransactionDrawer } from './components/TransactionDrawer';
 import { SearchOverlay } from './components/SearchOverlay';
 import { RequestMoneyModal } from './components/RequestMoneyModal';
 import { AddTransactionModal } from './components/AddTransactionModal';
+import { ConnectAccountModal } from './components/ConnectAccountModal';
+import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { AppLockScreen } from './components/AppLockScreen';
 import { SanchaySplash } from './components/SanchaySplash';
 import { SanchayLogo } from './components/SanchayLogo';
 import {
@@ -117,6 +122,14 @@ const ALERT_STYLES: Record<AlertTone, { background: string; color: string }> = {
   good: { background: 'rgba(16, 185, 129, 0.12)', color: '#047857' },
 };
 
+const defaultUserProfile: UserProfile = {
+  name: 'Udbhav',
+  email: 'hello@sanchay.app',
+  upiId: '',
+  preferredUpiApp: 'Google Pay',
+  avatarColor: '#111317',
+};
+
 export const App: React.FC = () => {
   const [initialSnapshot] = useState(loadPersistedState);
   const [isDarkMode, setIsDarkMode] = useState(
@@ -126,6 +139,18 @@ export const App: React.FC = () => {
   const [isAudioEnabled, setIsAudioEnabled] = useState(
     initialSnapshot?.preferences.isAudioEnabled ?? true
   );
+
+  const [userProfile, setUserProfile] = useState<UserProfile>(
+    initialSnapshot?.preferences.userProfile ?? defaultUserProfile
+  );
+  const [appLockPin, setAppLockPin] = useState<string>(
+    initialSnapshot?.preferences.appLockPin ?? ''
+  );
+  const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
+    return Boolean(initialSnapshot?.preferences.appLockPin);
+  });
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
+  const [showConnectAccount, setShowConnectAccount] = useState(false);
 
   const [accounts, setAccounts] = useState<Account[]>(
     initialSnapshot?.accounts ?? initialAccounts
@@ -212,6 +237,8 @@ export const App: React.FC = () => {
         isDarkMode,
         isAudioEnabled,
         isCardFrozen,
+        userProfile,
+        appLockPin: appLockPin || undefined,
       },
     });
     queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
@@ -226,6 +253,8 @@ export const App: React.FC = () => {
     isDarkMode,
     isAudioEnabled,
     isCardFrozen,
+    userProfile,
+    appLockPin,
   ]);
 
   useEffect(() => {
@@ -942,6 +971,8 @@ export const App: React.FC = () => {
         isDarkMode,
         isAudioEnabled,
         isCardFrozen,
+        userProfile,
+        appLockPin: appLockPin || undefined,
       },
     });
     const result = saveTextFile(
@@ -1002,6 +1033,12 @@ export const App: React.FC = () => {
     setIsDarkMode(pendingImport.preferences.isDarkMode);
     setIsAudioEnabled(pendingImport.preferences.isAudioEnabled);
     setIsCardFrozen(pendingImport.preferences.isCardFrozen);
+    if (pendingImport.preferences.userProfile) {
+      setUserProfile(pendingImport.preferences.userProfile);
+    }
+    if (pendingImport.preferences.appLockPin !== undefined) {
+      setAppLockPin(pendingImport.preferences.appLockPin);
+    }
     sound.enabled = pendingImport.preferences.isAudioEnabled;
     setStorageError('');
     setPendingImport(null);
@@ -1033,6 +1070,9 @@ export const App: React.FC = () => {
     setIsDarkMode(false);
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
+    setUserProfile(defaultUserProfile);
+    setAppLockPin('');
+    setIsAppLocked(false);
     sound.enabled = true;
     setStorageError('');
     setBackupStatus('');
@@ -1044,6 +1084,62 @@ export const App: React.FC = () => {
     setShowPrivacy(false);
     setConfirmReset(false);
     sound.success();
+  };
+
+  const handleConnectAccount = (input: ConnectAccountInput) => {
+    const newAccount: Account = {
+      id: `acc_${Date.now()}`,
+      name: input.name,
+      type: input.type,
+      balance: input.balance,
+      currency: input.currency,
+      status: 'Active',
+      change: '+0%',
+    };
+    setAccounts((prev) => [newAccount, ...prev]);
+    sound.success();
+  };
+
+  const handleToggleAccountStatus = (accountId: string) => {
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.id !== accountId) return acc;
+        const nextStatus: Account['status'] =
+          acc.status === 'Active' ? 'Inactive' : 'Active';
+        return { ...acc, status: nextStatus };
+      })
+    );
+    sound.click();
+  };
+
+  const handleDeleteAccount = (accountId: string) => {
+    setAccounts((prev) => prev.filter((acc) => acc.id !== accountId));
+    sound.click();
+  };
+
+  const handleUpdateProfile = (profile: UserProfile) => {
+    setUserProfile(profile);
+  };
+
+  const handleUpdatePreferences = (updates: {
+    isDarkMode?: boolean;
+    isAudioEnabled?: boolean;
+    isCardFrozen?: boolean;
+    appLockPin?: string;
+  }) => {
+    if (updates.isDarkMode !== undefined) {
+      setIsDarkMode(updates.isDarkMode);
+    }
+    if (updates.isAudioEnabled !== undefined) {
+      setIsAudioEnabled(updates.isAudioEnabled);
+      sound.enabled = updates.isAudioEnabled;
+    }
+    if (updates.isCardFrozen !== undefined) {
+      setIsCardFrozen(updates.isCardFrozen);
+    }
+    if (updates.appLockPin !== undefined) {
+      setAppLockPin(updates.appLockPin);
+    }
   };
 
   const selectedAccount = selectedTransaction?.accountId
@@ -1257,7 +1353,10 @@ export const App: React.FC = () => {
                 </button>
 
                 <div
-                  onClick={() => sound.click()}
+                  onClick={() => {
+                    sound.click();
+                    setShowProfileSettings(true);
+                  }}
                   className="header-profile"
                   style={{
                     display: 'flex',
@@ -1269,13 +1368,14 @@ export const App: React.FC = () => {
                     background: 'var(--bg-card)',
                     cursor: 'pointer',
                   }}
+                  title="Profile & Settings"
                 >
                   <div
                     style={{
                       width: '28px',
                       height: '28px',
                       borderRadius: '50%',
-                      background: '#111317',
+                      background: userProfile.avatarColor || '#111317',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
@@ -1284,7 +1384,7 @@ export const App: React.FC = () => {
                       fontWeight: 800,
                     }}
                   >
-                    U
+                    {(userProfile.name.trim()[0] || 'U').toUpperCase()}
                   </div>
                   <div className="header-profile-text" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                     <span
@@ -1295,12 +1395,12 @@ export const App: React.FC = () => {
                         color: 'var(--text-main)',
                       }}
                     >
-                      Udbhav
+                      {userProfile.name}
                     </span>
                     <span
                       style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.1 }}
                     >
-                      hello@sanchay.app
+                      {userProfile.email}
                     </span>
                   </div>
                   <ChevronDown size={12} color="var(--text-muted)" />
@@ -1348,6 +1448,7 @@ export const App: React.FC = () => {
                 monthlyBudget={monthlyBudget}
                 monthlySpent={monthlySpent}
                 onOpenPlan={() => navigate('Plan')}
+                onOpenConnectAccount={() => setShowConnectAccount(true)}
               />
             )}
 
@@ -1418,7 +1519,58 @@ export const App: React.FC = () => {
         />
 
         {showRequest && (
-          <RequestMoneyModal contacts={contacts} onClose={() => setShowRequest(false)} />
+          <RequestMoneyModal
+            contacts={contacts}
+            defaultUpiId={userProfile.upiId}
+            onClose={() => setShowRequest(false)}
+          />
+        )}
+
+        {showConnectAccount && (
+          <ConnectAccountModal
+            onConnect={handleConnectAccount}
+            onClose={() => setShowConnectAccount(false)}
+          />
+        )}
+
+        {showProfileSettings && (
+          <ProfileSettingsModal
+            userProfile={userProfile}
+            accounts={accounts}
+            isDarkMode={isDarkMode}
+            isAudioEnabled={isAudioEnabled}
+            appLockPin={appLockPin}
+            onUpdateProfile={handleUpdateProfile}
+            onUpdatePreferences={handleUpdatePreferences}
+            onToggleAccountStatus={handleToggleAccountStatus}
+            onDeleteAccount={handleDeleteAccount}
+            onExportBackup={handleExportBackup}
+            onImportBackup={(file) => {
+              const fakeEvent = {
+                currentTarget: {
+                  files: [file],
+                  value: '',
+                },
+              } as unknown as React.ChangeEvent<HTMLInputElement>;
+              void handleBackupFile(fakeEvent);
+            }}
+            onResetData={handleResetLocalData}
+            onLockApp={() => setIsAppLocked(true)}
+            onClose={() => setShowProfileSettings(false)}
+            onOpenConnectModal={() => {
+              setShowProfileSettings(false);
+              setShowConnectAccount(true);
+            }}
+          />
+        )}
+
+        {isAppLocked && Boolean(appLockPin) && (
+          <AppLockScreen
+            pin={appLockPin}
+            userName={userProfile.name}
+            onUnlock={() => setIsAppLocked(false)}
+            onResetData={handleResetLocalData}
+          />
         )}
 
         {showAddTransaction && (

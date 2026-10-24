@@ -31,8 +31,19 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ### Accounts and cards
 
 - View account type, currency, balance, and status.
-- Freeze or unfreeze the card presentation state.
+- **Connect new accounts:** Add custom Bank Accounts, Credit/Debit Cards, Cash Wallets, or Savings Vaults with a chosen starting balance and currency.
+- Quick presets for popular providers (HDFC, ICICI, SBI, Axis, Kotak, Paytm, Cash Wallet).
+- Toggle account status between Active and Inactive.
+- Delete accounts with instant balance recalculation.
+- Freeze or unfreeze card presentation states with interactive 3D card perspective preview.
 - Preference state is saved locally.
+
+### Profile, UPI Apps, and Security
+
+- **User Profile & Identity:** Click the header profile badge to edit your display name, contact email, avatar accent color, and primary UPI ID.
+- **UPI App Selection:** Set your preferred external UPI app (Google Pay, PhonePe, Paytm, BHIM, Cred, Navi) for payment assistance.
+- **Payment Requests:** Pre-fills your saved UPI ID automatically when generating clean, shareable payment requests.
+- **App Lock & PIN Security:** Set an optional 4-digit PIN lock. Features a dedicated lock screen with tactile audio keypad, quick "Lock App Now" capability, and secure session unlock for local financial privacy.
 
 ### Budgets and goals
 
@@ -146,12 +157,16 @@ The development server prints its local URL.
 
 ```bash
 cd web
-pnpm test
-pnpm lint
-pnpm build
+npm test
+npm run lint
+npm run build
 ```
 
-The production files are written to `web/dist`. Copy them into `app/src/main/assets/web/` before building the Android app.
+Alternatively, from the repository root:
+```bash
+node scripts/build-web.js
+```
+This builds the production bundle and automatically syncs it to both root `dist/` (for Render / web hosting) and `app/src/main/assets/web/` (for Android packaging).
 
 ### Build the Android APK
 

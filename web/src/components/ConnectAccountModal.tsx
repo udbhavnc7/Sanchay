@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Account, ConnectAccountInput, Currency } from '../types/finance';
 import { sound } from '../utils/audio';
-import { Landmark, CreditCard, Wallet, PiggyBank, X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { parseMoneyInput } from '../utils/money';
 
 interface ConnectAccountModalProps {

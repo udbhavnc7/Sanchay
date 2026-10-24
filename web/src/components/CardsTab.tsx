@@ -270,7 +270,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
         <div className="accounts-column" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* All Accounts */}
           <div className="s-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', gap: '12px' }}>
               <div>
                 <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
                   All accounts
@@ -279,7 +279,30 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   Balances update as you spend and save.
                 </p>
               </div>
-              <Wallet size={18} style={{ color: 'var(--text-muted)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {onOpenConnectAccount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.click();
+                      onOpenConnectAccount();
+                    }}
+                    className="btn-action-dark"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Plus size={13} />
+                    Connect account
+                  </button>
+                )}
+                <Wallet size={18} style={{ color: 'var(--text-muted)' }} />
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
