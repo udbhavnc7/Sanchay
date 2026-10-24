@@ -1,0 +1,9 @@
+{
+  "name": "sanchay",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-web.js",
+    "test": "npm --prefix web test",
+    "lint": "npm --prefix web run lint"
+  }
+}
