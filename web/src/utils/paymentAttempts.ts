@@ -51,6 +51,7 @@ export function paymentAttemptInputError(
 ): string {
   if (!input.payee) return 'Choose someone to pay.';
   if (!input.upiId.trim()) return 'Enter the UPI ID you were given.';
+  if (!isLikelyUpiId(input.upiId)) return 'Enter a valid UPI ID (e.g. name@bank).';
   if (!isValidAmount(input.amount)) return 'Enter an amount greater than zero.';
 
   const account = accounts.find((item) => item.id === input.accountId);

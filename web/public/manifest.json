@@ -1,0 +1,29 @@
+{
+  "name": "Sanchay — Personal Finance",
+  "short_name": "Sanchay",
+  "description": "Private, local-first personal finance app for tracking spending, budgets, and savings goals.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07090e",
+  "theme_color": "#07090e",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "sanchay-mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "sanchay-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
