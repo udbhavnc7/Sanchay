@@ -135,4 +135,48 @@ describe('buildSafeToSpend', () => {
     expect(result.missingPlannedPayments).toBe(true);
     expect(result.upcoming).toEqual([]);
   });
+
+  it('applies a temporary what-if outflow without changing other inputs', () => {
+    const result = buildSafeToSpend({
+      availableBalance: 10000,
+      remainingBudget: 2000,
+      goals: [goal({})],
+      plannedPayments: [payment({ amount: 500 })],
+      buffer: 500,
+      whatIfOutflow: 3000,
+      now,
+    });
+
+    expect(result.safeToSpend).toBe(3000);
+    expect(result.shortfall).toBe(0);
+    expect(result.buffer).toBe(500);
+  });
+
+  it('treats negative what-if outflow as zero', () => {
+    const result = buildSafeToSpend({
+      availableBalance: 1000,
+      remainingBudget: 0,
+      goals: [],
+      plannedPayments: [],
+      whatIfOutflow: -250,
+      now,
+    });
+
+    expect(result.safeToSpend).toBe(1000);
+    expect(result.shortfall).toBe(0);
+  });
+
+  it('reports shortfall when what-if outflow exceeds available room', () => {
+    const result = buildSafeToSpend({
+      availableBalance: 1000,
+      remainingBudget: 100,
+      goals: [],
+      plannedPayments: [],
+      whatIfOutflow: 1200,
+      now,
+    });
+
+    expect(result.safeToSpend).toBe(0);
+    expect(result.shortfall).toBe(300);
+  });
 });

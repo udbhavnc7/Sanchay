@@ -20,6 +20,7 @@ export interface PersistedPreferences {
   isCardFrozen: boolean;
   userProfile?: UserProfile;
   appLockPin?: string;
+  safeToSpendBuffer?: number;
 }
 
 export interface PersistedState {
@@ -242,7 +243,9 @@ function isPreferences(value: unknown): value is PersistedPreferences {
     typeof value.isAudioEnabled === 'boolean' &&
     typeof value.isCardFrozen === 'boolean' &&
     (value.userProfile === undefined || isUserProfile(value.userProfile)) &&
-    (value.appLockPin === undefined || isString(value.appLockPin))
+    (value.appLockPin === undefined || isString(value.appLockPin)) &&
+    (value.safeToSpendBuffer === undefined ||
+      (isNumber(value.safeToSpendBuffer) && value.safeToSpendBuffer >= 0))
   );
 }
 

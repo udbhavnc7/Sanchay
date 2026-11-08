@@ -55,7 +55,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - See the equal monthly amount implied by each goal's remaining balance and target month.
 - Edit a goal's name, target, date, icon, or colour and see the pace recalculate.
 - Add one-time planned payments with a title, amount, direction, due date, category, and optional account.
-- See a 30-day safe-to-spend estimate after remaining budgets, goal pace, planned outflows, and planned inflows. Overdue outflows stay in the estimate until you delete them.
+- See a 30-day safe-to-spend estimate after remaining budgets, goal pace, planned outflows, and planned inflows, with an optional saved safety buffer and a temporary what-if purchase test. Overdue outflows stay in the estimate until you delete them.
 - Review the planned payments behind the estimate; planned entries never change the ledger or account balances.
 
 ### Payees and payments (Path A payment assistance)
@@ -99,7 +99,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive INR account can still be edited.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
 - Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
-- Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, and entered planned payments. It does not predict income beyond entered planned inflows, guarantee a balance, or include a user-defined buffer yet.
+- Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, entered planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
 - Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
 - Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
@@ -233,6 +233,10 @@ Original project: https://github.com/Ivy-Apps/ivy-wallet
 This project is not affiliated with or endorsed by Ivy Apps Ltd.
 
 ---
+
+## Release checklist
+
+See [docs/release-checklist.md](docs/release-checklist.md) for the P0/P1 release gate: published privacy policy URL, APK network/permission/SDK audit, and physical-device verification items. Path A (payment assistance only) remains the release scope.
 
 ## Contributing
 

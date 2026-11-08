@@ -174,6 +174,38 @@ describe('local persistence', () => {
     expect(parsed?.paymentAttempts).toEqual([]);
   });
 
+  it('loads older backups without safe-to-spend buffer as undefined', () => {
+    const state = createPersistedState(snapshot()) as unknown as Record<string, unknown>;
+    const prefs = state.preferences as Record<string, unknown>;
+    delete prefs.safeToSpendBuffer;
+
+    const parsed = parsePersistedState(JSON.stringify(state));
+    expect(parsed?.preferences.safeToSpendBuffer).toBeUndefined();
+  });
+
+  it('round-trips a persisted safe-to-spend buffer', () => {
+    const input = snapshot();
+    input.preferences.safeToSpendBuffer = 2500;
+
+    const parsed = parsePersistedState(JSON.stringify(createPersistedState(input)));
+    expect(parsed?.preferences.safeToSpendBuffer).toBe(2500);
+  });
+
+  it('rejects malformed safe-to-spend buffers', () => {
+    const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      preferences: { safeToSpendBuffer: unknown };
+    };
+
+    raw.preferences.safeToSpendBuffer = -1;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.preferences.safeToSpendBuffer = '500';
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+
+    raw.preferences.safeToSpendBuffer = Number.NaN;
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+  });
+
   it('round-trips payment attempts and custom transaction/contact fields', () => {
     const input = snapshot();
     input.contacts[0].upiId = 'ayesha.k@okhdfcbank';

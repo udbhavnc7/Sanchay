@@ -12,6 +12,7 @@ export interface SafeToSpendInput {
   now?: Date;
   buffer?: number;
   horizonDays?: number;
+  whatIfOutflow?: number;
 }
 
 export interface SafeToSpendResult {
@@ -79,7 +80,11 @@ export function buildSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
     ),
     plannedOutflows
   );
-  const rawSafe = subtractMoney(addMoney(afterObligations, plannedInflows), buffer);
+  const whatIfOutflow = nonNegative(input.whatIfOutflow ?? 0);
+  const rawSafe = subtractMoney(
+    subtractMoney(addMoney(afterObligations, plannedInflows), buffer),
+    whatIfOutflow
+  );
   const safeToSpend = nonNegative(rawSafe);
 
   return {

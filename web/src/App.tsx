@@ -149,6 +149,10 @@ export const App: React.FC = () => {
   const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
     return Boolean(initialSnapshot?.preferences.appLockPin);
   });
+  const [safeToSpendBuffer, setSafeToSpendBuffer] = useState<number>(
+    initialSnapshot?.preferences.safeToSpendBuffer ?? 0
+  );
+  const [whatIfOutflow, setWhatIfOutflow] = useState<number>(0);
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showConnectAccount, setShowConnectAccount] = useState(false);
 
@@ -239,6 +243,7 @@ export const App: React.FC = () => {
         isCardFrozen,
         userProfile,
         appLockPin: appLockPin || undefined,
+        safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
       },
     });
     queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
@@ -255,6 +260,7 @@ export const App: React.FC = () => {
     isCardFrozen,
     userProfile,
     appLockPin,
+    safeToSpendBuffer,
   ]);
 
   useEffect(() => {
@@ -329,8 +335,10 @@ export const App: React.FC = () => {
         remainingBudget,
         goals,
         plannedPayments,
+        buffer: safeToSpendBuffer,
+        whatIfOutflow,
       }),
-    [availableBalance, remainingBudget, goals, plannedPayments]
+    [availableBalance, remainingBudget, goals, plannedPayments, safeToSpendBuffer, whatIfOutflow]
   );
 
   const alerts = useMemo<Alert[]>(() => {
@@ -973,6 +981,7 @@ export const App: React.FC = () => {
         isCardFrozen,
         userProfile,
         appLockPin: appLockPin || undefined,
+        safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
       },
     });
     const result = saveTextFile(
@@ -1039,6 +1048,8 @@ export const App: React.FC = () => {
     if (pendingImport.preferences.appLockPin !== undefined) {
       setAppLockPin(pendingImport.preferences.appLockPin);
     }
+    setSafeToSpendBuffer(pendingImport.preferences.safeToSpendBuffer ?? 0);
+    setWhatIfOutflow(0);
     sound.enabled = pendingImport.preferences.isAudioEnabled;
     setStorageError('');
     setPendingImport(null);
@@ -1073,6 +1084,8 @@ export const App: React.FC = () => {
     setUserProfile(defaultUserProfile);
     setAppLockPin('');
     setIsAppLocked(false);
+    setSafeToSpendBuffer(0);
+    setWhatIfOutflow(0);
     sound.enabled = true;
     setStorageError('');
     setBackupStatus('');
@@ -1421,6 +1434,8 @@ export const App: React.FC = () => {
                 goalBalance={goalBalance}
                 freeToSpend={freeToSpend}
                 safeToSpend={safeToSpend}
+                safeToSpendBuffer={safeToSpendBuffer}
+                whatIfOutflow={whatIfOutflow}
                 netWorth={netWorth}
                 onOpenPayees={() => navigate('Payees')}
                 onOpenPlan={() => navigate('Plan')}
@@ -1428,6 +1443,8 @@ export const App: React.FC = () => {
                 onRequestMoney={() => setShowRequest(true)}
                 onAddTransaction={() => setShowAddTransaction(true)}
                 onSelectTransaction={setSelectedTransaction}
+                onSafeToSpendBufferChange={setSafeToSpendBuffer}
+                onWhatIfOutflowChange={setWhatIfOutflow}
               />
             )}
 

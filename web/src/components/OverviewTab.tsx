@@ -31,6 +31,8 @@ interface OverviewTabProps {
   goalBalance: number;
   freeToSpend: number;
   safeToSpend: SafeToSpendResult;
+  safeToSpendBuffer: number;
+  whatIfOutflow: number;
   netWorth: number;
   onOpenPayees: () => void;
   onOpenPlan: () => void;
@@ -38,6 +40,8 @@ interface OverviewTabProps {
   onRequestMoney: () => void;
   onAddTransaction: () => void;
   onSelectTransaction: (tx: Transaction) => void;
+  onSafeToSpendBufferChange: (amount: number) => void;
+  onWhatIfOutflowChange: (amount: number) => void;
 }
 
 const CATEGORY_COLORS = [
@@ -75,6 +79,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   goalBalance,
   freeToSpend,
   safeToSpend,
+  safeToSpendBuffer,
+  whatIfOutflow,
   netWorth,
   onOpenPayees,
   onOpenPlan,
@@ -82,6 +88,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onRequestMoney,
   onAddTransaction,
   onSelectTransaction,
+  onSafeToSpendBufferChange,
+  onWhatIfOutflowChange,
 }) => {
   const monthStart = useMemo(() => startOfMonth(), []);
 
@@ -493,6 +501,80 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {safeToSpend.buffer > 0 && (
               <SafeSpendRow label="Buffer" value={`-${formatMoney(safeToSpend.buffer)}`} />
             )}
+            {whatIfOutflow > 0 && (
+              <SafeSpendRow label="What-if purchase" value={`-${formatMoney(whatIfOutflow)}`} />
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '10px',
+              marginTop: '14px',
+            }}
+          >
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                Safety buffer (saved)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={safeToSpendBuffer > 0 ? safeToSpendBuffer : ''}
+                onChange={(e) => {
+                  const next = e.target.value === '' ? 0 : Number(e.target.value);
+                  onSafeToSpendBufferChange(Number.isFinite(next) && next > 0 ? next : 0);
+                }}
+                placeholder="₹0"
+                aria-label="Safe to spend safety buffer"
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '12px',
+                }}
+              />
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                Kept aside in this estimate on this device.
+              </span>
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)' }}>
+                What-if purchase (temporary)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={whatIfOutflow > 0 ? whatIfOutflow : ''}
+                onChange={(e) => {
+                  const next = e.target.value === '' ? 0 : Number(e.target.value);
+                  onWhatIfOutflowChange(Number.isFinite(next) && next > 0 ? next : 0);
+                }}
+                placeholder="₹0"
+                aria-label="What-if purchase amount"
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-main)',
+                  fontSize: '12px',
+                }}
+              />
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                Not saved and does not create a transaction.
+              </span>
+            </label>
           </div>
 
           <button
