@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clearPersistedState,
+  createBackupState,
   createPersistedState,
   loadPersistedState,
   parsePersistedState,
@@ -127,6 +128,34 @@ describe('local persistence', () => {
     expect(parsePersistedState(raw)).toEqual(created);
     expect(parsePersistedState('{broken')).toBeNull();
     expect(parsePersistedState(JSON.stringify({ version: STORAGE_VERSION }))).toBeNull();
+  });
+
+  it('never includes the app-lock PIN in exported backups', () => {
+    const input: PersistedStateInput = {
+      ...snapshot(),
+      preferences: {
+        isDarkMode: true,
+        isAudioEnabled: false,
+        isCardFrozen: true,
+        appLockPin: '9137',
+        safeToSpendBuffer: 5000,
+        userProfile: { name: 'Asha', email: 'asha@example.com' },
+      },
+    };
+
+    const backup = createBackupState(input);
+    const raw = JSON.stringify(backup);
+
+    expect(raw).not.toContain('"appLockPin"');
+    expect(backup.preferences.appLockPin).toBeUndefined();
+    expect(backup.preferences.safeToSpendBuffer).toBe(5000);
+    expect(backup.preferences.userProfile).toEqual({
+      name: 'Asha',
+      email: 'asha@example.com',
+    });
+    expect(parsePersistedState(raw)).toEqual(backup);
+
+    expect(createPersistedState(input).preferences.appLockPin).toBe('9137');
   });
 
   it('rejects invalid transaction amounts and text fields', () => {

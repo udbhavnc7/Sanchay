@@ -289,6 +289,19 @@ export function createPersistedState(input: PersistedStateInput): PersistedState
   };
 }
 
+export function createBackupState(input: PersistedStateInput): PersistedState {
+  return createPersistedState({
+    ...input,
+    preferences: {
+      isDarkMode: input.preferences.isDarkMode,
+      isAudioEnabled: input.preferences.isAudioEnabled,
+      isCardFrozen: input.preferences.isCardFrozen,
+      userProfile: input.preferences.userProfile,
+      safeToSpendBuffer: input.preferences.safeToSpendBuffer,
+    },
+  });
+}
+
 export function parsePersistedState(raw: string): PersistedState | null {
   try {
     const parsed: unknown = JSON.parse(raw);

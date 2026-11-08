@@ -80,9 +80,10 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 - Light and dark themes.
 - Sound on/off preference.
-- Privacy panel that explains local storage, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
-- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences.
-- Restoring a backup replaces the current data on this device after a confirmation preview.
+- Privacy panel that explains local storage and retention, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
+- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN.
+- Backups are not encrypted; anyone with the file can read it. Store exported backups carefully and delete them when no longer needed.
+- Restoring a backup replaces the current data on this device after a confirmation preview; the app-lock PIN on the device is never replaced by a backup.
 - On Android, exports and receipt/CSV downloads are written to `Downloads/Sanchay` through a native bridge, and imports use the system file picker.
 - In a desktop browser, exports use normal browser downloads.
 - All dashboard data is stored in the WebView's `localStorage` under `sanchay.local.v1`.
@@ -101,7 +102,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
 - Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, entered planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
 - Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
-- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version.
+- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version, and the app-lock PIN is never exported or imported.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
 - The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
 - UPI / Bank integration: Operates under Path A (payment assistance and local ledger reconciliation only). Sanchay does not connect to bank or UPI networks, does not verify bank settlement or UTRs, and does not initiate fund transfers.
@@ -245,6 +246,7 @@ Notable modifications relative to upstream Ivy Wallet:
 - Safe-to-spend buffer and what-if purchase estimate in the dashboard.
 - Removed Firebase Crashlytics, Play Services in-app review/app-update libraries, and location permissions.
 - WebView security hardening (local-host-only requests, file/content access disabled, cleartext disabled).
+- Backup/privacy hardening: app-lock PIN excluded from exports and ignored on import; privacy panel documents retention, deletion, and the unencrypted-backup risk; release checklist, data-flow inventory, and privacy-policy/retention drafts added under `docs/`.
 
 All modifications are released under the same GNU GPL-3.0 license. The complete set of changes is visible in the git history; privacy-relevant behavior is documented in [docs/data-flow-inventory.md](docs/data-flow-inventory.md).
 

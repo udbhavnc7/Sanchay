@@ -46,7 +46,7 @@ import {
 } from './utils/money';
 import {
   clearPersistedState,
-  createPersistedState,
+  createBackupState,
   loadPersistedState,
   parsePersistedState,
   savePersistedState,
@@ -967,7 +967,7 @@ export const App: React.FC = () => {
   };
 
   const handleExportBackup = () => {
-    const state = createPersistedState({
+    const state = createBackupState({
       accounts,
       transactions,
       contacts,
@@ -980,7 +980,6 @@ export const App: React.FC = () => {
         isAudioEnabled,
         isCardFrozen,
         userProfile,
-        appLockPin: appLockPin || undefined,
         safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
       },
     });
@@ -1044,9 +1043,6 @@ export const App: React.FC = () => {
     setIsCardFrozen(pendingImport.preferences.isCardFrozen);
     if (pendingImport.preferences.userProfile) {
       setUserProfile(pendingImport.preferences.userProfile);
-    }
-    if (pendingImport.preferences.appLockPin !== undefined) {
-      setAppLockPin(pendingImport.preferences.appLockPin);
     }
     setSafeToSpendBuffer(pendingImport.preferences.safeToSpendBuffer ?? 0);
     setWhatIfOutflow(0);
@@ -1700,7 +1696,10 @@ export const App: React.FC = () => {
               >
                 Your accounts, transactions, budgets and goals are saved in this browser&apos;s
                 local storage on this device. Nothing in this dashboard is uploaded or synced.
-                Search, reports and receipts are generated locally.
+                Search, reports and receipts are generated locally. Your data stays here until
+                you delete it — use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
+                storage from device settings. Backups you export are files you control; delete
+                them when you no longer need them.
               </p>
 
               <div className="privacy-data-actions">
@@ -1738,7 +1737,10 @@ export const App: React.FC = () => {
                 }}
               >
                 The JSON backup includes accounts, transactions, payees, goals, budgets,
-                planned payments, payment assistance attempts and preferences. Importing replaces the data on this device.
+                planned payments, payment assistance attempts and preferences. Backups are not
+                encrypted — anyone with the file can read it — so store it carefully. Your
+                app-lock PIN is never included in an export and is never taken from an imported
+                file. Importing replaces the data on this device.
               </p>
 
               {backupStatus && (
