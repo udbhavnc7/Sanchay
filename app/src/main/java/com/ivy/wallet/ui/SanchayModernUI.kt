@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import java.io.ByteArrayInputStream
 
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
@@ -80,10 +81,10 @@ fun SanchayModernUI(
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     databaseEnabled = true
-                    allowFileAccess = true
-                    allowContentAccess = true
-                    allowFileAccessFromFileURLs = true
-                    allowUniversalAccessFromFileURLs = true
+                    allowFileAccess = false
+                    allowContentAccess = false
+                    allowFileAccessFromFileURLs = false
+                    allowUniversalAccessFromFileURLs = false
                     loadWithOverviewMode = false
                     useWideViewPort = false
                     textZoom = 100
@@ -92,7 +93,7 @@ fun SanchayModernUI(
                     setSupportZoom(false)
                     mediaPlaybackRequiresUserGesture = false
                     cacheMode = WebSettings.LOAD_DEFAULT
-                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 }
 
                 addJavascriptInterface(
@@ -175,6 +176,9 @@ fun SanchayModernUI(
                             } catch (e: Exception) {
                                 null
                             }
+                        }
+                        if (host != "sanchay.local") {
+                            return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream("Blocked".toByteArray()))
                         }
                         return super.shouldInterceptRequest(view, request)
                     }

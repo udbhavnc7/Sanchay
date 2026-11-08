@@ -16,20 +16,21 @@ Path A rule remains mandatory: payment assistance and local reconciliation only.
 
 Verified from `app/src/main/AndroidManifest.xml`, Gradle files, and native Java/Kotlin sources:
 
-- [ ] Manifest declares: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `INTERNET`, `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`, `SET_ALARM`, `WRITE_EXTERNAL_STORAGE` (maxSdk 28), `READ_EXTERNAL_STORAGE`, `VIBRATE`, `DISABLE_KEYGUARD`, `WAKE_LOCK`.
-- [ ] `usesCleartextTraffic="true"` and `requestLegacyExternalStorage="true"` are set on `<application>`.
+- [x] Location permissions removed: `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` deleted from `app/src/main/AndroidManifest.xml` (repo-wide search found no usage in any Kotlin/Java/XML source). **[Verified here]**
+- [x] Cleartext traffic disabled: `usesCleartextTraffic="false"` on `<application>`; no `networkSecurityConfig` override exists. **[Verified here]**
+- [ ] Manifest still declares: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `INTERNET`, `SET_ALARM`, `WRITE_EXTERNAL_STORAGE` (maxSdk 28), `READ_EXTERNAL_STORAGE`, `VIBRATE`, `DISABLE_KEYGUARD`, `WAKE_LOCK`; `requestLegacyExternalStorage="true"` remains. Justify or trim each before release.
 - [ ] Gradle applies Google Play Services + Firebase: `com.google.gms.google-services`, `com.google.firebase.crashlytics`, `libs.bundles.google` (`google-play-update`, `google-play-services` i.e. play-services-tasks, `google-play-review`), `libs.bundles.firebase` (`firebase-crashlytics` only). `app/google-services.json` is present in the repo.
-- [ ] Native location APIs: no usage found in `app/src/main/java` or imported helpers (`app/src/main/java` and `temp` search for `FusedLocation`/`LocationManager`/location permission constants). Location permissions appear inherited from the Ivy legacy manifest and should be removed or justified.
 - [ ] Crashlytics: wired via `temp/legacy-code/src/main/java/com/ivy/legacy/utils/FirebaseExt.kt` (`recordException`, `log`); called from `RootActivity.kt:359` for an external-link failure. Runtime traffic and collected metadata depend on Firebase configuration; treat as non-local telemetry until disabled or disclosed.
 - [ ] Play review: `RootActivity.kt:426-449` calls `ReviewManagerFactory.create(this)` and `requestReviewFlow()`. Legacy "rate us" flow; requires Play Services and adds network/privacy surface unrelated to the Sanchay dashboard.
 - [ ] Bridge check: `SanchayFileBridge.kt` — no upload/network code found by static search (file/export/download only). **[Verified here]**
-- [ ] WebView asset serving: `SanchayModernUI.kt:142-184` intercepts only `sanchay.local`, serves bundled `web/` assets, and falls back to `super.shouldInterceptRequest` otherwise; `usesCleartextTraffic="true"` means unmatched/typed URLs could use cleartext. The dashboard should stay local-only; add an explicit deny/fallback for non-`sanchay.local` requests in a reviewed change if shipping as-is.
+- [ ] WebView asset serving: `SanchayModernUI.kt:142-184` now serves only `sanchay.local` assets and returns a blocked response for other hosts; keep release cleartext disabled.
+- [ ] WebView security flags: `SanchayModernUI.kt` now sets file/content access and file/URL access off, and mixed content to `MIXED_CONTENT_NEVER_ALLOW`; `javaScriptEnabled` remains enabled because the dashboard requires JS.
 
 Release decisions required before Play submission (owner: maintainer):
 
-- [ ] Decide whether `INTERNET`, location permissions, cleartext traffic, legacy storage, Firebase/Crashlytics, Play Services/Review remain in release. Remove/disable anything not needed for the Sanchay dashboard; document removal in the manifest/build.
+- [ ] Decide whether `INTERNET`, legacy storage, Firebase/Crashlytics, Play Services/Review remain in release. Remove/disable anything not needed for the Sanchay dashboard; document removal in the manifest/build.
 - [ ] If Firebase/Crashlytics or Play Services remain, complete: privacy policy, Play Data safety, data security section, SDK declarations, and consent/opt-out flow. Do not ship local-first claims that the release APK contradicts.
-- [ ] Set cleartext traffic to `false` unless a documented, reviewed exception exists.
+- [x] Cleartext traffic set to `false`. **[Verified here]**
 - [ ] Confirm no UPI network integration is introduced. Path B stays gated/disabled by default.
 
 ## 3) Physical device verification (P0) — needs device/APK
@@ -39,7 +40,7 @@ Release decisions required before Play submission (owner: maintainer):
 - [ ] Verify persistence through: app restart, OS WebView storage clear, app data clear; confirm data-loss behavior matches README.
 - [ ] Verify backup export/import round-trip on-device (Downloads/Sanchay bridge + system file picker).
 - [ ] Verify: no network traffic when using dashboard-only flows (airplane mode + packet capture).
-- [ ] Run `./gradlew.bat :app:testDebugUnitTest` to completion on a build machine. *(Timed out at 120s in the authoring environment; not a pass/fail signal.)*
+- [x] Run `./gradlew.bat :app:testDebugUnitTest` — `BUILD SUCCESSFUL`, but task reports `NO-SOURCE` (the `:app` module contains no unit-test sources; a prior 120s timeout was environmental, not a failure). **[Verified here]**
 - [ ] Complete Play Store data-safety / privacy review with the release manifest + SDK list.
 
 ## 4) Web dashboard — verified here
