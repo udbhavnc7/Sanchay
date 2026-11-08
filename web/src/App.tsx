@@ -1699,8 +1699,8 @@ export const App: React.FC = () => {
                 }}
               >
                 Your accounts, transactions, budgets and goals are saved in this browser&apos;s
-                local storage on this device. Nothing is uploaded or synced. Search, reports and
-                receipts are generated locally.
+                local storage on this device. Nothing in this dashboard is uploaded or synced.
+                Search, reports and receipts are generated locally.
               </p>
 
               <div className="privacy-data-actions">

@@ -18,11 +18,13 @@ console.log('==> Building web production bundle in web/...');
 execSync('npm run build', { cwd: webDir, stdio: 'inherit' });
 
 console.log('==> Copying web/dist to root dist/...');
+fs.rmSync(rootDist, { recursive: true, force: true });
 fs.cpSync(webDist, rootDist, { recursive: true });
 
 const androidAssetsWeb = path.join(rootDir, 'app', 'src', 'main', 'assets', 'web');
-if (fs.existsSync(androidAssetsWeb)) {
+if (fs.existsSync(path.dirname(androidAssetsWeb))) {
   console.log('==> Syncing web/dist to Android assets (app/src/main/assets/web)...');
+  fs.rmSync(androidAssetsWeb, { recursive: true, force: true });
   fs.cpSync(webDist, androidAssetsWeb, { recursive: true });
 }
 

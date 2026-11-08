@@ -236,6 +236,18 @@ Sanchay is a customized fork of **Ivy Wallet**, an open-source Android money man
 
 Sanchay adds its own branding, dashboard, design changes, and local-first behavior.
 
+### Changes since the fork
+
+Notable modifications relative to upstream Ivy Wallet:
+
+- Custom React/TypeScript dashboard hosted in an Android WebView shell (`sanchay.local`), with local-only persistence.
+- Payment assistance (Path A) features: payees, payment attempts, reconciliation queue, plain-text money requests.
+- Safe-to-spend buffer and what-if purchase estimate in the dashboard.
+- Removed Firebase Crashlytics, Play Services in-app review/app-update libraries, and location permissions.
+- WebView security hardening (local-host-only requests, file/content access disabled, cleartext disabled).
+
+All modifications are released under the same GNU GPL-3.0 license. The complete set of changes is visible in the git history; privacy-relevant behavior is documented in [docs/data-flow-inventory.md](docs/data-flow-inventory.md).
+
 Original project: https://github.com/Ivy-Apps/ivy-wallet
 
 This project is not affiliated with or endorsed by Ivy Apps Ltd.

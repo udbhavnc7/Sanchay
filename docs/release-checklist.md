@@ -52,11 +52,12 @@ Release decisions required before Play submission (owner: maintainer):
 - [x] `cd web && npx vitest run` — 11 files / 74 tests pass. **[Verified here]**
 - [x] `cd web && npm run lint` — clean (oxlint). **[Verified here]**
 - [x] `cd web && npx tsc -b --pretty false` — clean. **[Verified here]**
-- [x] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`). **[Verified here]**
-- [ ] Path A source scan: no `upi://` or QR generation in web source. **[Verified here]**
+- [x] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`); the script now deletes each target before copying, so stale hashed bundles can't accumulate in APK assets (3 previously tracked dead `index-*.js` bundles removed; assets contain exactly the current `index-uZUmDb_u.js` + `index-BMfJWKCU.css`, and `index.html` references only those). **[Verified here]**
+- [x] Path A source scan: no `upi://` or QR generation in web source — only matches are negative assertions in `paymentAttempts.test.ts` (asserting absence). **[Verified here]**
 
 ## 5) P1/P2 before calling the product release-ready
 
 - [ ] Recurring/scheduled payments (one-time planned payments only today) — scoped design required before implementation.
 - [ ] Encrypted/automatic backups (manual JSON only; unencrypted).
-- [ ] GPL-3.0 attribution + terms/support/deletion-contact links.
+- [x] GPL-3.0 attribution: `LICENSE` contains the full GPL-3.0 text; README "Based on Ivy Wallet" credits upstream (Ivy Apps), states the license and non-affiliation; a dated "Changes since the fork" section lists the modifications (GPL §5a-style notice). **[Verified here]**
+- [ ] Terms of use / support contact / data-deletion contact links — needs maintainer-provided content (URLs, contact address); wire into README + the in-app privacy panel when available.
