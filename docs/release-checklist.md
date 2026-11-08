@@ -14,16 +14,20 @@ Path A rule remains mandatory: payment assistance and local reconciliation only.
 
 ## 2) APK network / permission / SDK audit (P0) — static, verified from repo
 
-Verified from `app/src/main/AndroidManifest.xml` and `app/build.gradle.kts`:
+Verified from `app/src/main/AndroidManifest.xml`, Gradle files, and native Java/Kotlin sources:
 
 - [ ] Manifest declares: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `INTERNET`, `ACCESS_COARSE_LOCATION`, `ACCESS_FINE_LOCATION`, `SET_ALARM`, `WRITE_EXTERNAL_STORAGE` (maxSdk 28), `READ_EXTERNAL_STORAGE`, `VIBRATE`, `DISABLE_KEYGUARD`, `WAKE_LOCK`.
 - [ ] `usesCleartextTraffic="true"` and `requestLegacyExternalStorage="true"` are set on `<application>`.
-- [ ] Gradle applies Google Play Services + Firebase: `com.google.gms.google-services`, `com.google.firebase.crashlytics`, `libs.bundles.google`, `libs.bundles.firebase`.
+- [ ] Gradle applies Google Play Services + Firebase: `com.google.gms.google-services`, `com.google.firebase.crashlytics`, `libs.bundles.google` (`google-play-update`, `google-play-services` i.e. play-services-tasks, `google-play-review`), `libs.bundles.firebase` (`firebase-crashlytics` only). `app/google-services.json` is present in the repo.
+- [ ] Native location APIs: no usage found in `app/src/main/java` or imported helpers (`app/src/main/java` and `temp` search for `FusedLocation`/`LocationManager`/location permission constants). Location permissions appear inherited from the Ivy legacy manifest and should be removed or justified.
+- [ ] Crashlytics: wired via `temp/legacy-code/src/main/java/com/ivy/legacy/utils/FirebaseExt.kt` (`recordException`, `log`); called from `RootActivity.kt:359` for an external-link failure. Runtime traffic and collected metadata depend on Firebase configuration; treat as non-local telemetry until disabled or disclosed.
+- [ ] Play review: `RootActivity.kt:426-449` calls `ReviewManagerFactory.create(this)` and `requestReviewFlow()`. Legacy "rate us" flow; requires Play Services and adds network/privacy surface unrelated to the Sanchay dashboard.
 - [ ] Bridge check: `SanchayFileBridge.kt` — no upload/network code found by static search (file/export/download only). **[Verified here]**
+- [ ] WebView asset serving: `SanchayModernUI.kt:142-184` intercepts only `sanchay.local`, serves bundled `web/` assets, and falls back to `super.shouldInterceptRequest` otherwise; `usesCleartextTraffic="true"` means unmatched/typed URLs could use cleartext. The dashboard should stay local-only; add an explicit deny/fallback for non-`sanchay.local` requests in a reviewed change if shipping as-is.
 
 Release decisions required before Play submission (owner: maintainer):
 
-- [ ] Decide whether `INTERNET`, location permissions, cleartext traffic, legacy storage, Firebase/Crashlytics, Play Services remain in release. Remove/disable anything not needed for the Sanchay dashboard; document removal in the manifest/build.
+- [ ] Decide whether `INTERNET`, location permissions, cleartext traffic, legacy storage, Firebase/Crashlytics, Play Services/Review remain in release. Remove/disable anything not needed for the Sanchay dashboard; document removal in the manifest/build.
 - [ ] If Firebase/Crashlytics or Play Services remain, complete: privacy policy, Play Data safety, data security section, SDK declarations, and consent/opt-out flow. Do not ship local-first claims that the release APK contradicts.
 - [ ] Set cleartext traffic to `false` unless a documented, reviewed exception exists.
 - [ ] Confirm no UPI network integration is introduced. Path B stays gated/disabled by default.
