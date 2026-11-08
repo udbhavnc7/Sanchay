@@ -153,8 +153,8 @@ function isContact(value: unknown): value is Contact {
     isString(value.avatarColor) &&
     typeof value.isFavorite === 'boolean' &&
     (value.currency === undefined || isCurrency(value.currency)) &&
-    (value.accountNumber === undefined || isString(value.accountNumber)) &&
     (value.upiId === undefined || isString(value.upiId)) &&
+    (value.accountNumber === undefined || isString(value.accountNumber)) &&
     (value.lastTransfer === undefined || isString(value.lastTransfer))
   );
 }
