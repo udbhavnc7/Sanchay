@@ -184,6 +184,14 @@ The Android app loads the bundled dashboard from `https://sanchay.local/index.ht
 
 This project is not a bank and does not move real money. The payment and request flows are demonstrations that write transactions to local storage.
 
+Network behavior of the current app:
+
+- The dashboard itself performs no upload or sync; all dashboard data stays in local WebView storage (`sanchay.local.v1`).
+- The WebView loads only bundled assets from `sanchay.local`; requests to any other host are blocked, cleartext traffic is disabled, and WebView file/content access is turned off.
+- The APK still contains inherited native modules with network capability (currency-rate sync, GitHub repository metadata, Firebase Firestore poll voting). These native screens are not wired into the current dashboard UI; see [docs/data-flow-inventory.md](docs/data-flow-inventory.md) for the full destination list.
+- No crash-reporting or analytics SDK is included; Firebase Crashlytics was removed.
+- Exports, receipts, and JSON backups are written locally (`Downloads/Sanchay` on Android); backups are unencrypted.
+
 Before relying on Sanchay for real records, verify behavior on your device, keep your own backups, and do not enter sensitive banking credentials.
 
 ---

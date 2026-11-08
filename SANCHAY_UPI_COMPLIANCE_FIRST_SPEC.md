@@ -195,15 +195,15 @@ The current public README says dashboard data is stored in WebView `localStorage
 
 ### Required release work
 
-- [ ] Create a data-flow inventory covering the React dashboard, Kotlin bridge, Android permissions, native dependencies, Crashlytics/analytics, cloud/Firestore code, exports and backup flow.
-- [ ] Check whether any financial data, VPA, payee name, transaction note, account balance or reference can enter logs, crash reports, analytics, clipboard history, notifications or support attachments. Remove or redact it where not essential.
+- [x] Create a data-flow inventory covering the React dashboard, Kotlin bridge, Android permissions, native dependencies, Crashlytics/analytics, cloud/Firestore code, exports and backup flow. — Created: `docs/data-flow-inventory.md` (static, 2026-11-08).
+- [x] Check whether any financial data, VPA, payee name, transaction note, account balance or reference can enter logs, crash reports, analytics, clipboard history, notifications or support attachments. Remove or redact it where not essential. — Static audit: no crash/analytics SDKs remain (Crashlytics removed); `Timber.plant` is debug-only; Ktor BODY logging is release-no-op and carries only public GET data; WebView console is not forwarded to logcat; dashboard has no network path for stored data. Clipboard writes are explicit user actions. Recorded in `docs/data-flow-inventory.md` §6–§7.
 - [ ] Audit the release APK on a clean device/network; document every outbound destination and payload. Do not promise “nothing leaves your phone” unless verified for the actual release build.
 - [ ] Add a public privacy policy URL and an in-app Privacy page. Identify the developer, data types, purposes, local vs transmitted processing, third parties/SDKs, retention/deletion, user contact and complaint process. Make Google Play Data safety statements consistent with the actual SDKs and behaviour.
-- [ ] Collect only data needed for a user-requested function. Do not collect contact lists, SMS, call logs, location, device IDs or banking credentials to support this feature.
+- [x] Collect only data needed for a user-requested function. Do not collect contact lists, SMS, call logs, location, device IDs or banking credentials to support this feature. — Manifest contains none of those permissions; location permissions were removed 2026-11-08 after a repo-wide no-usage search (`docs/data-flow-inventory.md` §8).
 - [ ] Add a secure data deletion/reset process and confirm it removes all applicable local copies, cached records and future cloud records if sync is added.
 - [ ] Preserve local-first operation. No account or cloud sync should be added just to make an external UPI hand-off possible.
 - [ ] Replace the unencrypted-backup assumption before a production finance app release: either provide a password-protected/encrypted backup with documented recovery or make the risks clear and do not describe backups as secure. Verify exports do not unintentionally include excessive sensitive data.
-- [ ] Assess Android app-private storage and WebView hardening. Never enable permissive file access or a broad native bridge to make UPI work.
+- [x] Assess Android app-private storage and WebView hardening. Never enable permissive file access or a broad native bridge to make UPI work. — `allowBackup="false"`; WebView file/content access and file-URL access all off, mixed content never, non-`sanchay.local` hosts blocked; the only JS bridge method is local-file `saveFile` (`docs/data-flow-inventory.md` §3–§4). Release-APK confirmation remains in the device checklist.
 - [ ] Create a retention and incident-response procedure appropriate to the developer's actual operations and applicable law.
 
 ### DPDP timeline (as of 24 October 2026)

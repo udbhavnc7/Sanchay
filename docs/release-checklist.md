@@ -18,18 +18,22 @@ Verified from `app/src/main/AndroidManifest.xml`, Gradle files, and native Java/
 
 - [x] Location permissions removed: `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` deleted from `app/src/main/AndroidManifest.xml` (repo-wide search found no usage in any Kotlin/Java/XML source). **[Verified here]**
 - [x] Cleartext traffic disabled: `usesCleartextTraffic="false"` on `<application>`; no `networkSecurityConfig` override exists. **[Verified here]**
-- [ ] Manifest still declares: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `INTERNET`, `SET_ALARM`, `WRITE_EXTERNAL_STORAGE` (maxSdk 28), `READ_EXTERNAL_STORAGE`, `VIBRATE`, `DISABLE_KEYGUARD`, `WAKE_LOCK`; `requestLegacyExternalStorage="true"` remains. Justify or trim each before release.
-- [ ] Gradle applies Google Play Services + Firebase: `com.google.gms.google-services`, `com.google.firebase.crashlytics`, `libs.bundles.google` (`google-play-update`, `google-play-services` i.e. play-services-tasks, `google-play-review`), `libs.bundles.firebase` (`firebase-crashlytics` only). `app/google-services.json` is present in the repo.
-- [ ] Crashlytics: wired via `temp/legacy-code/src/main/java/com/ivy/legacy/utils/FirebaseExt.kt` (`recordException`, `log`); called from `RootActivity.kt:359` for an external-link failure. Runtime traffic and collected metadata depend on Firebase configuration; treat as non-local telemetry until disabled or disclosed.
-- [ ] Play review: `RootActivity.kt:426-449` calls `ReviewManagerFactory.create(this)` and `requestReviewFlow()`. Legacy "rate us" flow; requires Play Services and adds network/privacy surface unrelated to the Sanchay dashboard.
-- [ ] Bridge check: `SanchayFileBridge.kt` — no upload/network code found by static search (file/export/download only). **[Verified here]**
-- [ ] WebView asset serving: `SanchayModernUI.kt:142-184` now serves only `sanchay.local` assets and returns a blocked response for other hosts; keep release cleartext disabled.
-- [ ] WebView security flags: `SanchayModernUI.kt` now sets file/content access and file/URL access off, and mixed content to `MIXED_CONTENT_NEVER_ALLOW`; `javaScriptEnabled` remains enabled because the dashboard requires JS.
+- [ ] Manifest still declares: `ACCESS_NETWORK_STATE`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `INTERNET`, `SET_ALARM`, `WRITE_EXTERNAL_STORAGE` (maxSdk 28), `READ_EXTERNAL_STORAGE`, `VIBRATE`, `DISABLE_KEYGUARD`, `WAKE_LOCK`; `requestLegacyExternalStorage="true"` remains.
+  - `INTERNET` + `ACCESS_NETWORK_STATE` justified: Ktor features (exchange-rate sync, contributors, releases), Firestore poll voting. **[Verified here]**
+  - Notification/boot/alarm/vibrate/wake-lock justified: reminders, widgets, WorkManager scheduling. Legacy storage kept for CSV/ZIP export/import flows — confirm against scoped storage on device.
+- [x] Crashlytics removed: plugin `com.google.firebase.crashlytics` dropped from `app/build.gradle.kts`, `libs.bundles.firebase` removed from `app` + `temp/legacy-code`, `FirebaseExt.kt` deleted, `sendToCrashlytics` call removed from `RootActivity.kt`, crashlytics-gradle-plugin dropped from `buildSrc`. **[Verified here]** — `compileDebugKotlin` BUILD SUCCESSFUL; compiled `RootActivity.class` contains no `sendToCrashlytics`/`ReviewManagerFactory`.
+- [x] Play Services surface removed: `libs.bundles.google` (app-update, play-services-tasks, review-ktx) dropped; in-app review flow (`ReviewManagerFactory`) replaced with direct Play Store page open (`openGooglePlayAppPage`) preserving the rate-us card + Settings entry points. **[Verified here]**
+- [ ] Firebase retained for Firestore only: `com.google.gms.google-services` plugin + `app/google-services.json` stay (required by `feature/poll/impl` Firestore voting). Poll votes are network writes → disclose in privacy policy + Play Data safety.
+- [x] Bridge check: `SanchayFileBridge.kt` — no upload/network code found by static search (file/export/download only). **[Verified here]**
+- [x] WebView asset serving: `SanchayModernUI.kt:143-183` now serves only `sanchay.local` assets and returns a blocked response for other hosts (line 181); keep release cleartext disabled. **[Verified here]** — compiles clean.
+- [x] WebView security flags: `SanchayModernUI.kt` now sets file/content access and file/URL access off, and mixed content to `MIXED_CONTENT_NEVER_ALLOW`; `javaScriptEnabled` remains enabled because the dashboard requires JS. **[Verified here]** — compiles clean.
+- [x] Data-flow inventory created: [docs/data-flow-inventory.md](data-flow-inventory.md) — dashboard, bridge, WebView containment, all network destinations, permissions with justifications, logging, exports/backup flow. **[Verified here]**
+- [x] Logging audit: `Timber.plant(DebugTree())` only under `BuildConfig.DEBUG` (`IvyAndroidApp.kt:29`); Ktor `LogLevel.BODY` logging (`KtorClientModule.kt:30`) is a no-op in release and its destinations carry no user data; WebView has no `onConsoleMessage` (console not forwarded to logcat); no crash reports exist (Crashlytics removed). **[Verified here]**
 
 Release decisions required before Play submission (owner: maintainer):
 
-- [ ] Decide whether `INTERNET`, legacy storage, Firebase/Crashlytics, Play Services/Review remain in release. Remove/disable anything not needed for the Sanchay dashboard; document removal in the manifest/build.
-- [ ] If Firebase/Crashlytics or Play Services remain, complete: privacy policy, Play Data safety, data security section, SDK declarations, and consent/opt-out flow. Do not ship local-first claims that the release APK contradicts.
+- [x] Crashlytics + Play Services/Review removed from release (see §2). **[Verified here]**
+- [ ] Remaining maintainer decisions: keep/trim `INTERNET` (justified — network features exist), legacy storage (keep pending on-device scoped-storage check), Firestore poll disclosure (privacy policy + Play Data safety). Do not ship local-first claims the release APK contradicts.
 - [x] Cleartext traffic set to `false`. **[Verified here]**
 - [ ] Confirm no UPI network integration is introduced. Path B stays gated/disabled by default.
 
@@ -45,10 +49,10 @@ Release decisions required before Play submission (owner: maintainer):
 
 ## 4) Web dashboard — verified here
 
-- [ ] `cd web && npx vitest run` — tests pass.
-- [ ] `cd web && npm run lint` — clean.
-- [ ] `cd web && npx tsc -b --pretty false` — clean.
-- [ ] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`).
+- [x] `cd web && npx vitest run` — 11 files / 74 tests pass. **[Verified here]**
+- [x] `cd web && npm run lint` — clean (oxlint). **[Verified here]**
+- [x] `cd web && npx tsc -b --pretty false` — clean. **[Verified here]**
+- [x] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`). **[Verified here]**
 - [ ] Path A source scan: no `upi://` or QR generation in web source. **[Verified here]**
 
 ## 5) P1/P2 before calling the product release-ready
