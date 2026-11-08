@@ -1721,7 +1721,7 @@ export const App: React.FC = () => {
                 }}
               >
                 The JSON backup includes accounts, transactions, payees, goals, budgets,
-                planned payments and preferences. Importing replaces the data on this device.
+                planned payments, payment assistance attempts and preferences. Importing replaces the data on this device.
               </p>
 
               {backupStatus && (
@@ -1757,7 +1757,8 @@ export const App: React.FC = () => {
                     Saved {pendingImport.savedAt.slice(0, 10)}. Contains{' '}
                     {pendingImport.transactions.length} transactions,{' '}
                     {pendingImport.accounts.length} accounts, {pendingImport.goals.length} goals,{' '}
-                    {pendingImport.plannedPayments.length} planned payments and{' '}
+                    {pendingImport.plannedPayments.length} planned payments,{' '}
+                    {pendingImport.paymentAttempts.length} payment attempts and{' '}
                     {pendingImport.contacts.length} payees.
                   </p>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
