@@ -7,7 +7,9 @@ Path A rule remains mandatory: payment assistance and local reconciliation only.
 ## 1) Privacy policy URL (P0)
 
 - [ ] Publish a public privacy policy URL and link it in-store listing + in-app.
-  - In-app privacy panel currently exists in the dashboard. No published public URL is known in-repo.
+  - Draft ready for maintainer: [docs/privacy-policy.md](privacy-policy.md) — fill the `[TODO]` identity/contact/retention-decision fields and publish at a public HTTPS URL; then link it here, in the README, in the in-app privacy panel, and in the Play listing.
+  - In-app privacy panel exists and now documents retention/deletion, the unencrypted-backup risk, and PIN exclusion. No published public URL is known in-repo.
+  - Retention + incident-response procedure: [docs/retention-incident-response.md](retention-incident-response.md).
 - [ ] Match every in-app/README claim to release APK behavior before submission:
   - Web dashboard: local only (`sanchay.local.v1`); no upload/sync network calls. **[Verified here]** — web source: no `fetch(`/XHR/beacon; no `upi://` or QR generation.
   - Native shell/modules: APK capabilities differ — see §2.
@@ -29,6 +31,9 @@ Verified from `app/src/main/AndroidManifest.xml`, Gradle files, and native Java/
 - [x] WebView security flags: `SanchayModernUI.kt` now sets file/content access and file/URL access off, and mixed content to `MIXED_CONTENT_NEVER_ALLOW`; `javaScriptEnabled` remains enabled because the dashboard requires JS. **[Verified here]** — compiles clean.
 - [x] Data-flow inventory created: [docs/data-flow-inventory.md](data-flow-inventory.md) — dashboard, bridge, WebView containment, all network destinations, permissions with justifications, logging, exports/backup flow. **[Verified here]**
 - [x] Logging audit: `Timber.plant(DebugTree())` only under `BuildConfig.DEBUG` (`IvyAndroidApp.kt:29`); Ktor `LogLevel.BODY` logging (`KtorClientModule.kt:30`) is a no-op in release and its destinations carry no user data; WebView has no `onConsoleMessage` (console not forwarded to logcat); no crash reports exist (Crashlytics removed). **[Verified here]**
+- [x] Release merged manifest audited: regenerated `app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml` (2026-11-08) — `usesCleartextTraffic="false"`, `allowBackup="false"`, `requestLegacyExternalStorage` only on `WRITE_EXTERNAL_STORAGE` with `maxSdkVersion="28"`; full `<uses-permission>` set documented in inventory §8 (includes library-merged `FOREGROUND_SERVICE`, `USE_BIOMETRIC`/`USE_FINGERPRINT`); no `LOCATION`/`crashlytics`/`gms.location` strings. **[Verified here]**
+- [x] Release runtime classpath audited: `:app:dependencies --configuration releaseRuntimeClasspath` — no `firebase-crashlytics`, `play-services-review`, or `play-services-app-update`; Firebase artifacts are Firestore-only (`firebase-firestore` + core/interop libs); no analytics/ad/attribution SDKs anywhere (inventory §6). **[Verified here]**
+- [x] Release asset hygiene: `app/src/main/assets/web/assets/` contains exactly the current bundle referenced by `index.html`; `scripts/build-web.js` now wipes targets before syncing so stale bundles cannot re-accumulate. **[Verified here]**
 
 Release decisions required before Play submission (owner: maintainer):
 
@@ -58,6 +63,6 @@ Release decisions required before Play submission (owner: maintainer):
 ## 5) P1/P2 before calling the product release-ready
 
 - [ ] Recurring/scheduled payments (one-time planned payments only today) — scoped design required before implementation.
-- [ ] Encrypted/automatic backups (manual JSON only; unencrypted).
+- [ ] Encrypted/automatic backups (manual JSON only; unencrypted). — Risk-wording branch of spec §7 item 205 is done (panel + README state "not encrypted", PIN excluded from exports, unit-tested); what remains is the optional encryption/automation feature itself.
 - [x] GPL-3.0 attribution: `LICENSE` contains the full GPL-3.0 text; README "Based on Ivy Wallet" credits upstream (Ivy Apps), states the license and non-affiliation; a dated "Changes since the fork" section lists the modifications (GPL §5a-style notice). **[Verified here]**
 - [ ] Terms of use / support contact / data-deletion contact links — needs maintainer-provided content (URLs, contact address); wire into README + the in-app privacy panel when available.
