@@ -45,19 +45,21 @@ internal class SanchayFileBridge(private val context: Context) {
         return try {
             uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
             val stream = resolver.openOutputStream(uri)
-                ?: throw IllegalStateException("Could not open backup destination")
+                ?: error("Could not open backup destination")
             stream.use { it.write(bytes) }
 
             values.clear()
             values.put(MediaStore.MediaColumns.IS_PENDING, 0)
             resolver.update(uri, values, null, null)
             "${Environment.DIRECTORY_DOWNLOADS}/Sanchay/$fileName"
-        } catch (error: Exception) {
+        } catch (_: Exception) {
             uri?.let { resolver.delete(it, null, null) }
             null
         }
     }
 
+    // Fallback chain (public Downloads -> app-scoped storage) needs early returns.
+    @Suppress("ReturnCount")
     private fun saveToLegacyDownloads(fileName: String, bytes: ByteArray): String? {
         val hasLegacyPermission = ContextCompat.checkSelfPermission(
             context,
@@ -99,7 +101,7 @@ internal class SanchayFileBridge(private val context: Context) {
         val cleaned = baseName
             .replace(Regex("[^A-Za-z0-9._-]"), "_")
             .trimStart('.')
-            .take(96)
+            .take(MAX_FILE_NAME_CHARS)
 
         val withFallback = cleaned.ifBlank { "sanchay-export" }
         return if (withFallback.contains('.')) withFallback else "$withFallback.txt"
@@ -112,6 +114,7 @@ internal class SanchayFileBridge(private val context: Context) {
 
     private companion object {
         const val MAX_CONTENT_CHARS = 20 * 1024 * 1024
+        const val MAX_FILE_NAME_CHARS = 96
         val MIME_PATTERN = Regex("[a-z0-9.+-]+/[a-z0-9.+-]+")
     }
 }

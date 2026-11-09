@@ -26,8 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import java.io.ByteArrayInputStream
 
+// WebView dashboard shell: PascalCase follows the @Composable convention;
+// the setup block is inherently one cohesive configuration.
 @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
 @Composable
+@Suppress("FunctionNaming", "LongMethod")
 fun SanchayModernUI(
     modifier: Modifier = Modifier
 ) {
@@ -87,7 +90,7 @@ fun SanchayModernUI(
                     allowUniversalAccessFromFileURLs = false
                     loadWithOverviewMode = false
                     useWideViewPort = false
-                    textZoom = 100
+                    textZoom = WebTextZoom
                     builtInZoomControls = false
                     displayZoomControls = false
                     setSupportZoom(false)
@@ -140,6 +143,8 @@ fun SanchayModernUI(
                         canGoBack = view?.canGoBack() == true
                     }
 
+                    // Local-asset + host allowlist interceptor: early-return style.
+                    @Suppress("ReturnCount")
                     override fun shouldInterceptRequest(
                         view: WebView?,
                         request: WebResourceRequest?
@@ -173,12 +178,16 @@ fun SanchayModernUI(
                                     "Access-Control-Allow-Headers" to "*"
                                 )
                                 response
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 null
                             }
                         }
                         if (host != "sanchay.local") {
-                            return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream("Blocked".toByteArray()))
+                            return WebResourceResponse(
+                                "text/plain",
+                                "UTF-8",
+                                ByteArrayInputStream("Blocked".toByteArray())
+                            )
                         }
                         return super.shouldInterceptRequest(view, request)
                     }
@@ -194,3 +203,5 @@ fun SanchayModernUI(
         }
     )
 }
+
+private const val WebTextZoom = 100

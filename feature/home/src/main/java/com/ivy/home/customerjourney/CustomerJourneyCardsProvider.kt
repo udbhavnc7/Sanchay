@@ -34,6 +34,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
   private val pollRepository: PollRepository,
   private val timeProvider: TimeProvider,
 ) {
+  private val pollVoteExpiry: LocalDate = LocalDate.of(2025, 7, 28)
 
   suspend fun loadCards(): List<CustomerJourneyCardModel> {
     val trnCount = transactionRepository.countHappenedTransactions().value
@@ -165,7 +166,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
       id = "vote_card",
       // to users that haven't voted
       condition = { trnCount, _, _, deps ->
-        val expiry = LocalDate.of(2025, 7, 28)
+        val expiry = pollVoteExpiry
         trnCount > 3 &&
             // set expiration
             deps.timeProvider.localDateNow().isBefore(expiry) &&
