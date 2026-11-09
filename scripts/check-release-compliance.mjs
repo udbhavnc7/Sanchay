@@ -62,6 +62,8 @@ check('gradle: no libs.bundles.firebase', !appGradle.includes('libs.bundles.fire
 if (exists('gradle/libs.versions.toml')) {
   const catalog = read('gradle/libs.versions.toml');
   check('version catalog: no crashlytics entry', !/crashlytics/i.test(catalog));
+  check('version catalog: no direct kotlinx-coroutines-play-services (arrives only via firebase-common)',
+    !catalog.includes('kotlinx-coroutines-play-services'));
 }
 
 // --- 3. Path A invariants: no UPI URI / QR / scraping in shipped sources ----

@@ -25,6 +25,9 @@ jobs:
       - name: Build Demo APK
         run: ./gradlew assembleDemo
 
+      - name: Check built APK artifact
+        run: bash scripts/check-apk-artifact.sh app/build/outputs/apk/demo/app-demo.apk
+
       - name: Upload APK to Github Actions
         uses: actions/upload-artifact@v4
         with:
