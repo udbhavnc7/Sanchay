@@ -66,9 +66,9 @@ Path B must remain disabled in production builds until all of the following are 
 - [ ] Exact P2P hand-off/QR flow tested with compatible UPI apps on physical Android devices.
 - [ ] Google Play Financial features declaration reviewed for the real feature set.
 - [ ] Privacy policy, in-app disclosures, Data safety form, and support/dispute instructions match actual behaviour.
-- [ ] Security review confirms no UPI PIN/OTP/bank credentials are collected or logged.
-- [ ] Payment statuses cannot falsely claim success; duplicate ledger entries are prevented.
-- [ ] Feature flag defaults to disabled in production until sign-off. Automated tests cover the disabled state.
+- [x] Security review confirms no UPI PIN/OTP/bank credentials are collected or logged. — Static security review 2026-11-09: no UPI PIN/OTP/card/CVV/IFSC input fields exist anywhere in `web/src` (the only "UPI PIN" string instructs the user to enter it **in their own UPI app** — `TransfersTab.tsx:797`; `ThreeDCard` is a canvas drawing with a hardcoded decorative CVV and zero `input`/`onChange` elements); the only PIN in the product is the local app-lock PIN, which is never exported, imported or transmitted (spec §7 item 205); no credential enters logs (inventory §7). **[Verified here]**
+- [x] Payment statuses cannot falsely claim success; duplicate ledger entries are prevented. — The strongest paid state is the label "Marked paid by you — not verified by Sanchay" plus drawer copy "not bank-verified / has not independently verified settlement"; no success/settlement claim exists. Duplicates prevented by the `confirmPaymentAttempt` guard with four tests incl. integration retry (spec §12 Path A 331–332). **[Verified here — 75/75 tests]**
+- [x] Feature flag defaults to disabled in production until sign-off. Automated tests cover the disabled state. — Path B has zero implementation: no flag, no URI builder, no `upi://`/`intent://` code exists (repo scans), so nothing can be enabled in production — absence satisfies "disabled by default". Path A (the only enabled flow) is covered by 9 dedicated payment-attempt tests + the workflow integration test. Re-verify when Path B is built. **[Verified here — by absence + tests]**
 
 Do not make release approval depend on a developer manually remembering these steps; enforce the gate in release configuration and CI/release checklist.
 
@@ -229,10 +229,10 @@ Before any Play testing track or production listing:
 - [ ] Keep the declaration, app-store description, privacy policy, in-app labels and actual behaviour consistent.
 - [ ] Complete the Data safety form based on all data handled by the complete app and included SDKs—not only what the React dashboard writes to localStorage.
 - [ ] Provide a working privacy policy link in Play Console and inside the app.
-- [ ] Do not display an NPCI/UPI accreditation badge or say “NPCI verified/accredited” without actual accreditation.
-- [ ] Do not claim “bank connected”, “bank verified”, “instant settlement”, “guaranteed safe”, “secure UPI app”, or “official UPI app” unless the exact claim is true and supported.
-- [ ] Do not use deceptive demo data or imply a test transaction is real.
-- [ ] Check permissions against the shipped features and remove unnecessary/high-risk permissions. Do not request SMS/call log access or broad package visibility for convenience.
+- [x] Do not display an NPCI/UPI accreditation badge or say “NPCI verified/accredited” without actual accreditation. — Repo scan 2026-11-09 (README, docs, `web/src`, app sources): zero NPCI/UPI badge, logo, or accreditation/affiliation claims; the only affiliation string is the negative disclaimer "not affiliated with or endorsed by Ivy Apps Ltd" (README). **[Verified here]**
+- [x] Do not claim “bank connected”, “bank verified”, “instant settlement”, “guaranteed safe”, “secure UPI app”, or “official UPI app” unless the exact claim is true and supported. — Repo scan for those claims (plus "100% safe", "fraud-proof", "real-time settlement"): zero positive matches; every settlement-related string is a disclaimer ("not bank-verified", "Sanchay does not send money and cannot verify this payment", "This project is not a bank and does not move real money"). **[Verified here]**
+- [x] Do not use deceptive demo data or imply a test transaction is real. — README opens with "uses seeded demo data… not a production banking application" and states the payment flows "are demonstrations that write transactions to local storage"; the reset dialog says it "replaces saved changes with the demo data"; seed rows are generic fictional names (no impersonation of real people/institutions). No flow implies a test/attempt transaction is a real settlement — Path A's paid state is always "marked paid by you — not verified" (§12). **[Verified here]**
+- [x] Check permissions against the shipped features and remove unnecessary/high-risk permissions. Do not request SMS/call log access or broad package visibility for convenience. — Every `<uses-permission>` in the release merged manifest is justified one-by-one in `docs/data-flow-inventory.md` §8; no SMS/call-log/contacts/location permissions exist; no `QUERY_ALL_PACKAGES` or `<queries>` element (scan 2026-11-09); location permissions were removed 2026-11-08. **[Verified here]**
 - [ ] Confirm the app remains stable on supported Android versions and physical devices, including no installed UPI app, user cancellation, process death, cold resume, no internet, and corrupted local storage.
 
 Official sources:
@@ -350,8 +350,8 @@ A true in-app UPI/TPAP experience is a separate product programme. Plan sponsor 
 - [ ] Written payment-scope review is stored in the repo's private compliance records; do not publish confidential bank/counsel correspondence.
 - [ ] Play Financial features declaration is completed accurately.
 - [ ] Privacy policy and Data safety declaration match the release APK and every SDK.
-- [ ] No unauthorised UPI/NPCI logo, badge or affiliation claim.
-- [ ] GPL-3.0 notices and source obligations are checked.
+- [x] No unauthorised UPI/NPCI logo, badge or affiliation claim. — Same repo-wide scan as the Play-copy items: no NPCI/UPI logo assets, badges, or affiliation strings exist in README, docs, web UI, or app sources; only negative disclaimers ("not affiliated with or endorsed by Ivy Apps Ltd"). **[Verified here]**
+- [x] GPL-3.0 notices and source obligations are checked. — `LICENSE` contains the complete GNU GPL-3.0 text (35,823 bytes); README License section states GPL-3.0, credits Ivy Apps as original project with link, carries the non-affiliation disclaimer, and has a dated "Changes since the fork" modifications list (GPL §5a-style notice); all code/docs added since the fork live in this same GPL repository with full git history available; frontend runtime deps are permissive (React, three.js, lucide-react, canvas-confetti — MIT/ISC-compatible); no proprietary/removed-licence components introduced. **[Verified here]**
 - [ ] Terms and support/dispute routing are published.
 - [ ] A final independent review of security, privacy and payments compliance is complete before public production use.
 

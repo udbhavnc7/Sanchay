@@ -220,10 +220,10 @@ Sanchay aims to answer simple questions:
 Planned areas include:
 
 - On-device verification and Android storage hardening
-- Recurring payment schedules and reminders
+- Recurring payment schedules and reminders ([design draft](docs/design-recurring-payments.md))
 - Custom categories and account management
 - Complete multi-currency handling
-- Encrypted and automatic backup options
+- Encrypted and automatic backup options ([design draft](docs/design-encrypted-backups.md))
 - Stronger reports and accessibility
 - Connecting or retiring the inherited native Ivy Wallet ledger
 
