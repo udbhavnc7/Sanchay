@@ -34,7 +34,6 @@ class CustomerJourneyCardsProvider @Inject constructor(
   private val pollRepository: PollRepository,
   private val timeProvider: TimeProvider,
 ) {
-  private val pollVoteExpiry: LocalDate = LocalDate.of(2025, 7, 28)
 
   suspend fun loadCards(): List<CustomerJourneyCardModel> {
     val trnCount = transactionRepository.countHappenedTransactions().value
@@ -68,6 +67,8 @@ class CustomerJourneyCardsProvider @Inject constructor(
   }
 
   companion object {
+    private val pollVoteExpiry: LocalDate = LocalDate.of(2025, 7, 28)
+
     val ACTIVE_CARDS = listOf(
       adjustBalanceCard(),
       addPlannedPaymentCard(),

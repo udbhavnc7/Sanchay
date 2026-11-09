@@ -172,7 +172,8 @@ private fun generateBaseline(unstableComposables: List<UnstableComposable>) {
 private fun readBaseline(): Set<FullyQualifiedName> {
     return try {
         val baselineFile = File(BaselineFileName)
-        baselineFile.readText().split("\n").toSet()
+        // readLines() handles CRLF checkouts; split("\n") would leave '\r' and never match.
+        baselineFile.readLines().toSet()
     } catch (e: Exception) {
         emptySet()
     }

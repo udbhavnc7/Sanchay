@@ -90,7 +90,7 @@ fun SanchayModernUI(
                     allowUniversalAccessFromFileURLs = false
                     loadWithOverviewMode = false
                     useWideViewPort = false
-                    textZoom = WebTextZoom
+                    textZoom = SanchayWebDefaults.TEXT_ZOOM
                     builtInZoomControls = false
                     displayZoomControls = false
                     setSupportZoom(false)
@@ -204,4 +204,6 @@ fun SanchayModernUI(
     )
 }
 
-private const val WebTextZoom = 100
+private object SanchayWebDefaults {
+    const val TEXT_ZOOM = 100
+}
