@@ -324,26 +324,26 @@ A true in-app UPI/TPAP experience is a separate product programme. Plan sponsor 
 
 ### Path A
 
-- [ ] User can copy the recipient UPI ID and payment details without launching any payment automatically.
-- [ ] Wrong/empty UPI ID is not represented as verified.
-- [ ] No UPI URI, QR, network collect request or UPI API is produced in Path A.
-- [ ] A prepared or unresolved attempt never affects balances/reports as a confirmed expense.
-- [ ] User-marked paid transaction is labelled “Marked paid by you — not verified by Sanchay”.
-- [ ] Confirming the same attempt twice adds one ledger expense only.
-- [ ] Cancelled/failed status adds no expense.
-- [ ] Unknown state remains visible and does not auto-retry.
-- [ ] UTR/reference entry is optional and clearly labelled user-entered unless sourced by an authorised provider.
-- [ ] Existing transactions, budgets, reports, payees, export/import and backups still work.
+- [x] User can copy the recipient UPI ID and payment details without launching any payment automatically. — `handleCopyUpiId`/`handleCopyPaymentDetails` (`TransfersTab.tsx:281,292`) only call `navigator.clipboard.writeText`; `paymentDetailsText` tells the user to "Open your own UPI app and enter these details there." No intent, URI, `startActivity` or link-navigation exists anywhere in `web/src`. **[Verified here]**
+- [x] Wrong/empty UPI ID is not represented as verified. — `isLikelyUpiId` is a syntax check only (`paymentAttempts.ts:41–46`), errors read "Enter a valid UPI ID (e.g. name@bank)", and the UI labels the Payee UPI ID field "User-entered · Not verified" (`TransfersTab.tsx:581`) with attempt rows showing "Entered by you · Not verified by Sanchay" (`:1298`). No verified-success state exists. **[Verified here]**
+- [x] No UPI URI, QR, network collect request or UPI API is produced in Path A. — Repo scans 2026-11-09: no `upi://`/`intent://` in `web/src` (only a `upi:` parameter-type false positive), no `upi://pay`/QR/`zxing` in Kotlin/Java; the only "request" builders emit plain text and say so ("Sanchay does not send money…", "This is a plain text request from Sanchay, not a UPI Collect request"). **[Verified here]**
+- [x] A prepared or unresolved attempt never affects balances/reports as a confirmed expense. — Attempts are separate records; only `confirmPaymentAttempt` creates a ledger transaction, and only when status transitions to `marked_paid_by_user`. Tests: "creates a prepared attempt without a ledger transaction", "allows an unresolved attempt to be confirmed later". **[Verified here — 75/75 tests]**
+- [x] User-marked paid transaction is labelled “Marked paid by you — not verified by Sanchay”. — Exact string in `paymentAttempts.ts:35`, `TransactionDrawer.tsx:261`, `TransfersTab.tsx:1506`; drawer adds "not bank-verified"/"has not independently verified settlement with your bank" copy. **[Verified here]**
+- [x] Confirming the same attempt twice adds one ledger expense only. — Guard at `paymentAttempts.ts:122–131` returns `duplicate: true` with the existing linked transaction; tests: "confirms once and links exactly one ledger transaction", "does not create a second transaction when confirmation is retried", "reports a broken link instead of duplicating an already-paid attempt", plus the integration retry test. **[Verified here]**
+- [x] Cancelled/failed status adds no expense. — `confirmPaymentAttempt` refuses `cancelled_or_failed` (`paymentAttempts.ts:133–139`); test "never records an expense for cancelled or failed attempts". **[Verified here]**
+- [x] Unknown state remains visible and does not auto-retry. — `needs_reconciliation` renders as "Outcome not confirmed" in the attempts queue; it is only set by an explicit user click (`TransfersTab.tsx:1421`) or user "mark failed" action — no timers, polling, or background transitions exist in the payment code (scan: no `setTimeout`/`setInterval`/retry loops). **[Verified here]**
+- [x] UTR/reference entry is optional and clearly labelled user-entered unless sourced by an authorised provider. — Field labelled "Bank / UPI reference or UTR (optional)" with placeholder "e.g. 12-digit UTR from your bank or UPI app" (`TransfersTab.tsx:1385–1391`); displays as "User-entered · Not verified" (`:581`) and "Reference / UTR" on the receipt (`TransactionDrawer.tsx:240`); `userReference` is optional in the schema and no authorised-provider source exists. **[Verified here]**
+- [x] Existing transactions, budgets, reports, payees, export/import and backups still work. — Static: full web suite 11 files / 75 tests green (persistence round-trips, export/import validation, payment workflow integration), `tsc -b` clean, production build + asset sync green; on-device confirmation remains release checklist §3. **[Verified here — static]**
 
 ### Path B (only after approval)
 
-- [ ] Release feature flag stays disabled by default until sign-off.
-- [ ] Tests cover URI encoding, Unicode, reserved characters, invalid amounts, unavailable handlers and activity-launch failures.
-- [ ] The final review screen shows the exact recipient ID and amount.
-- [ ] UPI return/callback alone does not create a bank-verified result.
-- [ ] No SMS, notification, accessibility or app-screen scraping is used.
-- [ ] All tested UPI apps are recorded in a compatibility matrix; unsupported cases show a fallback rather than a fake success.
-- [ ] A physical Android device test has been completed for cold start/resume, cancellation, app kill, timeout and ambiguous return status.
+- [x] Release feature flag stays disabled by default until sign-off. — Path B has **zero implementation**: no flag, no URI builder, no `upi://`/`intent://` code exists in the repo (scans 2026-11-09), so nothing can be enabled. Path B must not be built until sign-off; when it is, the flag must default off and this item must be re-verified. **[Verified here — by absence]**
+- [ ] Tests cover URI encoding, Unicode, reserved characters, invalid amounts, unavailable handlers and activity-launch failures. — N/A until Path B exists (there is no URI builder to test); required before any Path B sign-off.
+- [ ] The final review screen shows the exact recipient ID and amount. — Path B review screen not built. (Path A's prepare/confirm flow already displays exact UPI ID and amount — verified in §12 Path A above.)
+- [x] UPI return/callback alone does not create a bank-verified result. — No UPI return/callback handling exists anywhere in the app (the only `StartActivityForResult` is the WebView file picker, `SanchayModernUI.kt:41`); the sole "paid" transition is the user's explicit confirmation labelled "not verified by Sanchay". Must remain true if Path B is ever built. **[Verified here — by absence]**
+- [x] No SMS, notification, accessibility or app-screen scraping is used. — Repo scan 2026-11-09: no `SmsManager`, `READ_SMS`/`RECEIVE_SMS`, `NotificationListener`, `AccessibilityService`, `UsageStats`, or `MediaProjection` anywhere in Kotlin/Java/XML. **[Verified here]**
+- [ ] All tested UPI apps are recorded in a compatibility matrix; unsupported cases show a fallback rather than a fake success. — Path B not built; no UPI apps have been tested.
+- [ ] A physical Android device test has been completed for cold start/resume, cancellation, app kill, timeout and ambiguous return status. — Needs device; Path B not built.
 
 ### Release/legal checklist
 

@@ -60,6 +60,13 @@ Release decisions required before Play submission (owner: maintainer):
 - [x] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`); the script now deletes each target before copying, so stale hashed bundles can't accumulate in APK assets (3 previously tracked dead `index-*.js` bundles removed; assets contain exactly the current `index-uZUmDb_u.js` + `index-BMfJWKCU.css`, and `index.html` references only those). **[Verified here]**
 - [x] Path A source scan: no `upi://` or QR generation in web source — only matches are negative assertions in `paymentAttempts.test.ts` (asserting absence). **[Verified here]**
 
+## 4b) Path A acceptance (spec §12) — static, verified here
+
+All ten Path A acceptance items are ticked with evidence in `SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md` §12. Summary of the guarantees: copy-only flows (no payment launch), UPI ID always labelled user-entered/not-verified, no UPI URI/QR/Collect/API anywhere in the repo, ledger expense only via explicit user confirmation (exactly once, never for cancelled/failed), exact "Marked paid by you — not verified by Sanchay" label, unknown state visible with no auto-retry, optional UTR labelled user-entered, and the 75-test suite covering existing features. **[Verified here — static]**
+
+- [x] Path A acceptance tests green: `vitest` 11 files / 75 tests including `paymentAttempts.test.ts` (9 cases) and `paymentWorkflowIntegration.test.ts`. **[Verified here]**
+- [ ] Path A on-device confirmation: copy/paste, attempt flow, export round-trip on a physical device (fold into §3 device session).
+
 ## 5) P1/P2 before calling the product release-ready
 
 - [ ] Recurring/scheduled payments (one-time planned payments only today) — scoped design required before implementation.
