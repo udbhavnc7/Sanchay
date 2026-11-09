@@ -10,6 +10,7 @@ Path A rule remains mandatory: payment assistance and local reconciliation only.
   - Draft ready for maintainer: [docs/privacy-policy.md](privacy-policy.md) — fill the `[TODO]` identity/contact/retention-decision fields and publish at a public HTTPS URL; then link it here, in the README, in the in-app privacy panel, and in the Play listing.
   - In-app privacy panel exists and now documents retention/deletion, the unencrypted-backup risk, and PIN exclusion. No published public URL is known in-repo.
   - Retention + incident-response procedure: [docs/retention-incident-response.md](retention-incident-response.md).
+  - Play Console entry drafts (Data safety answers, SDK declarations, Financial features declaration analysis, working-link checklist): [docs/play-submission-drafts.md](play-submission-drafts.md).
 - [ ] Match every in-app/README claim to release APK behavior before submission:
   - Web dashboard: local only (`sanchay.local.v1`); no upload/sync network calls. **[Verified here]** — web source: no `fetch(`/XHR/beacon; no `upi://` or QR generation.
   - Native shell/modules: APK capabilities differ — see §2.
@@ -36,6 +37,7 @@ Verified from `app/src/main/AndroidManifest.xml`, Gradle files, and native Java/
 - [x] Release asset hygiene: `app/src/main/assets/web/assets/` contains exactly the current bundle referenced by `index.html`; `scripts/build-web.js` now wipes targets before syncing so stale bundles cannot re-accumulate. **[Verified here]**
 - [x] Claims & badges audit (spec Gate 2 items 69–71, Play items 232–235, release/legal 353): no NPCI/UPI accreditation badge or affiliation claim; no positive "bank connected / bank verified / instant settlement / guaranteed safe / secure UPI app / official UPI app" claims (only disclaimers); demo-data disclosure in README + reset dialog; no UPI PIN/OTP/card/CVV/IFSC inputs exist (the only "UPI PIN" string tells the user to enter it in their own UPI app); no `QUERY_ALL_PACKAGES`/`<queries>`; payment statuses never claim settlement (always "not verified by Sanchay") and duplicates are test-guarded. **[Verified here — 75/75 tests]**
 - [x] GPL-3.0 obligations checked (spec release/legal 354): complete `LICENSE` text, README attribution + non-affiliation + dated "Changes since the fork" notice, permissive frontend dependencies, no proprietary components. **[Verified here]**
+- [x] Compliance gate enforced in CI (spec Gate 2 note): `node scripts/check-release-compliance.mjs` — 3,002 assertions covering manifest invariants, removed SDKs, no UPI URI/QR/scraping in shipped sources, asset hygiene, GPL presence; wired to `.github/workflows/release-compliance.yml`, with web lint/tsc/tests/build in `.github/workflows/web.yml`. **[Verified here — clean PASS locally; planted-violation negative test FAILs with exit 1]**
 
 Release decisions required before Play submission (owner: maintainer):
 
@@ -46,19 +48,22 @@ Release decisions required before Play submission (owner: maintainer):
 
 ## 3) Physical device verification (P0) — needs device/APK
 
+Runbook with per-step commands and evidence capture: [docs/device-verification-runbook.md](device-verification-runbook.md); automated subset: `.\scripts\device-verify.ps1 -Apk <apk> -Package <id>` (install, permission assertions, launch, screenshot, logcat scan → `device-evidence/`, git-ignored).
+
 - [ ] Install the **release** APK on a physical Android device (not emulator only).
 - [ ] Confirm the dashboard loads from bundled assets; no remote content fetch required.
 - [ ] Verify persistence through: app restart, OS WebView storage clear, app data clear; confirm data-loss behavior matches README.
 - [ ] Verify backup export/import round-trip on-device (Downloads/Sanchay bridge + system file picker).
 - [ ] Verify: no network traffic when using dashboard-only flows (airplane mode + packet capture).
 - [x] Run `./gradlew.bat :app:testDebugUnitTest` — `BUILD SUCCESSFUL`, but task reports `NO-SOURCE` (the `:app` module contains no unit-test sources; a prior 120s timeout was environmental, not a failure). **[Verified here]**
-- [ ] Complete Play Store data-safety / privacy review with the release manifest + SDK list.
+- [ ] Complete Play Store data-safety / privacy review with the release manifest + SDK list. — Draft answers ready: [docs/play-submission-drafts.md](play-submission-drafts.md) §1 (per-category table, SDK list from the release runtime classpath, transit/deletion answers); maintainer enters them in Play Console and cross-checks against the final APK.
 
 ## 4) Web dashboard — verified here
 
 - [x] `cd web && npx vitest run` — 11 files / 74 tests pass. **[Verified here]**
 - [x] `cd web && npm run lint` — clean (oxlint). **[Verified here]**
 - [x] `cd web && npx tsc -b --pretty false` — clean. **[Verified here]**
+- [x] Web checks wired into CI: `.github/workflows/web.yml` runs oxlint + `tsc -b` + vitest + production build on every push/PR (repo previously had no web CI job). **[Verified here — same commands pass locally]**
 - [x] `node scripts/build-web.js` — assets rebuilt/synced (`dist/` + `app/src/main/assets/web/`); the script now deletes each target before copying, so stale hashed bundles can't accumulate in APK assets (3 previously tracked dead `index-*.js` bundles removed; assets contain exactly the current `index-uZUmDb_u.js` + `index-BMfJWKCU.css`, and `index.html` references only those). **[Verified here]**
 - [x] Path A source scan: no `upi://` or QR generation in web source — only matches are negative assertions in `paymentAttempts.test.ts` (asserting absence). **[Verified here]**
 

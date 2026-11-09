@@ -109,3 +109,6 @@ web/dist/
 /.idea/AndroidProjectSystem.xml
 /.idea/runConfigurations.xml
 .idea
+
+# Device verification evidence (docs/device-verification-runbook.md)
+device-evidence/

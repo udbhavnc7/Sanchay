@@ -267,7 +267,7 @@ Contributions, suggestions, bug reports, and ideas are welcome.
 1. Fork the repository.
 2. Create a new branch.
 3. Make focused changes.
-4. Run the web tests and build.
+4. Run the web tests and build (`npm --prefix web test`, `npm --prefix web run lint`, `node scripts/build-web.js`) and the release compliance gate (`node scripts/check-release-compliance.mjs`).
 5. Open a pull request.
 
 ---

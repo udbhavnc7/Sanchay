@@ -1,0 +1,27 @@
+name: Release compliance
+
+# Enforces the static release gate from docs/release-checklist.md and
+# SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md (Gate 2 / §12): manifest invariants,
+# removed SDKs, no UPI URI/QR/scraping in shipped sources, WebView asset
+# hygiene, and GPL licence presence. See scripts/check-release-compliance.mjs.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GIT
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run release compliance gate
+        run: node scripts/check-release-compliance.mjs
