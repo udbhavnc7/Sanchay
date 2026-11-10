@@ -318,3 +318,41 @@ describe('local persistence', () => {
     expect(loadPersistedState(storage)).toBeNull();
   });
 });
+
+describe('demo-mode preference', () => {
+  it('round-trips the sample-data indicator', () => {
+    const input = snapshot();
+    input.preferences.demoMode = true;
+
+    const parsed = parsePersistedState(JSON.stringify(createPersistedState(input)));
+    expect(parsed?.preferences.demoMode).toBe(true);
+  });
+
+  it('treats snapshots saved before demo mode existed as non-demo', () => {
+    const legacy = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      preferences: Record<string, unknown>;
+    };
+    delete legacy.preferences.demoMode;
+
+    const parsed = parsePersistedState(JSON.stringify(legacy));
+    expect(parsed?.preferences.demoMode).toBeUndefined();
+  });
+
+  it('carries the indicator into backups so exported sample data stays labeled', () => {
+    const input = snapshot();
+    input.preferences.demoMode = true;
+
+    const backup = createBackupState(input);
+    expect(backup.preferences.demoMode).toBe(true);
+    expect(parsePersistedState(JSON.stringify(backup))?.preferences.demoMode).toBe(true);
+  });
+
+  it('rejects a malformed demo-mode flag', () => {
+    const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      preferences: { demoMode: unknown };
+    };
+
+    raw.preferences.demoMode = 'yes';
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+  });
+});

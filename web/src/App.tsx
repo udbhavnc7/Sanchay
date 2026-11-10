@@ -1,13 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  initialAccounts,
-  initialBudgets,
-  initialContacts,
-  initialGoals,
-  initialPaymentAttempts,
-  initialPlannedPayments,
-  initialTransactions,
-} from './data/mockData';
 import type {
   Account,
   Budget,
@@ -72,6 +63,8 @@ import { ConnectAccountModal } from './components/ConnectAccountModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
 import { AppLockScreen } from './components/AppLockScreen';
 import { SanchaySplash } from './components/SanchaySplash';
+import { FirstRunScreen } from './components/FirstRunScreen';
+import { ledgerForChoice, type FirstRunChoice } from './data/firstRun';
 import { SanchayLogo } from './components/SanchayLogo';
 import {
   Sun,
@@ -156,23 +149,23 @@ export const App: React.FC = () => {
   const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [showConnectAccount, setShowConnectAccount] = useState(false);
 
-  const [accounts, setAccounts] = useState<Account[]>(
-    initialSnapshot?.accounts ?? initialAccounts
-  );
+  const [accounts, setAccounts] = useState<Account[]>(initialSnapshot?.accounts ?? []);
   const [transactions, setTransactions] = useState<Transaction[]>(
-    initialSnapshot?.transactions ?? initialTransactions
+    initialSnapshot?.transactions ?? []
   );
-  const [contacts, setContacts] = useState<Contact[]>(
-    initialSnapshot?.contacts ?? initialContacts
-  );
-  const [goals, setGoals] = useState<SavingsGoal[]>(initialSnapshot?.goals ?? initialGoals);
-  const [budgets, setBudgets] = useState<Budget[]>(initialSnapshot?.budgets ?? initialBudgets);
+  const [contacts, setContacts] = useState<Contact[]>(initialSnapshot?.contacts ?? []);
+  const [goals, setGoals] = useState<SavingsGoal[]>(initialSnapshot?.goals ?? []);
+  const [budgets, setBudgets] = useState<Budget[]>(initialSnapshot?.budgets ?? []);
   const [plannedPayments, setPlannedPayments] = useState<PlannedPayment[]>(
-    initialSnapshot?.plannedPayments ?? initialPlannedPayments
+    initialSnapshot?.plannedPayments ?? []
   );
   const [paymentAttempts, setPaymentAttempts] = useState<PaymentAttempt[]>(
-    initialSnapshot?.paymentAttempts ?? initialPaymentAttempts
+    initialSnapshot?.paymentAttempts ?? []
   );
+  const [demoMode, setDemoMode] = useState(
+    initialSnapshot?.preferences.demoMode ?? false
+  );
+  const [pendingFirstRun, setPendingFirstRun] = useState(initialSnapshot === null);
 
   const [isCardFrozen, setIsCardFrozen] = useState(
     initialSnapshot?.preferences.isCardFrozen ?? false
@@ -244,6 +237,7 @@ export const App: React.FC = () => {
         userProfile,
         appLockPin: appLockPin || undefined,
         safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
+        demoMode: demoMode || undefined,
       },
     });
     queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
@@ -261,6 +255,7 @@ export const App: React.FC = () => {
     userProfile,
     appLockPin,
     safeToSpendBuffer,
+    demoMode,
   ]);
 
   useEffect(() => {
@@ -1060,20 +1055,76 @@ export const App: React.FC = () => {
     sound.success();
   };
 
-  const handleResetLocalData = () => {
-    if (!confirmReset) {
-      setConfirmReset(true);
-      return;
-    }
+  const handleFirstRunChoice = useCallback(
+    (choice: FirstRunChoice) => {
+      const seed = ledgerForChoice(choice);
+      setAccounts(seed.accounts);
+      setTransactions(seed.transactions);
+      setContacts(seed.contacts);
+      setGoals(seed.goals);
+      setBudgets(seed.budgets);
+      setPlannedPayments(seed.plannedPayments);
+      setPaymentAttempts(seed.paymentAttempts);
+      setDemoMode(seed.demoMode);
+      setPendingFirstRun(false);
+      // Persist immediately: for "blank" the state values do not change, so the
+      // auto-save effect would not run and the choice would not survive a reload.
+      const result = savePersistedState({
+        accounts: seed.accounts,
+        transactions: seed.transactions,
+        contacts: seed.contacts,
+        goals: seed.goals,
+        budgets: seed.budgets,
+        plannedPayments: seed.plannedPayments,
+        paymentAttempts: seed.paymentAttempts,
+        preferences: {
+          isDarkMode,
+          isAudioEnabled,
+          isCardFrozen,
+          userProfile,
+          appLockPin: appLockPin || undefined,
+          safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
+          demoMode: seed.demoMode || undefined,
+        },
+      });
+      queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
+      sound.success();
+    },
+    [isDarkMode, isAudioEnabled, isCardFrozen, userProfile, appLockPin, safeToSpendBuffer]
+  );
 
+  const handleLoadSampleData = () => {
+    const seed = ledgerForChoice('sample');
+    setAccounts(seed.accounts);
+    setTransactions(seed.transactions);
+    setContacts(seed.contacts);
+    setGoals(seed.goals);
+    setBudgets(seed.budgets);
+    setPlannedPayments(seed.plannedPayments);
+    setPaymentAttempts(seed.paymentAttempts);
+    setDemoMode(true);
+    setStorageError('');
+    setPendingImport(null);
+    setLastAdded(null);
+    setLastDeleted(null);
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
+    setWhatIfOutflow(0);
+    setBackupStatus('Sample data loaded. These records are fictional.');
+    sound.success();
+  };
+
+  const handleResetLocalData = () => {
     clearPersistedState();
-    setAccounts(initialAccounts);
-    setTransactions(initialTransactions);
-    setContacts(initialContacts);
-    setGoals(initialGoals);
-    setBudgets(initialBudgets);
-    setPlannedPayments(initialPlannedPayments);
-    setPaymentAttempts(initialPaymentAttempts);
+    const blank = ledgerForChoice('blank');
+    setAccounts(blank.accounts);
+    setTransactions(blank.transactions);
+    setContacts(blank.contacts);
+    setGoals(blank.goals);
+    setBudgets(blank.budgets);
+    setPlannedPayments(blank.plannedPayments);
+    setPaymentAttempts(blank.paymentAttempts);
+    setDemoMode(false);
     setIsDarkMode(false);
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
@@ -1158,9 +1209,12 @@ export const App: React.FC = () => {
   return (
     <>
       {showSplash && <SanchaySplash onEnter={handleEnterApp} />}
+      {pendingFirstRun && !showSplash && (
+        <FirstRunScreen onChoose={handleFirstRunChoice} />
+      )}
       <div
         className="app-shell-root"
-        aria-hidden={showSplash || undefined}
+        aria-hidden={showSplash || pendingFirstRun || undefined}
       >
         <div className="chassis-frame">
           <aside className="vertical-dock">
@@ -1417,6 +1471,46 @@ export const App: React.FC = () => {
               </div>
             </header>
 
+            {demoMode && (
+              <div
+                role="status"
+                style={{
+                  margin: '0 16px 4px',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(245, 158, 11, 0.14)',
+                  color: '#b45309',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <span>
+                  Sample data — fictional records for exploring Sanchay. Not your real finances.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowProfileSettings(true)}
+                  style={{
+                    border: '1px solid rgba(180, 83, 9, 0.35)',
+                    background: 'transparent',
+                    color: '#b45309',
+                    borderRadius: '8px',
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Manage
+                </button>
+              </div>
+            )}
+
             {activeTab === 'Overview' && (
               <OverviewTab
                 accounts={accounts}
@@ -1568,6 +1662,8 @@ export const App: React.FC = () => {
               void handleBackupFile(fakeEvent);
             }}
             onResetData={handleResetLocalData}
+            onLoadSampleData={handleLoadSampleData}
+            demoMode={demoMode}
             onLockApp={() => setIsAppLocked(true)}
             onClose={() => setShowProfileSettings(false)}
             onOpenConnectModal={() => {
@@ -1829,7 +1925,13 @@ export const App: React.FC = () => {
                   Got it
                 </button>
                 <button
-                  onClick={handleResetLocalData}
+                  onClick={() => {
+                    if (!confirmReset) {
+                      setConfirmReset(true);
+                      return;
+                    }
+                    handleResetLocalData();
+                  }}
                   className="btn-action-light"
                   style={{
                     flex: confirmReset ? 1.4 : 1,
@@ -1848,7 +1950,7 @@ export const App: React.FC = () => {
                     textAlign: 'right',
                   }}
                 >
-                  This replaces saved changes with the demo data.
+                  This deletes everything stored on this device and starts a blank ledger.
                 </p>
               )}
             </div>

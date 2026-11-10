@@ -46,6 +46,8 @@ interface ProfileSettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
   onResetData: () => void;
+  onLoadSampleData: () => void;
+  demoMode?: boolean;
   onLockApp: () => void;
   onClose: () => void;
   onOpenConnectModal: () => void;
@@ -86,6 +88,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onExportBackup,
   onImportBackup,
   onResetData,
+  onLoadSampleData,
+  demoMode,
   onLockApp,
   onClose,
   onOpenConnectModal,
@@ -110,6 +114,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
   // Reset confirmation
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmSample, setConfirmSample] = useState(false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -788,11 +793,58 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700 }}>
+                  Sample data {demoMode ? '— active' : ''}
+                </h4>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px' }}>
+                  {demoMode
+                    ? 'You are viewing fictional sample records. Reset all local data below to return to a blank ledger.'
+                    : 'Replace everything on this device with fictional demo records for exploring the app. Sample data is clearly labeled and is never presented as real finances.'}
+                </p>
+
+                {!demoMode && !confirmSample && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmSample(true)}
+                    className="btn-action-light"
+                    style={{ padding: '8px 14px', fontSize: '11px' }}
+                  >
+                    Load sample data
+                  </button>
+                )}
+                {!demoMode && confirmSample && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.click();
+                        setConfirmSample(false);
+                        onLoadSampleData();
+                      }}
+                      className="btn-action-dark"
+                      style={{ padding: '8px 14px', fontSize: '11px' }}
+                    >
+                      Yes, replace my data with samples
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmSample(false)}
+                      className="btn-action-light"
+                      style={{ padding: '8px 14px', fontSize: '11px' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#ef4444' }}>
                   Reset Device Data
                 </h4>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px' }}>
-                  Clear all local data and restore initial demo balances and categories.
+                  Deletes every transaction, account, budget, goal, payee, payment attempt and
+                  setting stored on this device, then starts a blank ledger. This cannot be undone.
                 </p>
 
                 {!confirmReset ? (
@@ -802,7 +854,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     className="btn-action-light"
                     style={{ color: '#ef4444', padding: '8px 14px', fontSize: '11px' }}
                   >
-                    Reset to Demo Data
+                    Reset all local data
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -816,7 +868,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                       className="btn-action-dark"
                       style={{ background: '#ef4444', padding: '8px 14px', fontSize: '11px' }}
                     >
-                      Yes, reset all data
+                      Yes, delete everything
                     </button>
                     <button
                       type="button"

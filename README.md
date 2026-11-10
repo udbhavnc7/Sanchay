@@ -8,7 +8,7 @@ Sanchay (संचय) means **saving, accumulation, or the gathering of wealth*
 
 Sanchay is an open-source Android personal finance project focused on simple, local-first money management. It is an early-stage fork of Ivy Wallet with a custom React dashboard running inside an Android WebView shell.
 
-> **Project status:** early development. The dashboard uses seeded demo data and local browser storage. It is not a production banking or accounting application.
+> **Project status:** early development. The dashboard stores data in local browser storage. On first launch you choose a blank ledger (default) or clearly labeled fictional sample data. It is not a production banking or accounting application.
 
 ---
 
@@ -80,7 +80,8 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 - Light and dark themes.
 - Sound on/off preference.
-- Privacy panel that explains local storage and retention, exports a JSON backup, imports a backup, and offers a two-step reset to demo data.
+- Privacy panel that explains local storage and retention, exports a JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
+- Sample data is opt-in (first launch or Profile settings), labeled with a persistent banner while active, and can be removed at any time without touching real records.
 - Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN.
 - Backups are not encrypted; anyone with the file can read it. Store exported backups carefully and delete them when no longer needed.
 - Restoring a backup replaces the current data on this device after a confirmation preview; the app-lock PIN on the device is never replaced by a backup.

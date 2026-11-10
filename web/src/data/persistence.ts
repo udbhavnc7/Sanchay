@@ -21,6 +21,8 @@ export interface PersistedPreferences {
   userProfile?: UserProfile;
   appLockPin?: string;
   safeToSpendBuffer?: number;
+  /** True while the ledger holds fictional sample records instead of the user's own data. */
+  demoMode?: boolean;
 }
 
 export interface PersistedState {
@@ -245,7 +247,8 @@ function isPreferences(value: unknown): value is PersistedPreferences {
     (value.userProfile === undefined || isUserProfile(value.userProfile)) &&
     (value.appLockPin === undefined || isString(value.appLockPin)) &&
     (value.safeToSpendBuffer === undefined ||
-      (isNumber(value.safeToSpendBuffer) && value.safeToSpendBuffer >= 0))
+      (isNumber(value.safeToSpendBuffer) && value.safeToSpendBuffer >= 0)) &&
+    (value.demoMode === undefined || typeof value.demoMode === 'boolean')
   );
 }
 
@@ -298,6 +301,7 @@ export function createBackupState(input: PersistedStateInput): PersistedState {
       isCardFrozen: input.preferences.isCardFrozen,
       userProfile: input.preferences.userProfile,
       safeToSpendBuffer: input.preferences.safeToSpendBuffer,
+      demoMode: input.preferences.demoMode,
     },
   });
 }
