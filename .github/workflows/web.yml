@@ -40,5 +40,11 @@ jobs:
       - name: Unit tests (vitest)
         run: pnpm test
 
+      # DST zones break millisecond-based date math that looks fine in UTC CI.
+      - name: Unit tests — DST time zone (vitest)
+        run: pnpm test
+        env:
+          TZ: America/New_York
+
       - name: Production build
         run: pnpm run build

@@ -50,9 +50,12 @@ export function buildSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
   const horizonDays = Math.max(0, Math.round(input.horizonDays ?? SAFE_TO_SPEND_HORIZON_DAYS));
   const buffer = nonNegative(input.buffer ?? 0);
   const start = startOfDay(now);
-  const end = endOfDay(
-    new Date(start.getTime() + Math.max(0, horizonDays - 1) * 24 * 60 * 60 * 1000)
-  );
+  // Calendar-day arithmetic, not start + N*86,400,000ms: millisecond stepping
+  // shifts the endpoint by an hour across DST transitions and drops the final
+  // horizon day (verified failing under TZ=America/New_York).
+  const horizonLastDay = new Date(start);
+  horizonLastDay.setDate(start.getDate() + Math.max(0, horizonDays - 1));
+  const end = endOfDay(horizonLastDay);
 
   const goalCommitments = sumMoney(
     input.goals.map((goal) => buildGoalProjection(goal, now).requiredMonthly ?? 0)

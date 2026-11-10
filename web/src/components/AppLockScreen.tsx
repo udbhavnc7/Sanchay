@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { sound } from '../utils/audio';
 import { Lock, Delete, AlertCircle } from 'lucide-react';
 
+
 interface AppLockScreenProps {
   pin: string;
   userName: string;

@@ -1,6 +1,6 @@
 # Troubleshooting CI failures
 
-If you see any of the PR checks failing (❌) go to [Actions](https://github.com/Ivy-Apps/ivy-wallet/actions) and find it there. Or simply click "Details" next to the failed check and explore the logs to see why it has failed.
+If you see any of the PR checks failing (❌) go to [Actions](https://github.com/udbhavnc7/Sanchay/actions) and find it there. Or simply click "Details" next to the failed check and explore the logs to see why it has failed.
 
 ## PR description check
 
@@ -79,6 +79,8 @@ Do that only if the failure is in legacy code. If the script is failing, open it
 
 ## Paparazzi Tests
 Paparazzi is used for automated visual testing. It captures screenshots of various `@Composable` and then compares them against baseline images to detect any visual differences or regressions.
+
+> **Windows caution:** local `verifyPaparazziDebug` runs can fail with tiny font/antialiasing pixel deltas that the Linux CI job does not see. **Never re-record goldens on Windows** — CI is the source of truth. See [Screenshot-Testing.md](guidelines/Screenshot-Testing.md).
 
 **Fixing Paparazzi issues:**
 

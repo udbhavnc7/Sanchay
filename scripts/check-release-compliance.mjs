@@ -30,8 +30,12 @@ function exists(rel) {
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walk(full, out);
-    else out.push(full);
+    if (entry.isDirectory()) {
+      // Generated/build outputs and tool dirs are not shipped inputs; scanning
+      // them made the gate count volatile across clean/rebuild.
+      if (entry.name === 'build' || entry.name === '.git' || entry.name === 'node_modules') continue;
+      walk(full, out);
+    } else out.push(full);
   }
   return out;
 }
@@ -85,12 +89,14 @@ for (const file of scanFiles('web/src', { exts: ['.ts', '.tsx'], exclude: (f) =>
   check(`web: no QR generation in ${rel}`, !qrPattern.test(text));
 }
 
-const kotlinDirs = ['app/src', 'feature', 'shared'];
+// `temp` ships in the APK (app depends on temp:legacy-code + temp:old-design).
+const kotlinDirs = ['app/src', 'feature', 'shared', 'temp'];
 for (const dirRel of kotlinDirs) {
   for (const file of scanFiles(dirRel, { exts: ['.kt', '.java'] })) {
     const text = fs.readFileSync(file, 'utf8');
     const rel = path.relative(root, file);
     check(`kotlin: no upi://pay in ${rel}`, !/upi:\/\//i.test(text));
+    check(`kotlin: no intent:// in ${rel}`, !text.includes('intent://'));
     check(`kotlin: no zxing/QR in ${rel}`, !qrPattern.test(text));
     check(`kotlin: no scraping APIs in ${rel}`, !scrapingPattern.test(text));
   }
