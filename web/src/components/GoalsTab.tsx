@@ -466,7 +466,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               marginTop: '8px',
             }}
           >
-            {formatMoney(budgets.reduce((sum, budget) => sum + budget.limit, 0))}
+            {formatMoney(sumMoney(budgets.map((budget) => budget.limit)))}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Across {budgets.length} categories

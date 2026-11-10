@@ -44,10 +44,19 @@ import {
   type PersistedState,
 } from './data/persistence';
 import {
-  applyTransactionToBalance,
-  balanceAfterTransactionEdit,
-  reverseTransactionFromBalance,
-} from './utils/ledger';
+  addTransaction as addTransactionOp,
+  createTransfer as createTransferOp,
+  deleteAccount as deleteAccountOp,
+  deleteTransaction as deleteTransactionOp,
+  undoAddTransaction as undoAddTransactionOp,
+  undoDeleteTransaction as undoDeleteTransactionOp,
+  updateTransaction as updateTransactionOp,
+  updateTransfer as updateTransferOp,
+  type TransferInput,
+  type TransferOpResult,
+  type TransferUpdateInput,
+} from './utils/ledgerOps';
+import { TransferModal } from './components/TransferModal';
 import { buildSafeToSpend } from './utils/safeToSpend';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
@@ -177,12 +186,14 @@ export const App: React.FC = () => {
   const [showRequest, setShowRequest] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [editingTransfer, setEditingTransfer] = useState<{ transferId: string; legs: Transaction[] } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [storageError, setStorageError] = useState('');
   const [backupStatus, setBackupStatus] = useState('');
   const [pendingImport, setPendingImport] = useState<PersistedState | null>(null);
   const [lastAdded, setLastAdded] = useState<Transaction | null>(null);
-  const [lastDeleted, setLastDeleted] = useState<Transaction | null>(null);
+  const [lastDeleted, setLastDeleted] = useState<Transaction[] | null>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
   const [showSplash, setShowSplash] = useState(() => {
     try {
@@ -376,7 +387,7 @@ export const App: React.FC = () => {
       if (compareMoney(remaining, 0) > 0 && remaining <= goal.targetAmount * 0.1) {
         list.push({
           tone: 'good',
-          text: `${goal.title} is almost funded — ${formatMoney(remaining)} to go`,
+          text: `${goal.title} is almost funded â€” ${formatMoney(remaining)} to go`,
         });
       }
     });
@@ -587,7 +598,7 @@ export const App: React.FC = () => {
       date: new Date().toISOString(),
       accountId: account.id,
       counterparty: goal.title,
-      note: 'Savings transfer — not counted as spending.',
+      note: 'Savings transfer â€” not counted as spending.',
       kind: 'transfer',
       goalId: goal.id,
     };
@@ -668,259 +679,84 @@ export const App: React.FC = () => {
   };
 
   const handleAddTransaction = (input: NewTransactionInput): MoneyResult => {
-    const account = accounts.find((item) => item.id === input.accountId);
-    if (!account) {
-      return { ok: false, error: 'Choose an account for this transaction.' };
+    const result = addTransactionOp({ accounts, transactions, goals }, input);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
-    if (account.status !== 'Active') {
-      return { ok: false, error: `${account.name} is not active right now.` };
-    }
-    if (account.currency !== 'INR') {
-      return { ok: false, error: 'Quick entry currently supports INR accounts only.' };
-    }
-    if (!isValidAmount(input.amount)) {
-      return { ok: false, error: 'Enter an amount greater than zero.' };
-    }
-
-    const amount = fromMinorUnits(toMinorUnits(input.amount));
-    if (input.type === 'expense' && compareMoney(account.balance, amount) < 0) {
-      return {
-        ok: false,
-        error: `Not enough in ${account.name}. Available ${formatMoney(account.balance)}.`,
-      };
-    }
-
-    const occurredAt = new Date(`${input.date}T12:00:00`);
-    if (Number.isNaN(occurredAt.getTime())) {
-      return { ok: false, error: 'Choose a valid date.' };
-    }
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (occurredAt > today) {
-      return { ok: false, error: 'Use today or an earlier date.' };
-    }
-
-    const transaction: Transaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      reference: `ADD-${String(Date.now()).slice(-8)}`,
-      title: input.title.trim() || input.category,
-      category: input.category,
-      amount,
-      type: input.type === 'expense' ? 'debit' : 'credit',
-      status: 'Completed',
-      date: occurredAt.toISOString(),
-      accountId: account.id,
-      counterparty: input.title.trim() || input.category,
-      note: input.note?.trim() || undefined,
-      kind: input.type,
-    };
-
-    setAccounts((prev) =>
-      prev.map((item) =>
-        item.id === account.id
-          ? {
-              ...item,
-              balance:
-                input.type === 'expense'
-                  ? subtractMoney(item.balance, amount)
-                  : addMoney(item.balance, amount),
-            }
-          : item
-      )
-    );
-    setTransactions((prev) => [transaction, ...prev]);
-    setLastAdded(transaction);
+    setAccounts(result.state.accounts);
+    setTransactions(result.state.transactions);
+    setLastAdded(result.transaction);
     setLastDeleted(null);
 
-    return { ok: true, transaction };
+    return { ok: true, transaction: result.transaction };
   };
 
   const handleUpdateTransaction = (input: UpdateTransactionInput): MoneyResult => {
-    const existing = transactions.find((item) => item.id === input.id);
-    if (!existing) {
-      return { ok: false, error: 'That transaction no longer exists.' };
-    }
-    if (existing.kind === 'transfer') {
-      return { ok: false, error: 'Savings transfers cannot be edited here.' };
-    }
-    const existingAccount = existing.accountId
-      ? accounts.find((item) => item.id === existing.accountId)
-      : undefined;
-    if (existingAccount && existingAccount.currency !== 'INR') {
-      return { ok: false, error: 'Only INR transactions can be edited here.' };
+    const result = updateTransactionOp({ accounts, transactions, goals }, input);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
 
-    const account = accounts.find((item) => item.id === input.accountId);
-    if (!account) {
-      return { ok: false, error: 'Choose an account for this transaction.' };
-    }
-    if (account.status !== 'Active' && account.id !== existing.accountId) {
-      return { ok: false, error: `${account.name} is not active right now.` };
-    }
-    if (account.currency !== 'INR') {
-      return { ok: false, error: 'Transaction editing currently supports INR accounts only.' };
-    }
-    if (!isValidAmount(input.amount)) {
-      return { ok: false, error: 'Enter an amount greater than zero.' };
-    }
-
-    const amount = fromMinorUnits(toMinorUnits(input.amount));
-    const occurredAt = new Date(`${input.date}T12:00:00`);
-    if (Number.isNaN(occurredAt.getTime())) {
-      return { ok: false, error: 'Choose a valid date.' };
-    }
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    if (occurredAt > today) {
-      return { ok: false, error: 'Use today or an earlier date.' };
-    }
-
-    const nextEffect = {
-      type: input.type === 'expense' ? ('debit' as const) : ('credit' as const),
-      amount,
-    };
-    const affectsBalance = existing.status === 'Completed';
-    const previousOnAccount = affectsBalance && existing.accountId === account.id ? existing : null;
-    if (affectsBalance) {
-      const resultingBalance = balanceAfterTransactionEdit(
-        account.balance,
-        previousOnAccount,
-        nextEffect
-      );
-      if (input.type === 'expense' && compareMoney(resultingBalance, 0) < 0) {
-        return {
-          ok: false,
-          error: `Not enough in ${account.name}. This change would leave ${formatMoney(resultingBalance)}.`,
-        };
-      }
-    }
-
-    const title = input.title.trim() || input.category;
-    const updated: Transaction = {
-      ...existing,
-      title,
-      category: input.category,
-      amount,
-      type: nextEffect.type,
-      date: occurredAt.toISOString(),
-      accountId: account.id,
-      counterparty: existing.reference?.startsWith('ADD-')
-        ? title
-        : existing.counterparty ?? title,
-      note: input.note?.trim() || undefined,
-      kind: input.type,
-      goalId: undefined,
-    };
-
-    setTransactions((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item))
-    );
-    if (affectsBalance) {
-      setAccounts((prev) =>
-        prev.map((item) => {
-          if (
-            existing.accountId &&
-            item.id === existing.accountId &&
-            item.id !== account.id
-          ) {
-            return {
-              ...item,
-              balance: reverseTransactionFromBalance(item.balance, existing),
-            };
-          }
-          if (item.id === account.id) {
-            return {
-              ...item,
-              balance: balanceAfterTransactionEdit(
-                item.balance,
-                previousOnAccount,
-                nextEffect
-              ),
-            };
-          }
-          return item;
-        })
-      );
-    }
-
+    setAccounts(result.state.accounts);
+    setTransactions(result.state.transactions);
     setSelectedTransaction(null);
     setEditingTransaction(null);
     setLastAdded(null);
     setLastDeleted(null);
     sound.success();
-    return { ok: true, transaction: updated };
+    return { ok: true, transaction: result.transaction };
   };
 
+  const handleCreateTransfer = (input: TransferInput): TransferOpResult => {
+    const result = createTransferOp({ accounts, transactions, goals }, input);
+    if (!result.ok) {
+      return result;
+    }
+    setAccounts(result.state.accounts);
+    setTransactions(result.state.transactions);
+    setLastAdded(null);
+    setLastDeleted(null);
+    sound.success();
+    setShowTransfer(false);
+    return result;
+  };
+
+  const handleUpdateTransfer = (input: TransferUpdateInput): TransferOpResult => {
+    const result = updateTransferOp({ accounts, transactions, goals }, input);
+    if (!result.ok) {
+      return result;
+    }
+    setAccounts(result.state.accounts);
+    setTransactions(result.state.transactions);
+    setEditingTransfer(null);
+    setSelectedTransaction(null);
+    sound.success();
+    return result;
+  };
   const handleDeleteTransaction = (id: string): MoneyResult => {
-    const transaction = transactions.find((item) => item.id === id);
-    if (!transaction) {
-      return { ok: false, error: 'That transaction no longer exists.' };
+    const result = deleteTransactionOp({ accounts, transactions, goals }, id);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
 
-    if (transaction.status === 'Completed' && transaction.accountId) {
-      setAccounts((prev) =>
-        prev.map((item) =>
-          item.id === transaction.accountId
-            ? {
-                ...item,
-                balance: reverseTransactionFromBalance(item.balance, transaction),
-              }
-            : item
-        )
-      );
-    }
-    if (transaction.goalId) {
-      setGoals((prev) =>
-        prev.map((goal) => {
-          if (goal.id !== transaction.goalId) return goal;
-          const nextSaved = subtractMoney(goal.savedAmount, transaction.amount);
-          return {
-            ...goal,
-            savedAmount: compareMoney(nextSaved, 0) < 0 ? 0 : nextSaved,
-          };
-        })
-      );
-    }
-
-    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
+    setAccounts(result.state.accounts);
+    setGoals(result.state.goals);
+    setTransactions(result.state.transactions);
     setSelectedTransaction(null);
     setEditingTransaction(null);
     setLastAdded(null);
-    setLastDeleted(transaction);
+    setLastDeleted([result.transaction, ...result.companions]);
     sound.success();
-    return { ok: true, transaction };
+    return { ok: true, transaction: result.transaction };
   };
 
   const handleUndoDelete = () => {
-    if (!lastDeleted) return;
-    const transaction = lastDeleted;
+    if (!lastDeleted || lastDeleted.length === 0) return;
 
-    setTransactions((prev) =>
-      prev.some((item) => item.id === transaction.id)
-        ? prev
-        : [transaction, ...prev]
-    );
-    if (transaction.status === 'Completed' && transaction.accountId) {
-      setAccounts((prev) =>
-        prev.map((item) =>
-          item.id === transaction.accountId
-            ? {
-                ...item,
-                balance: applyTransactionToBalance(item.balance, transaction),
-              }
-            : item
-        )
-      );
-    }
-    if (transaction.goalId) {
-      setGoals((prev) =>
-        prev.map((goal) =>
-          goal.id === transaction.goalId
-            ? { ...goal, savedAmount: addMoney(goal.savedAmount, transaction.amount) }
-            : goal
-        )
-      );
-    }
+    const next = undoDeleteTransactionOp({ accounts, transactions, goals }, lastDeleted);
+    setTransactions(next.transactions);
+    setAccounts(next.accounts);
+    setGoals(next.goals);
 
     setLastDeleted(null);
     sound.success();
@@ -929,19 +765,12 @@ export const App: React.FC = () => {
   const handleUndoAdd = () => {
     if (!lastAdded) return;
     const transaction = lastAdded;
-    setTransactions((prev) => prev.filter((item) => item.id !== transaction.id));
-    if (transaction.status === 'Completed' && transaction.accountId) {
-      setAccounts((prev) =>
-        prev.map((item) =>
-          item.id === transaction.accountId
-            ? {
-                ...item,
-                balance: reverseTransactionFromBalance(item.balance, transaction),
-              }
-            : item
-        )
-      );
-    }
+
+    const next = undoAddTransactionOp({ accounts, transactions, goals }, transaction);
+    setTransactions(next.transactions);
+    setAccounts(next.accounts);
+    setGoals(next.goals);
+
     setLastAdded(null);
     sound.click();
   };
@@ -1152,9 +981,11 @@ export const App: React.FC = () => {
       name: input.name,
       type: input.type,
       balance: input.balance,
+      openingBalance: input.balance,
       currency: input.currency,
       status: 'Active',
       change: '+0%',
+      createdAt: new Date().toISOString(),
     };
     setAccounts((prev) => [newAccount, ...prev]);
     sound.success();
@@ -1172,9 +1003,14 @@ export const App: React.FC = () => {
     sound.click();
   };
 
-  const handleDeleteAccount = (accountId: string) => {
-    setAccounts((prev) => prev.filter((acc) => acc.id !== accountId));
+  const handleDeleteAccount = (accountId: string): string | null => {
+    const result = deleteAccountOp({ accounts, transactions, goals }, accountId);
+    if (!result.ok) {
+      return result.error;
+    }
+    setAccounts(result.state.accounts);
     sound.click();
+    return null;
   };
 
   const handleUpdateProfile = (profile: UserProfile) => {
@@ -1489,7 +1325,7 @@ export const App: React.FC = () => {
                 }}
               >
                 <span>
-                  Sample data — fictional records for exploring Sanchay. Not your real finances.
+                  Sample data â€” fictional records for exploring Sanchay. Not your real finances.
                 </span>
                 <button
                   type="button"
@@ -1556,6 +1392,7 @@ export const App: React.FC = () => {
                 monthlySpent={monthlySpent}
                 onOpenPlan={() => navigate('Plan')}
                 onOpenConnectAccount={() => setShowConnectAccount(true)}
+                onTransfer={() => setShowTransfer(true)}
               />
             )}
 
@@ -1605,6 +1442,11 @@ export const App: React.FC = () => {
           account={selectedAccount}
           onEdit={(transaction) => {
             setSelectedTransaction(null);
+            if (transaction.transferId) {
+              const legs = transactions.filter((item) => item.transferId === transaction.transferId);
+              setEditingTransfer({ transferId: transaction.transferId, legs });
+              return;
+            }
             setEditingTransaction(transaction);
           }}
           onDelete={handleDeleteTransaction}
@@ -1703,6 +1545,24 @@ export const App: React.FC = () => {
           />
         )}
 
+        {showTransfer && (
+          <TransferModal
+            accounts={accounts}
+            onCreate={handleCreateTransfer}
+            onClose={() => setShowTransfer(false)}
+          />
+        )}
+
+        {editingTransfer && (
+          <TransferModal
+            key={editingTransfer.transferId}
+            accounts={accounts}
+            editing={editingTransfer}
+            onUpdate={handleUpdateTransfer}
+            onClose={() => setEditingTransfer(null)}
+          />
+        )}
+
         {lastAdded && (
           <div className="sanchay-toast" role="status" aria-live="polite">
             <div className="sanchay-toast-icon">
@@ -1721,7 +1581,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastAdded.title} · {formatMoney(lastAdded.amount)}
+                {lastAdded.title} Â· {formatMoney(lastAdded.amount)}
               </div>
             </div>
             <button type="button" onClick={handleUndoAdd} className="sanchay-toast-undo">
@@ -1738,7 +1598,7 @@ export const App: React.FC = () => {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
-                Transaction deleted
+                {lastDeleted[0]?.transferId ? 'Transfer deleted' : 'Transaction deleted'}
               </div>
               <div
                 style={{
@@ -1749,7 +1609,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastDeleted.title} · {formatMoney(lastDeleted.amount)}
+                {lastDeleted[0]?.title} Â· {formatMoney(lastDeleted[0]?.amount ?? 0, lastDeleted[0]?.currency)}
               </div>
             </div>
             <button type="button" onClick={handleUndoDelete} className="sanchay-toast-undo">
@@ -1793,7 +1653,7 @@ export const App: React.FC = () => {
                 Your accounts, transactions, budgets and goals are saved in this browser&apos;s
                 local storage on this device. Nothing in this dashboard is uploaded or synced.
                 Search, reports and receipts are generated locally. Your data stays here until
-                you delete it — use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
+                you delete it â€” use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
                 storage from device settings. Backups you export are files you control; delete
                 them when you no longer need them.
               </p>
@@ -1834,7 +1694,7 @@ export const App: React.FC = () => {
               >
                 The JSON backup includes accounts, transactions, payees, goals, budgets,
                 planned payments, payment assistance attempts and preferences. Backups are not
-                encrypted — anyone with the file can read it — so store it carefully. Your
+                encrypted â€” anyone with the file can read it â€” so store it carefully. Your
                 app-lock PIN is never included in an export and is never taken from an imported
                 file. Importing replaces the data on this device.
               </p>

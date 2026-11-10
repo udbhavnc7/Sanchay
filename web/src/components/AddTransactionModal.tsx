@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   Account,
   Category,
@@ -98,6 +98,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   );
   const [note, setNote] = useState(transaction?.note ?? '');
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
 
   const categoryOptions = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const categories =
@@ -158,6 +159,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (submittingRef.current) {
+      return;
+    }
     if (!account) {
       setError(
         isEditing
@@ -202,12 +206,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       return;
     }
 
+    submittingRef.current = true;
     const result =
       isEditing && transaction && onUpdate
         ? onUpdate({ ...payload, id: transaction.id })
         : onAdd(payload);
 
     if (!result.ok) {
+      submittingRef.current = false;
       setError(
         result.error ?? (isEditing ? 'Could not save this transaction.' : 'Could not add this transaction.')
       );

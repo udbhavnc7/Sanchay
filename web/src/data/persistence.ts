@@ -108,7 +108,9 @@ function isAccount(value: unknown): value is Account {
     isNumber(value.balance) &&
     isString(value.status) &&
     ACCOUNT_STATUSES.includes(value.status as Account['status']) &&
-    (isNumber(value.change) || isString(value.change))
+    (isNumber(value.change) || isString(value.change)) &&
+    (value.openingBalance === undefined || isNumber(value.openingBalance)) &&
+    (value.createdAt === undefined || isString(value.createdAt))
   );
 }
 
@@ -139,7 +141,13 @@ function isTransaction(value: unknown): value is Transaction {
     (value.fee === undefined || isNumber(value.fee)) &&
     (value.goalId === undefined || isString(value.goalId)) &&
     (value.paymentAttemptId === undefined || isString(value.paymentAttemptId)) &&
-    (value.userReference === undefined || isString(value.userReference))
+    (value.userReference === undefined || isString(value.userReference)) &&
+    (value.currency === undefined || isCurrency(value.currency)) &&
+    (value.transferId === undefined || isString(value.transferId)) &&
+    (value.transferRate === undefined || isNumber(value.transferRate)) &&
+    (value.refundOfId === undefined || isString(value.refundOfId)) &&
+    (value.createdAt === undefined || isString(value.createdAt)) &&
+    (value.updatedAt === undefined || isString(value.updatedAt))
   );
 }
 

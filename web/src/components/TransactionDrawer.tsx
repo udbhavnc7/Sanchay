@@ -53,7 +53,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   const currency = account?.currency ?? 'INR';
   const isIncome = transaction.kind === 'income';
   const isTransfer = transaction.kind === 'transfer';
-  const canEdit = !isTransfer && currency === 'INR';
+  const canEdit = isTransfer ? Boolean(transaction.transferId) : currency === 'INR';
 
   const handleDelete = () => {
     sound.click();
@@ -84,12 +84,12 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
   const handleDownload = () => {
     const lines = [
-      'SANCHAY — TRANSACTION RECORD',
+      'SANCHAY â€” TRANSACTION RECORD',
       '============================',
       '',
       `Reference:    ${transaction.reference}`,
       `Status:       ${transaction.status}`,
-      `Type:         ${isIncome ? 'Income' : isTransfer ? 'Savings transfer' : 'Expense'}`,
+      `Type:         ${isIncome ? 'Income' : isTransfer ? (transaction.transferId ? 'Transfer' : 'Savings transfer') : 'Expense'}`,
       `Amount:       ${formatMoney(transaction.amount, currency)}`,
       `Title:        ${transaction.title}`,
       `Counterparty: ${transaction.counterparty}`,
@@ -100,7 +100,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
       transaction.recipient ? `Payee UPI ID: ${transaction.recipient}` : '',
       transaction.userReference ? `User Reference / UTR: ${transaction.userReference}` : '',
       transaction.paymentAttemptId ? `Payment Attempt ID: ${transaction.paymentAttemptId}` : '',
-      `Note:         ${transaction.note ?? '—'}`,
+      `Note:         ${transaction.note ?? 'â€”'}`,
       '',
       transaction.paymentAttemptId
         ? 'Notice: Recorded in Sanchay; marked paid by you; not bank-verified.'
@@ -180,7 +180,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             </div>
 
             <h2 className="text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
-              {isIncome ? '+' : '−'}
+              {isIncome ? '+' : 'âˆ’'}
               {formatMoney(transaction.amount, currency)}
             </h2>
 
@@ -258,7 +258,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
               <ShieldCheck size={13} />
               <span>
                 {transaction.paymentAttemptId
-                  ? 'Marked paid by you — not verified by Sanchay'
+                  ? 'Marked paid by you â€” not verified by Sanchay'
                   : 'Local record'}
               </span>
             </div>

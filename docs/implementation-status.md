@@ -11,9 +11,9 @@ Platform key: **B** = desktop browser · **E** = emulator · **D** = physical de
 | Feature | Status | Sources | Tests | Defects / edge cases | Platform | Next action |
 |---|---|---|---|---|---|---|
 | First-run blank vs sample | ✅ | `App.tsx`, `data/firstRun.ts`, `components/FirstRunScreen.tsx` | `firstRun.test.ts` (4), E2E 18 checks | none known (closed before commit) | B, CI | keep |
-| Transactions CRUD + undo | ✅ | `App.tsx`, `components/TransactionDrawer.tsx`, `utils/ledger.ts` | `ledger.test.ts`, `transactionTemplates.test.ts` | double-submit covered by UI state; device untested | B, CI | D (1.5) |
+| Transactions CRUD + undo | ✅ | `utils/ledgerOps.ts` (pure engine), `App.tsx` (wiring), `components/AddTransactionModal.tsx` (busy-ref guard) | `ledgerOps.test.ts` (41 acceptance tests, plan §4.2/§4.3), `ledger.test.ts`, `transactionTemplates.test.ts` | engine extracted from App closures 10 Nov; undo is idempotent (no duplicate writes); goal-contribution reversal gap fixed | B, CI | device pass (1.5) |
 | Money math (minor units) | ✅ | `utils/money.ts` | `money.test.ts` | DST bug in safe-to-spend horizon **fixed** 10 Nov (calendar-day arithmetic) | B, CI | keep TZ CI leg (in `web.yml`) |
-| Accounts lifecycle | ◐ | `App.tsx` (connect/toggle/delete), `components/ConnectAccountModal.tsx` | none direct | delete-with-history path untested; inactive-account selection rules unverified | B | tests for delete/archive semantics (1.2) |
+| Accounts lifecycle | ◐ | `utils/ledgerOps.ts` (`deleteAccount` guard), `App.tsx` (connect/toggle), `components/ProfileSettingsModal.tsx` (inline delete error) | `ledgerOps.test.ts` (delete-with-history blocked → archive message; inactive rules) | delete now refuses when transactions are linked (plan §4.3); opening-balance **display** still missing; balance derivation statement not in UI | B | opening-balance display + derivation copy (1.3) |
 | Cards (3D + freeze) | 🖼 | `components/CardsTab.tsx`, `ThreeDCard.tsx` | none | visual simulation only — must never imply real card controls | B | keep copy honest (README ✓) |
 | Safe-to-Spend | ✅ | `utils/safeToSpend.ts` | `safeToSpend.test.ts` (7) + 5 time zones | lookback/recurring inputs deferred to recurring design | B, CI | after 2.4 |
 | Planned payments (one-time) | ✅ | `components/PlannedPaymentsSection.tsx` | partial via safeToSpend | **recurring rules missing** — design `docs/design-recurring-payments.md` awaits approval | B | P1 after approval |
@@ -21,7 +21,7 @@ Platform key: **B** = desktop browser · **E** = emulator · **D** = physical de
 | Budgets | ◐ | `components/ReportsTab.tsx`/Overview | partial | **history/custom categories missing**; period-boundary tests thin | B | 2.3 |
 | Category suggestions | ✅ | `utils/categorySuggestion.ts` | `categorySuggestion.test.ts` | — | B, CI | — |
 | Payees | ✅ | `components/TransfersTab.tsx`, `data/persistence.ts` (validators) | persistence validators | duplicate-detect with user choice (6.4) not implemented | B | P1 |
-| Path A payment assistance | ✅ | `utils/paymentAttempts.ts`, `components/TransfersTab.tsx` | `paymentAttempts.test.ts`, `paymentWorkflowIntegration.test.ts` | enforced by CI gate (3,127 asserts: `upi://`, `intent://`) | B, CI | keep |
+| Path A payment assistance | ✅ | `utils/paymentAttempts.ts`, `components/TransfersTab.tsx` | `paymentAttempts.test.ts`, `paymentWorkflowIntegration.test.ts` | enforced by CI gate (3,130 asserts: `upi://`, `intent://`) | B, CI | keep |
 | Request money (plain text) | ✅ | `components/RequestMoneyModal.tsx` | — | never UPI Collect (copy verified) | B | — |
 | Reports + CSV export | ✅ | `components/ReportsTab.tsx`, `utils/` (csv) | `spendingComparison.test.ts`, `fileSave.test.ts` | reconciliation-to-ledger not exhaustively tested | B | 2.5 audit |
 | Search / filters | ✅ | `components/SearchOverlay.tsx`, `ActivityTab.tsx` | — | — | B | — |
@@ -61,12 +61,15 @@ Platform key: **B** = desktop browser · **E** = emulator · **D** = physical de
 | paparazzi.yml | 🟡 CI-only | Windows local delta documented — never re-record |
 | integration_test.yml (androidTest) | ❌ blocked | needs emulator/device |
 
-## Open blockers (unchanged)
+## Open blockers (updated 10 Nov)
 
-1. **0.3 storage architecture decision** — `docs/storage-architecture-decision.md` not yet written (localStorage vs Room; no two writable ledgers).
-2. **0.4 android identity/signing write-up** — audit facts known; `docs/android-identity-and-signing.md` not yet written.
+1. **Package ID decision** — `com.ivy.wallet` kept for now; recommendation + migration checklist in `docs/android-identity-and-signing.md` (must freeze before first public release).
+2. **Inherited `internal_release.yml`** — re-point Ivy artifact names, Telegram side-channel, and Play service account before any release (see identity doc).
 3. Physical device session (plan 1.5) — runbook ready, no device.
 4. Emulator androidTest run — AVD stuck offline on this machine.
 5. App-lock PIN storage hardening (7.3) — P0 security item.
-6. Design approvals: recurring payments, encrypted backups.
-7. External: privacy URL/contact TODOs, Play entries, legal review (UPI spec § external items).
+6. Runtime network audit (7.2) — google-services plugin present; needed before Privacy Policy/Data safety claims.
+7. Design approvals: recurring payments, encrypted backups.
+8. External: privacy URL/contact TODOs, Play entries, legal review (UPI spec § external items).
+
+Completed this session: 0.1 (`docs/implementation-status.md` + `docs/verification-baseline.md`), 0.2 (blank first-run, E2E 18/18), 0.3 (`docs/storage-architecture-decision.md`), 0.4 (`docs/android-identity-and-signing.md` + `.gitignore` keystore hardening).

@@ -42,7 +42,7 @@ interface ProfileSettingsModalProps {
     appLockPin?: string;
   }) => void;
   onToggleAccountStatus: (accountId: string) => void;
-  onDeleteAccount: (accountId: string) => void;
+  onDeleteAccount: (accountId: string) => string | null;
   onExportBackup: () => void;
   onImportBackup: (file: File) => void;
   onResetData: () => void;
@@ -115,6 +115,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   // Reset confirmation
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmSample, setConfirmSample] = useState(false);
+  const [accountDeleteError, setAccountDeleteError] = useState('');
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -430,6 +431,23 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 </button>
               </div>
 
+              {accountDeleteError && (
+                <div
+                  role="alert"
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#ef4444',
+                  }}
+                >
+                  {accountDeleteError}
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {accounts.map((account) => {
                   const getIcon = () => {
@@ -505,7 +523,8 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                             type="button"
                             onClick={() => {
                               if (window.confirm(`Delete account "${account.name}"?`)) {
-                                onDeleteAccount(account.id);
+                                const error = onDeleteAccount(account.id);
+                                setAccountDeleteError(error ?? '');
                               }
                             }}
                             className="dock-btn"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import type { Account } from '../types/finance';
 import { ThreeDCard } from './ThreeDCard';
 import { sound } from '../utils/audio';
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ChevronRight,
   Plus,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { formatMoney, formatPercent } from '../utils/money';
 
@@ -24,6 +25,7 @@ interface CardsTabProps {
   monthlySpent: number;
   onOpenPlan: () => void;
   onOpenConnectAccount?: () => void;
+  onTransfer?: () => void;
 }
 
 export const CardsTab: React.FC<CardsTabProps> = ({
@@ -34,6 +36,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
   monthlySpent,
   onOpenPlan,
   onOpenConnectAccount,
+  onTransfer,
 }) => {
   const [onlinePayments, setOnlinePayments] = useState(true);
   const [contactless, setContactless] = useState(true);
@@ -132,7 +135,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       }}
                     />
                     <span>
-                      {card.type} •••• {card.last4}
+                      {card.type} â€¢â€¢â€¢â€¢ {card.last4}
                     </span>
                   </button>
                 ))}
@@ -193,7 +196,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       Contactless
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Tap to pay up to ₹5,000 per payment
+                      Tap to pay up to â‚¹5,000 per payment
                     </div>
                   </div>
                 </div>
@@ -218,7 +221,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       ATM withdrawals
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Up to ₹25,000 per day
+                      Up to â‚¹25,000 per day
                     </div>
                   </div>
                 </div>
@@ -280,6 +283,27 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {onTransfer && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.click();
+                      onTransfer();
+                    }}
+                    className="btn-action-dark"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ArrowLeftRight size={13} />
+                    Transfer
+                  </button>
+                )}
                 {onOpenConnectAccount && (
                   <button
                     type="button"
@@ -317,7 +341,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                         {account.name}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {account.type} · {account.currency} ·{' '}
+                        {account.type} Â· {account.currency} Â·{' '}
                         <span style={{ color: account.status === 'Active' ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
                           {account.status}
                         </span>

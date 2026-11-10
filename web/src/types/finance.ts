@@ -8,10 +8,12 @@ export interface Account {
   type: AccountType;
   currency: Currency;
   balance: number;
+  openingBalance?: number;
   status: 'Active' | 'Inactive';
   change: number | string;
   flag?: string;
   symbol?: string;
+  createdAt?: string;
 }
 
 export type Wallet = Account;
@@ -44,6 +46,7 @@ export interface Transaction {
   title: string;
   category: Category;
   amount: number;
+  currency?: Currency;
   type: 'credit' | 'debit';
   status: TxStatus;
   date: string;
@@ -57,6 +60,11 @@ export interface Transaction {
   goalId?: string;
   paymentAttemptId?: string;
   userReference?: string;
+  transferId?: string;
+  transferRate?: number;
+  refundOfId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Contact {
