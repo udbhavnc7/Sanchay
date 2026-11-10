@@ -104,6 +104,10 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
         if (tx.type === 'debit') saved = addMoney(saved, tx.amount);
         return;
       }
+      if (tx.kind === 'refund') {
+        spending = subtractMoney(spending, tx.amount);
+        return;
+      }
       if (tx.type === 'credit') income = addMoney(income, tx.amount);
       else spending = addMoney(spending, tx.amount);
     });
@@ -554,7 +558,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       className="font-mono-numbers"
                       style={{ fontWeight: 800, color: 'var(--text-main)' }}
                     >
-                      {formatMoney(row.amount)} · {row.pct}%
+                      {formatMoney(row.amount)} Â· {row.pct}%
                     </span>
                   </div>
                   <div
@@ -768,7 +772,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             Statement preview
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {filtered.length} entries · CSV
+            {filtered.length} entries Â· CSV
           </span>
         </div>
 
@@ -819,7 +823,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                         {tx.category}
                       </td>
                       <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
-                        {account?.name ?? '—'}
+                        {account?.name ?? 'â€”'}
                       </td>
                       <td style={{ padding: '9px 10px' }}>
                         <span
@@ -847,7 +851,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {tx.type === 'credit' ? '+' : '−'}
+                        {tx.type === 'credit' ? '+' : 'âˆ’'}
                         {formatMoney(tx.amount, account?.currency ?? 'INR')}
                       </td>
                     </tr>

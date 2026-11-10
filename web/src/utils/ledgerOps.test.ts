@@ -5,6 +5,7 @@ import {
   createTransfer,
   deleteAccount,
   deleteTransaction,
+  recordRefund,
   undoAddTransaction,
   undoDeleteTransaction,
   updateTransaction,
@@ -512,7 +513,7 @@ describe('account lifecycle', () => {
 });
 
 describe('round-trip balance consistency', () => {
-  it('add â†’ undo â†’ add â†’ delete returns to the original balance exactly', () => {
+  it('add Ã¢â€ â€™ undo Ã¢â€ â€™ add Ã¢â€ â€™ delete returns to the original balance exactly', () => {
     let current = state();
     const original = current.accounts[0].balance;
 
@@ -536,7 +537,7 @@ describe('round-trip balance consistency', () => {
     expect(Number.isInteger(Math.round(current.accounts[0].balance * 100))).toBe(true);
   });
 
-  it('edit â†’ delete restores the pre-edit balance through both steps', () => {
+  it('edit Ã¢â€ â€™ delete restores the pre-edit balance through both steps', () => {
     const start = addTransaction(state(), expenseInput(), NOW);
     if (!start.ok) throw new Error('setup failed');
     const edited = updateTransaction(
@@ -741,3 +742,67 @@ describe('transfers', () => {
 });
 
 
+describe('refunds', () => {
+  function originalExpense(): Transaction {
+    return {
+      id: 'tx_orig',
+      title: 'Groceries',
+      category: 'Groceries',
+      amount: 100,
+      type: 'debit',
+      status: 'Completed',
+      date: '2026-11-10T12:00:00.000Z',
+      accountId: 'acc1',
+      kind: 'expense',
+      createdAt: NOW.toISOString(),
+      updatedAt: NOW.toISOString(),
+    };
+  }
+
+  it('records a full refund linked to the original expense', () => {
+    const start = state();
+    const original = originalExpense();
+    const withOriginal = {
+      ...start,
+      transactions: [original],
+    };
+    const result = recordRefund(withOriginal, { originalTransactionId: 'tx_orig', amount: 100 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.transaction.kind).toBe('refund');
+    expect(result.transaction.type).toBe('credit');
+    expect(result.transaction.refundOfId).toBe('tx_orig');
+    expect(result.transaction.category).toBe('Groceries');
+    expect(result.state.accounts[0].balance).toBe(1100);
+  });
+
+  it('records a partial refund', () => {
+    const start = state();
+    const original = { ...originalExpense(), amount: 100 };
+    const withOriginal = { ...start, transactions: [original] };
+    const result = recordRefund(withOriginal, { originalTransactionId: 'tx_orig', amount: 40 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.accounts[0].balance).toBe(1040);
+  });
+
+  it('blocks a refund larger than the original', () => {
+    const withOriginal = state({ transactions: [originalExpense()] });
+    const result = recordRefund(withOriginal, { originalTransactionId: 'tx_orig', amount: 150 });
+    expect(result).toEqual({ ok: false, error: 'Refund amount exceeds the original transaction.' });
+  });
+
+  it('blocks a refund that exceeds the remaining refundable amount', () => {
+    const withOriginal = state({ transactions: [originalExpense()] });
+    const first = recordRefund(withOriginal, { originalTransactionId: 'tx_orig', amount: 60 });
+    expect(first.ok).toBe(true);
+    if (!first.ok) throw new Error('setup failed');
+    const second = recordRefund(first.state, { originalTransactionId: 'tx_orig', amount: 50 });
+    expect(second).toEqual({ ok: false, error: 'Refund amount exceeds the remaining refundable amount.' });
+  });
+
+  it('rejects a refund for an unknown original transaction', () => {
+    const result = recordRefund(state(), { originalTransactionId: 'nope', amount: 10 });
+    expect(result).toEqual({ ok: false, error: 'That transaction no longer exists.' });
+  });
+});

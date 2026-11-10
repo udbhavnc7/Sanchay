@@ -135,7 +135,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       }}
                     />
                     <span>
-                      {card.type} â€¢â€¢â€¢â€¢ {card.last4}
+                      {card.type} Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢ {card.last4}
                     </span>
                   </button>
                 ))}
@@ -196,7 +196,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       Contactless
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Tap to pay up to â‚¹5,000 per payment
+                      Tap to pay up to Ã¢â€šÂ¹5,000 per payment
                     </div>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       ATM withdrawals
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Up to â‚¹25,000 per day
+                      Up to Ã¢â€šÂ¹25,000 per day
                     </div>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                         {account.name}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {account.type} Â· {account.currency} Â·{' '}
+                        {account.type} Ã‚Â· {account.currency} Ã‚Â·{' '}
                         <span style={{ color: account.status === 'Active' ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
                           {account.status}
                         </span>
@@ -350,6 +350,11 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    {account.openingBalance !== undefined && (
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>
+                        Opening {formatMoney(account.openingBalance, account.currency, { decimals: false })}
+                      </div>
+                    )}
                     <div className="font-mono-numbers" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
                       {formatMoney(account.balance, account.currency, { decimals: false })}
                     </div>
@@ -363,6 +368,9 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       }}
                     >
                       {formatPercent(Number(account.change))}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Calculated from opening balance plus ledger entries.
                     </div>
                   </div>
                 </div>

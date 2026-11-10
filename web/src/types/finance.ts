@@ -37,7 +37,7 @@ export type Category =
   | 'Other';
 
 export type TxStatus = 'Completed' | 'Pending' | 'Failed' | 'Flagged';
-export type TxKind = 'expense' | 'income' | 'transfer';
+export type TxKind = 'expense' | 'income' | 'transfer' | 'refund';
 
 export interface Transaction {
   id: string;
@@ -208,5 +208,6 @@ export interface ConnectAccountInput {
   type: Account['type'];
   currency: Currency;
   balance: number;
+  openingBalance?: number;
   status?: Account['status'];
 }

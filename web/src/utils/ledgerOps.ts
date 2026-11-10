@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   Account,
   Currency,
   NewTransactionInput,
@@ -632,3 +632,75 @@ export function updateTransfer(
 }
 
 
+export interface RefundInput {
+  originalTransactionId: string;
+  amount: number;
+  date?: string;
+  title?: string;
+  note?: string;
+  accountId?: string;
+}
+
+export type RefundOpResult =
+  | { ok: true; state: LedgerState; transaction: Transaction }
+  | { ok: false; error: string };
+
+export function recordRefund(
+  state: LedgerState,
+  input: RefundInput,
+  now: Date = new Date()
+): RefundOpResult {
+  const original = state.transactions.find((item) => item.id === input.originalTransactionId);
+  if (!original) {
+    return { ok: false, error: 'That transaction no longer exists.' };
+  }
+  const originalCurrency = original.currency ?? 'INR';
+  const originalMinor = toMinorUnits(original.amount, originalCurrency);
+  const refundMinor = toMinorUnits(input.amount, originalCurrency);
+  if (refundMinor > originalMinor) {
+    return { ok: false, error: 'Refund amount exceeds the original transaction.' };
+  }
+  const refundedSoFarMinor = state.transactions
+    .filter((item) => item.refundOfId === original.id && item.kind === 'refund')
+    .reduce((sum, item) => sum + toMinorUnits(item.amount, item.currency ?? originalCurrency), 0);
+  if (refundMinor + refundedSoFarMinor > originalMinor) {
+    return { ok: false, error: 'Refund amount exceeds the remaining refundable amount.' };
+  }
+  const occurredAt = new Date(`${input.date ?? original.date.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(occurredAt.getTime())) {
+    return { ok: false, error: 'Choose a valid date.' };
+  }
+  const today = new Date(now.getTime());
+  today.setHours(23, 59, 59, 999);
+  if (occurredAt > today) {
+    return { ok: false, error: 'Use today or an earlier date.' };
+  }
+  const transaction: Transaction = {
+    id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    reference: `RFD-${String(Date.now()).slice(-8)}`,
+    title: input.title?.trim() || `Refund - ${original.title}`,
+    category: original.category,
+    amount: fromMinorUnits(refundMinor, originalCurrency),
+    currency: originalCurrency,
+    type: 'credit',
+    status: 'Completed',
+    date: occurredAt.toISOString(),
+    accountId: input.accountId ?? original.accountId,
+    counterparty: original.counterparty,
+    note: input.note?.trim() || undefined,
+    kind: 'refund',
+    refundOfId: original.id,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+  };
+  const next = cloneState(state);
+  next.transactions = [transaction, ...next.transactions];
+  if (transaction.accountId) {
+    next.accounts = next.accounts.map((item) =>
+      item.id === transaction.accountId
+        ? { ...item, balance: addMoney(item.balance, transaction.amount, transaction.currency) }
+        : item
+    );
+  }
+  return { ok: true, state: next, transaction };
+};

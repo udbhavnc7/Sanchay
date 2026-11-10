@@ -65,7 +65,7 @@ const TRANSACTION_STATUSES: Transaction['status'][] = [
   'Failed',
   'Flagged',
 ];
-const TRANSACTION_KINDS: NonNullable<Transaction['kind']>[] = ['expense', 'income', 'transfer'];
+const TRANSACTION_KINDS: NonNullable<Transaction['kind']>[] = ['expense', 'income', 'transfer', 'refund'];
 const PLANNED_DIRECTIONS: PlannedPayment['direction'][] = ['in', 'out'];
 
 function browserStorage(): StorageLike | null {

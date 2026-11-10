@@ -1,6 +1,6 @@
-# SANCHAY â€” Completion Master Plan
+# SANCHAY Ã¢â‚¬â€ Completion Master Plan
 
-**Project:** Sanchay â€” Personal Finance Manager
+**Project:** Sanchay Ã¢â‚¬â€ Personal Finance Manager
 **Repository:** https://github.com/udbhavnc7/Sanchay  
 **Live web preview:** https://sanchay-raib.onrender.com/  
 **Prepared:** 10 November 2026  
@@ -90,11 +90,11 @@ The Antigravity briefing supplied for this plan reports 68/68 tests passing acro
 
 Use these project documents as related references, not competing master plans:
 
-- `README.md` â€” user-facing description and supported setup instructions.
-- `SANCHAY_FINAL_IMPROVEMENT_PLAN.md` â€” product direction, UX and technical improvement principles.
-- `SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md` â€” authoritative UPI/payment boundary and payment-related release requirements.
-- `docs/data-flow-inventory.md` â€” static data-flow and network capability inventory.
-- Any current release checklist under `docs/` â€” physical-device and release evidence.
+- `README.md` Ã¢â‚¬â€ user-facing description and supported setup instructions.
+- `SANCHAY_FINAL_IMPROVEMENT_PLAN.md` Ã¢â‚¬â€ product direction, UX and technical improvement principles.
+- `SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md` Ã¢â‚¬â€ authoritative UPI/payment boundary and payment-related release requirements.
+- `docs/data-flow-inventory.md` Ã¢â‚¬â€ static data-flow and network capability inventory.
+- Any current release checklist under `docs/` Ã¢â‚¬â€ physical-device and release evidence.
 
 Where this document and the UPI specification differ on payment behavior, follow the UPI specification. Where the repository has changed since this plan was prepared, inspect the code and update this plan rather than reverting valid work.
 
@@ -141,7 +141,7 @@ Sanchay is ready for its first production release only when all **P0 release gat
 
 ---
 
-## 3. Phase 0 â€” Repository audit and stabilization (P0)
+## 3. Phase 0 Ã¢â‚¬â€ Repository audit and stabilization (P0)
 
 **Do this before adding new features.**
 
@@ -234,7 +234,7 @@ Deliverable: `docs/android-identity-and-signing.md`.
 
 ---
 
-## 4. Phase 1 â€” Financial ledger correctness (P0)
+## 4. Phase 1 Ã¢â‚¬â€ Financial ledger correctness (P0)
 
 This phase is the foundation. A beautiful interface is not useful if balances or reports are wrong.
 
@@ -355,7 +355,7 @@ Tests:
 
 ---
 
-## 5. Phase 2 â€” Complete the existing finance features (P1)
+## 5. Phase 2 Ã¢â‚¬â€ Complete the existing finance features (P1)
 
 ### 5.1 Categories and tags
 
@@ -420,7 +420,7 @@ Complete budgets with:
 - Transfers excluded from spending.
 - Archived budgets retain historical performance.
 - Budget edits apply according to a clear effective date and do not rewrite old periods.
-- Historical view for at least the previous 3â€“6 months where data exists.
+- Historical view for at least the previous 3Ã¢â‚¬â€œ6 months where data exists.
 - Period comparison and category drill-down.
 - Clear empty states when there is not enough history.
 - Non-shaming language; no manipulative warnings.
@@ -552,7 +552,7 @@ Tests:
 - Missing rate, invalid rate and offline mode.
 - Cross-currency transfer and report totals.
 
-### 5.8 Loans and debt records â€” scope verification
+### 5.8 Loans and debt records Ã¢â‚¬â€ scope verification
 
 The existing improvement plan mentions loans and related transactions, but the current public dashboard README does not establish that a complete loan module is available in the visible Sanchay dashboard.
 
@@ -571,7 +571,7 @@ If it is not exposed and not part of the confirmed product scope, do not add it 
 
 ---
 
-## 6. Phase 3 â€” Payees and India payment-assistance safety (P0/P1)
+## 6. Phase 3 Ã¢â‚¬â€ Payees and India payment-assistance safety (P0/P1)
 
 The current release path is **Path A: external payment assistance and local record keeping only**.
 
@@ -642,7 +642,7 @@ Before publication:
 
 ---
 
-## 7. Phase 4 â€” Privacy, security, backups and data recovery (P0)
+## 7. Phase 4 Ã¢â‚¬â€ Privacy, security, backups and data recovery (P0)
 
 ### 7.1 Privacy/data page
 
@@ -748,7 +748,7 @@ Add optional passphrase-protected encryption only after plain backup/restore is 
 
 ---
 
-## 8. Phase 5 â€” Android application completion (P0)
+## 8. Phase 5 Ã¢â‚¬â€ Android application completion (P0)
 
 ### 8.1 WebView and lifecycle
 
@@ -806,7 +806,7 @@ For inherited native modules:
 
 ---
 
-## 9. Phase 6 â€” UX, accessibility and visual polish (P1)
+## 9. Phase 6 Ã¢â‚¬â€ UX, accessibility and visual polish (P1)
 
 Preserve the existing Sanchay visual identity and layout direction. Improve consistency rather than applying a completely new aesthetic.
 
@@ -867,7 +867,7 @@ Keep the existing beige/brand styling and current Sanchay identity unless there 
 
 ---
 
-## 10. Phase 7 â€” Automated and manual quality assurance (P0)
+## 10. Phase 7 Ã¢â‚¬â€ Automated and manual quality assurance (P0)
 
 ### 10.1 Automated tests
 
@@ -930,7 +930,7 @@ Deliverable: `docs/qa-and-device-test-results.md`.
 
 ---
 
-## 11. Phase 8 â€” Release, legal, licensing and public documentation (P0)
+## 11. Phase 8 Ã¢â‚¬â€ Release, legal, licensing and public documentation (P0)
 
 ### 11.1 Privacy Policy and Terms
 
@@ -1022,14 +1022,14 @@ Do not attempt every feature in one enormous coding pass. Execute in small phase
 
 Maintain these files as the work progresses. Do not create empty documents merely to satisfy the list; each file must contain evidence.
 
-1. `docs/implementation-status.md` â€” verified feature matrix and source mapping.
-2. `docs/verification-baseline.md` â€” exact tool versions, commands, tests and build result.
-3. `docs/storage-architecture-decision.md` â€” selected persistence architecture and migration strategy.
-4. `docs/android-identity-and-signing.md` â€” package ID, signing and secret audit.
-5. `docs/data-flow-inventory.md` â€” current static and runtime data-flow audit.
-6. `docs/qa-and-device-test-results.md` â€” physical device and release test evidence.
-7. `docs/release-readiness-checklist.md` â€” final Play Store and release status.
-8. Updated `README.md` â€” only claims verified in the release candidate.
+1. `docs/implementation-status.md` Ã¢â‚¬â€ verified feature matrix and source mapping.
+2. `docs/verification-baseline.md` Ã¢â‚¬â€ exact tool versions, commands, tests and build result.
+3. `docs/storage-architecture-decision.md` Ã¢â‚¬â€ selected persistence architecture and migration strategy.
+4. `docs/android-identity-and-signing.md` Ã¢â‚¬â€ package ID, signing and secret audit.
+5. `docs/data-flow-inventory.md` Ã¢â‚¬â€ current static and runtime data-flow audit.
+6. `docs/qa-and-device-test-results.md` Ã¢â‚¬â€ physical device and release test evidence.
+7. `docs/release-readiness-checklist.md` Ã¢â‚¬â€ final Play Store and release status.
+8. Updated `README.md` Ã¢â‚¬â€ only claims verified in the release candidate.
 
 At the end of each work package, report:
 
@@ -1054,13 +1054,13 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [x] Demo mode is explicit and clearly labeled. **[Verified 10 Nov: opt-in sample data + persistent banner + `demoMode` in backups; E2E round-trip]**
 - [ ] Account balances reconcile with opening balances and ledger entries.
 - [x] Transfers are linked and excluded from income/expense totals.
-- [ ] Refunds and reversals follow documented rules.
+- [x] Refunds and reversals follow documented rules. **[Verified 10 Nov: ledger recordRefund plus persistence refund kind plus engine validation plus reporting exclusions; 141/141 tests green; E2E 17/17]**
 - [ ] No duplicate transaction/payment confirmation paths remain.
 - [ ] Core features work offline.
 
 ### Features
 
-- [x] Transaction management is fully tested. **[Verified 10 Nov: `ledgerOps.test.ts` â€” 41 acceptance tests covering plan Â§4.2 (add/edit/delete/undo, invalid amount/date/account, inactive rules, double-submit guard, backup round-trip via persistence tests, reload via E2E); engine extracted to pure `utils/ledgerOps.ts`]
+- [x] Transaction management is fully tested. **[Verified 10 Nov: `ledgerOps.test.ts` Ã¢â‚¬â€ 41 acceptance tests covering plan Ã‚Â§4.2 (add/edit/delete/undo, invalid amount/date/account, inactive rules, double-submit guard, backup round-trip via persistence tests, reload via E2E); engine extracted to pure `utils/ledgerOps.ts`]
 - [ ] Accounts and account lifecycle are fully tested.
 - [ ] Custom categories/tags are complete or explicitly deferred in release notes.
 - [ ] Planned and recurring payments are complete or clearly marked one-time only.
@@ -1074,7 +1074,7 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 
 ### Data and security
 
-- [x] Single source of truth is documented for each runtime. **[Verified 10 Nov: `docs/storage-architecture-decision.md` â€” localStorage ledger, Room read-only/dormant, widget prefs = display cache, single-writer rule]**
+- [x] Single source of truth is documented for each runtime. **[Verified 10 Nov: `docs/storage-architecture-decision.md` Ã¢â‚¬â€ localStorage ledger, Room read-only/dormant, widget prefs = display cache, single-writer rule]**
 - [ ] Storage migrations are tested.
 - [ ] Backup export and restore work.
 - [ ] Encrypted backup behavior is tested if included.

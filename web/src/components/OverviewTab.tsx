@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { addMoney, formatMoney, relativeDay, startOfMonth, sumMoney } from '../utils/money';
+import { addMoney, formatMoney, relativeDay, startOfMonth, subtractMoney, sumMoney } from '../utils/money';
 import type { SafeToSpendResult } from '../utils/safeToSpend';
 
 interface OverviewTabProps {
@@ -105,7 +105,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     () =>
       sumMoney(
         monthTransactions
-          .filter((tx) => tx.type === 'credit' && tx.kind !== 'transfer')
+          .filter((tx) => tx.type === 'credit' && tx.kind !== 'transfer' && tx.kind !== 'refund')
           .map((tx) => tx.amount)
       ),
     [monthTransactions]
@@ -124,9 +124,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const categoryBreakdown = useMemo(() => {
     const totals = new Map<string, number>();
     monthTransactions
-      .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer')
+      .filter((tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer')
       .forEach((tx) => {
         totals.set(tx.category, addMoney(totals.get(tx.category) ?? 0, tx.amount));
+      });
+    monthTransactions
+      .filter((tx) => tx.status === 'Completed' && tx.type === 'credit' && tx.kind === 'refund')
+      .forEach((tx) => {
+        totals.set(tx.category, subtractMoney(totals.get(tx.category) ?? 0, tx.amount));
       });
     const rows = Array.from(totals.entries())
       .map(([category, amount]) => ({ category, amount }))
@@ -141,9 +146,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const budgetHealth = useMemo(() => {
     const spend = new Map<string, number>();
     monthTransactions
-      .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer')
+      .filter((tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer')
       .forEach((tx) => {
         spend.set(tx.category, addMoney(spend.get(tx.category) ?? 0, tx.amount));
+      });
+    monthTransactions
+      .filter((tx) => tx.status === 'Completed' && tx.type === 'credit' && tx.kind === 'refund')
+      .forEach((tx) => {
+        spend.set(tx.category, subtractMoney(spend.get(tx.category) ?? 0, tx.amount));
       });
     return budgets
       .map((budget) => {
@@ -209,7 +219,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {greeting()}, Udbhav
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Here is where your money stands today — no jargon, no surprises.
+            Here is where your money stands today â€” no jargon, no surprises.
           </p>
         </div>
 
@@ -528,7 +538,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   const next = e.target.value === '' ? 0 : Number(e.target.value);
                   onSafeToSpendBufferChange(Number.isFinite(next) && next > 0 ? next : 0);
                 }}
-                placeholder="₹0"
+                placeholder="â‚¹0"
                 aria-label="Safe to spend safety buffer"
                 style={{
                   width: '100%',
@@ -559,7 +569,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   const next = e.target.value === '' ? 0 : Number(e.target.value);
                   onWhatIfOutflowChange(Number.isFinite(next) && next > 0 ? next : 0);
                 }}
-                placeholder="₹0"
+                placeholder="â‚¹0"
                 aria-label="What-if purchase amount"
                 style={{
                   width: '100%',
@@ -786,7 +796,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   {formatMoney(account.balance, account.currency)}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {account.type} · {account.currency}
+                  {account.type} Â· {account.currency}
                 </div>
               </div>
             );
@@ -837,7 +847,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   >
                     <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.category}</span>
                     <span className="font-mono-numbers" style={{ color: 'var(--text-muted)' }}>
-                      {formatMoney(row.amount)} · {pct}%
+                      {formatMoney(row.amount)} Â· {pct}%
                     </span>
                   </div>
                   <div
@@ -1048,7 +1058,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       {tx.title}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      {tx.category} · {relativeDay(tx.date)}
+                      {tx.category} Â· {relativeDay(tx.date)}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -1060,7 +1070,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                         color: isCredit ? '#10b981' : 'var(--text-main)',
                       }}
                     >
-                      {isCredit ? '+' : '−'}
+                      {isCredit ? '+' : 'âˆ’'}
                       {formatMoney(tx.amount)}
                     </div>
                     <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{tx.status}</div>

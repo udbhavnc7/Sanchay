@@ -53,6 +53,7 @@ export const ConnectAccountModal: React.FC<ConnectAccountModalProps> = ({
       type,
       currency,
       balance: parsed.amount,
+      openingBalance: parsed.amount,
       status: 'Active',
     });
     onClose();
