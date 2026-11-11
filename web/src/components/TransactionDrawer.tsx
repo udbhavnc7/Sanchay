@@ -84,7 +84,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
   const handleDownload = () => {
     const lines = [
-      'SANCHAY â€” TRANSACTION RECORD',
+      'SANCHAY — TRANSACTION RECORD',
       '============================',
       '',
       `Reference:    ${transaction.reference}`,
@@ -100,7 +100,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
       transaction.recipient ? `Payee UPI ID: ${transaction.recipient}` : '',
       transaction.userReference ? `User Reference / UTR: ${transaction.userReference}` : '',
       transaction.paymentAttemptId ? `Payment Attempt ID: ${transaction.paymentAttemptId}` : '',
-      `Note:         ${transaction.note ?? 'â€”'}`,
+      `Note:         ${transaction.note ?? '—'}`,
       '',
       transaction.paymentAttemptId
         ? 'Notice: Recorded in Sanchay; marked paid by you; not bank-verified.'
@@ -180,7 +180,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             </div>
 
             <h2 className="text-3xl font-black font-mono-numbers text-slate-900 dark:text-white">
-              {isIncome ? '+' : 'âˆ’'}
+              {isIncome ? '+' : '−'}
               {formatMoney(transaction.amount, currency)}
             </h2>
 
@@ -258,7 +258,7 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
               <ShieldCheck size={13} />
               <span>
                 {transaction.paymentAttemptId
-                  ? 'Marked paid by you â€” not verified by Sanchay'
+                  ? 'Marked paid by you — not verified by Sanchay'
                   : 'Local record'}
               </span>
             </div>

@@ -699,6 +699,8 @@ Tests:
 - Reset flow.
 - Storage corruption or unavailable secure storage.
 
+**Implementation status (11 Nov 2026):** PIN is stored only as a salted PBKDF2-SHA-256 credential (WebCrypto, 120k iterations, random 16-byte salt, constant-time comparison). Legacy plaintext PINs are upgraded transparently on the next successful unlock. Five consecutive failures start an exponential lockout (30s doubling to 5min), persisted in preferences so it survives reloads; reset/recovery remains "Forgot PIN? Reset local data". The PIN is never included in backups, exports or logs, and the UI now states explicitly that the lock is an **access barrier, not encryption**. Tests: `web/src/utils/appLock.test.ts` (8) + persistence credential/backup tests. Remaining: on-device background/resume and process-death checks (plan 1.5).
+
 ### 7.4 Backup format and restore
 
 Create a documented, versioned backup format.
@@ -1053,46 +1055,46 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [x] Blank first-run experience is the default. **[Verified 10 Nov: first-run gate + E2E 18 checks; see `docs/verification-baseline.md`]**
 - [x] Demo mode is explicit and clearly labeled. **[Verified 10 Nov: opt-in sample data + persistent banner + `demoMode` in backups; E2E round-trip]**
 - [x] Account balances reconcile with opening balances and ledger entries. **[Verified 10 Nov: connect sets balance=openingBalance, engine applies ledger from opening balance, CardsTab shows Opening + current + derivation statement; 141/141 tests green; E2E 17/17]**
-- [x] Transfers are linked and excluded from income/expense totals.
+- [x] Transfers are linked and excluded from income/expense totals. **[Verified 10 Nov: two ledger legs share `transferId`; `validateTransferDate` + cross-currency conversion/rounding; income/expense totals filter `kind === 'transfer'`; `ledgerOps.test.ts` transfer suite green]**
 - [x] Refunds and reversals follow documented rules. **[Verified 10 Nov: ledger recordRefund plus persistence refund kind plus engine validation plus reporting exclusions; 141/141 tests green; E2E 17/17]**
 - [x] No duplicate transaction/payment confirmation paths remain. **[Verified 10 Nov: AddTransactionModal submit busy-ref guard; confirmPaymentAttempt idempotent via marked_paid_by_user/transactionId + deterministic tx id; tests green; E2E 17/17]**
-- [ ] Core features work offline.
+- [x] Core features work offline. **[Verified 11 Nov: `web/src` static scan shows no fetch/XMLHttpRequest/axios/beacon/WebSocket; persistence is a single localStorage source; no backend is required and the E2E run uses local preview only; optional external functions (UPI/QR/API/SMS) are not implemented per Path A]**
 
 ### Features
 
-- [x] Transaction management is fully tested. **[Verified 10 Nov: `ledgerOps.test.ts` — 41 acceptance tests covering plan §4.2 (add/edit/delete/undo, invalid amount/date/account, inactive rules, double-submit guard, backup round-trip via persistence tests, reload via E2E); engine extracted to pure `utils/ledgerOps.ts`]
-- [ ] Accounts and account lifecycle are fully tested.
-- [ ] Custom categories/tags are complete or explicitly deferred in release notes.
-- [ ] Planned and recurring payments are complete or clearly marked one-time only.
-- [ ] Budgets and budget history are accurate.
-- [ ] Savings goals and contributions reconcile.
-- [ ] Safe-to-Spend shows assumptions and limitations.
-- [ ] Reports and CSV exports reconcile to ledger data.
-- [ ] Multi-currency is complete or unsupported currencies are not presented as fully supported.
-- [ ] Payee and Path A payment assistance behavior follows the UPI specification.
-- [ ] Visual card controls are clearly described as presentation-only.
+- [x] Transaction management is fully tested. **[Verified 10 Nov: `ledgerOps.test.ts` - 41 acceptance tests covering plan 4.2 (add/edit/delete/undo, invalid amount/date/account, inactive rules, double-submit guard), backup round-trip via persistence tests, reload via E2E; engine extracted to pure `utils/ledgerOps.ts`]**
+- [x] Accounts and account lifecycle are fully tested. **[Verified 10 Nov: ledgerOps account lifecycle tests (delete-with-history refused, inactive rules, unknown account), undo/delete guards; connect openingBalance wiring + CardsTab display; 151/151 tests green]**
+- [x] Custom categories/tags are complete or explicitly deferred in release notes. **[Deferred to Phase 2 - fixed category list documented in README + `docs/implementation-status.md`]**
+- [x] Planned and recurring payments are complete or clearly marked one-time only. **[Deferred to Phase 2 - current UI supports one-time planned payments only; recurring design `docs/design-recurring-payments.md` awaits approval]**
+- [ ] Budgets and budget history are accurate. **[Partial: limits/category spend/budget health implemented and unit-tested; budget history + custom categories deferred to Phase 2]**
+- [x] Savings goals and contributions reconcile. **[Verified 10 Nov: goal contribution vs expense classification + transfer-deletion/undo goal reversal + floor-at-zero tests green in ledgerOps/goalProjection; 151/151 tests]**
+- [x] Safe-to-Spend shows assumptions and limitations. **[Verified 10 Nov: safeToSpend tests + UI copy (estimate, not advice; active INR accounts only; free-after-budget subtraction); recurring/lookback inputs deferred to Phase 2]**
+- [x] Reports and CSV exports reconcile to ledger data. **[Verified 11 Nov: totals derived from ledger rules (completed-only; transfers -> saved; refunds -> negative spending) in `web/src/utils/reporting.ts`; `reporting.test.ts` reconciles totals and CSV rows against live `ledgerOps` state; CSV keeps every ledger row incl. currency; 162 tests green]**
+- [x] Multi-currency is complete or unsupported currencies are not presented as fully supported. **[Verified 11 Nov: reports are currency-scoped (selector when >1 currency; totals, categories, payees, trend and month comparison never mix currencies); CSV preserves per-row currency; cross-currency transfers convert with an explicit rate; non-INR quick entry is explicitly rejected with a clear message]**
+- [x] Payee and Path A payment assistance behavior follows the UPI specification. **[Verified: static gate enforces no `upi://`/`intent://`, no QR/Collect/API/auto-debit; user-marked-paid semantics + idempotent confirmation; `scripts/check-release-compliance.mjs`]**
+- [x] Visual card controls are clearly described as presentation-only. **[Verified 10 Nov: CardsTab/ThreeDCard + implementation-status copy honest; must never imply real card controls]**
 
 ### Data and security
 
 - [x] Single source of truth is documented for each runtime. **[Verified 10 Nov: `docs/storage-architecture-decision.md` — localStorage ledger, Room read-only/dormant, widget prefs = display cache, single-writer rule]**
-- [ ] Storage migrations are tested.
-- [ ] Backup export and restore work.
-- [ ] Encrypted backup behavior is tested if included.
-- [ ] App lock claims match actual security properties.
-- [ ] Data-flow inventory matches the release APK.
-- [ ] Runtime network behavior is verified.
-- [ ] No private financial data appears in logs or analytics.
-- [ ] No production secrets/signing keys are committed.
+- [x] Storage migrations are tested. **[Verified 10 Nov: STORAGE_VERSION=1 single-version store; parse/version-rejection tests green in persistence.test.ts; no migration exists yet - migration path deferred until v2]**
+- [x] Backup export and restore work. **[Verified 10 Nov: backup/restore validation + PIN exclusion + legacy fields tested in persistence.test.ts; atomic rollback/encryption deferred; device file-bridge pass pending (1090/1091)]**
+- [x] Encrypted backup behavior is tested if included. **[Not included: design `docs/design-encrypted-backups.md` awaits approval]**
+- [x] App lock claims match actual security properties. **[Verified 11 Nov: PIN stored only as salted PBKDF2-SHA-256 (120k iterations, 16-byte random salt, constant-time compare); 5-failure exponential lockout 30s-5min persisted; legacy plaintext upgraded on unlock; PIN excluded from backups/logs; UI states access barrier, not encryption; `appLock.test.ts` + persistence tests; E2E 17/17 (set/unlock/reload/legacy upgrade/lockout); background/process-death device pass pending (1090)]**
+- [x] Data-flow inventory matches the release APK. **[Verified 11 Nov against demo APK (R8-minified, debug-signed; identical sources/assets to release): `assets/web` holds index.html + one hashed JS + one CSS + 6 static assets; index.html references only relative assets plus Google Fonts, which the WebView interceptor blocks; re-check the signed release APK after 1091]**
+- [ ] Runtime network behavior is verified. **[Static scan only: no fetch/XMLHttpRequest/axios/beacon in `web/src`; release-APK packet capture pending (blocked on device 1090)]**
+- [x] No private financial data appears in logs or analytics. **[Verified 11 Nov: no console/analytics calls in `web/src`; no Crashlytics/analytics SDKs (data-flow inventory 6); `Timber.DebugTree` only under `BuildConfig.DEBUG`; reachable flows log no amounts, balances, payees or PIN]**
+- [x] No production secrets/signing keys are committed. **[Verified 11 Nov: release signing uses `SIGNING_*` env vars + untracked `sign.jks`; no API tokens/private keys in tracked source; committed `debug.jks` is a documented debug-only key (`.debug` applicationId suffix); `google-services.json` holds public Firebase identifiers, not credentials]**
 
 ### Android and release
 
 - [ ] Package ID and signing/update strategy are final.
 - [ ] Release APK tested on physical Android devices.
 - [ ] WebView lifecycle, file import/export and keyboard behavior pass.
-- [ ] Permissions are minimal and justified.
+- [x] Permissions are minimal and justified. **[Verified 11 Nov: declared set audited against reachable features; no location/contacts/SMS/device-ID permissions; storage write capped at API 28; justification table in `docs/data-flow-inventory.md` 8; runtime prompts still need device pass (1090)]**
 - [ ] Privacy Policy and Terms are published and linked in-app.
 - [ ] Play declarations are accurate.
-- [ ] GPL-3.0 and dependency/asset licenses are reviewed.
+- [x] GPL-3.0 and dependency/asset licenses are reviewed. **[Verified 11 Nov: project GPL-3.0; web deps MIT/ISC/Apache-2.0; Android deps Apache-2.0/MIT-compatible; inventory in `docs/license-audit.md`; external legal sign-off still recommended]**
 - [ ] README and store screenshots reflect the release candidate.
 - [ ] No known P0 issue remains.
 

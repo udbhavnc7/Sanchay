@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import type { Account } from '../types/finance';
 import { ThreeDCard } from './ThreeDCard';
 import { sound } from '../utils/audio';
@@ -135,7 +135,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       }}
                     />
                     <span>
-                      {card.type} Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢ {card.last4}
+                      {card.type} •••• {card.last4}
                     </span>
                   </button>
                 ))}
@@ -196,7 +196,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       Contactless
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Tap to pay up to Ã¢â€šÂ¹5,000 per payment
+                      Tap to pay up to ₹5,000 per payment
                     </div>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                       ATM withdrawals
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      Up to Ã¢â€šÂ¹25,000 per day
+                      Up to ₹25,000 per day
                     </div>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export const CardsTab: React.FC<CardsTabProps> = ({
                         {account.name}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {account.type} Ã‚Â· {account.currency} Ã‚Â·{' '}
+                        {account.type} · {account.currency} ·{' '}
                         <span style={{ color: account.status === 'Active' ? '#10b981' : 'var(--text-muted)', fontWeight: 600 }}>
                           {account.status}
                         </span>

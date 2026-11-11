@@ -24,9 +24,10 @@
 | `pnpm install --frozen-lockfile` | exit 0 |
 | `pnpm -C web run lint` (oxlint) | exit 0 |
 | `pnpm -C web exec tsc -b --pretty false` | exit 0 |
-| `pnpm -C web test` (vitest) | **151/151 passed, 14 files** (was 83/12 after first-run work; +41 ledger-engine acceptance tests for plan 4.2/4.3; +8 app-lock credential/lockout tests + 2 persistence credential tests; TZ legs America/New_York / Europe/London / Asia/Kolkata / Australia/Sydney also green) |
+| `pnpm -C web test` (vitest) | **162/162 passed, 15 files** (was 83/12 after first-run work; +41 ledger-engine acceptance tests for plan 4.2/4.3; +8 app-lock credential/lockout tests + 2 persistence credential tests; +11 reporting/currency tests; TZ legs America/New_York / Europe/London / Asia/Kolkata / Australia/Sydney also green) |
+| Reports/currency suite (`reporting.test.ts`) | **11/11 PASS** - totals reconcile with `ledgerOps` state, refunds net spending, transfer debits become goal savings, currencies never mix, CSV quoting/currency column (11 Nov) |
 | `pnpm -C web run build` | exit 0 (chunk-size warning pre-existing; bundle `index-DUvBnQr_.js`) |
-| `node scripts/check-release-compliance.mjs` | **PASS - 3,136 checks** (count scales with shipped files; 748 Kotlin/Java incl. `temp/`, web incl. `upi://`/`intent://`) |
+| `node scripts/check-release-compliance.mjs` | **PASS - 3,139 checks** (count scales with shipped files; 748 Kotlin/Java incl. `temp/`, web incl. `upi://`/`intent://`) |
 | `gradlew detekt` | GREEN (`config/detekt/config.yml` + `baseline.yml`, 450 pre-existing TopLevelPropertyNaming entries — do not regenerate) |
 | `gradlew lintRelease` | GREEN |
 | `gradlew testDebugUnitTest` | GREEN (full suite) |
@@ -35,6 +36,8 @@
 | `gradlew :ci-actions:compose-stability:test` + `:run` | GREEN (`SUCCESS!`) |
 | `git diff --check` | clean (CRLF warnings only) |
 | First-run E2E (headless Edge/CDP vs production build) | **17/17 PASS** — see below; re-run 10 Nov after ledger-engine extraction, still ALL PASS |
+| App-lock E2E (headless Edge/CDP vs production build) | **17/17 PASS** - set PIN, PBKDF2 credential persisted with no plaintext PIN, wrong + correct unlock, reload/process-restart lock, legacy plaintext upgrade, 5-failure lockout persisted across reload (11 Nov) |
+| Text encoding sweep (all tracked `md/ts/tsx/json/kt/xml/css/html/js/mjs/yml/properties/gradle/txt`) | **PASS** - 0 mojibake markers and 0 U+FFFD after repair of `App.tsx`, `CardsTab`, `OverviewTab`, `ReportsTab`, `TransactionDrawer`, `ledgerOps(.test)`, `ProfileSettingsModal`, `README`, plan, `data-flow-inventory` (11 Nov) |
 
 ## First-run E2E evidence (plan §3.3 acceptance)
 

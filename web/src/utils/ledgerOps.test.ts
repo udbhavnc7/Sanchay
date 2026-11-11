@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { Account, SavingsGoal, Transaction } from '../types/finance';
 import {
   addTransaction,
@@ -513,7 +513,7 @@ describe('account lifecycle', () => {
 });
 
 describe('round-trip balance consistency', () => {
-  it('add Ã¢â€ â€™ undo Ã¢â€ â€™ add Ã¢â€ â€™ delete returns to the original balance exactly', () => {
+  it('add → undo → add → delete returns to the original balance exactly', () => {
     let current = state();
     const original = current.accounts[0].balance;
 
@@ -537,7 +537,7 @@ describe('round-trip balance consistency', () => {
     expect(Number.isInteger(Math.round(current.accounts[0].balance * 100))).toBe(true);
   });
 
-  it('edit Ã¢â€ â€™ delete restores the pre-edit balance through both steps', () => {
+  it('edit → delete restores the pre-edit balance through both steps', () => {
     const start = addTransaction(state(), expenseInput(), NOW);
     if (!start.ok) throw new Error('setup failed');
     const edited = updateTransaction(

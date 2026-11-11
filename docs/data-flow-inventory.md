@@ -7,7 +7,7 @@ Companion to [release checklist](release-checklist.md) §2 and `SANCHAY_UPI_COMP
 
 | Store | Contents | Written by |
 |---|---|---|
-| WebView `localStorage` under `sanchay.local.v1` | Dashboard accounts, transactions, payees, goals, budgets, planned payments, payment-assistance attempts, preferences (including the optional app-lock PIN) | Web dashboard only (`web/src/data/persistence.ts`) |
+| WebView `localStorage` under `sanchay.local.v1` | Dashboard accounts, transactions, payees, goals, budgets, planned payments, payment-assistance attempts, preferences (including the optional app-lock PBKDF2 credential + attempt counters; never the PIN itself) | Web dashboard only (`web/src/data/persistence.ts`) |
 | Native Room database | Inherited Ivy Wallet ledger | Native modules — **not wired to the dashboard**; a separate store (README, "Current limitations") |
 | Native SharedPrefs / DataStore | Inherited native settings | Native modules |
 
@@ -18,7 +18,7 @@ Dashboard data does not enter native code except through the local file export i
 - Persistence: `localStorage` (`web/src/data/persistence.ts`), version `sanchay.local.v1`.
 - Network: **none** — no `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, or remote asset URLs anywhere in `web/src`.
 - Clipboard: user-initiated copies of payee UPI ID, payment details, and receipt text via `navigator.clipboard`; the app never reads the clipboard back.
-- App-lock PIN: stored in local preferences only; the dashboard has no network path that could transmit it.
+- App-lock PIN: the PIN itself is never stored. Only a salted PBKDF2-SHA-256 credential (120k iterations, random 16-byte salt) plus attempt counters live in local preferences. Five consecutive failures trigger an exponential cooldown (30s doubling to 5min) persisted across reloads. The dashboard has no network path that could transmit it.
 - Storage-reset: Privacy panel offers a two-step reset to demo data — see §10 for the full deletion/reset picture.
 
 ## 3. Kotlin ↔ JS bridge
@@ -90,14 +90,14 @@ Removed 2026-11-08: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (no usage f
 - CSV export, receipt copy, and JSON/ZIP backups are written **locally only**: `Downloads/Sanchay` on Android (§3), browser downloads on desktop.
 - Backup import replaces dashboard `localStorage` after a confirmation preview; no upload path exists for backups.
 - Backups are **unencrypted**; the privacy panel and README state this explicitly and tell the user to store export files carefully (spec §7 "make the risks clear" branch). An encrypted-backup option remains an open P1 decision (checklist §5).
-- **App-lock PIN is never exported**: `createBackupState` (`web/src/data/persistence.ts`) omits `appLockPin` from backup payloads, and the restore path ignores any `appLockPin` found in an imported file — the PIN exists only in this device's local storage. Covered by a unit test (`persistence.test.ts`, "never includes the app-lock PIN in exported backups").
+- **App-lock PIN is never exported**: `createBackupState` (`web/src/data/persistence.ts`) whitelists non-secret preferences, so `appLock`, `appLockPin` (legacy), `appLockFailures` and `appLockLockedUntil` are all omitted from backup payloads; the restore path ignores any such fields in an imported file. Covered by unit tests (`persistence.test.ts`: legacy PIN exclusion + credential/backup exclusion).
 - Backup payload scope = exactly the dashboard state needed to restore: accounts, transactions, payees (contacts), goals, budgets, planned payments, payment-assistance attempts, and non-secret preferences (theme, sound, card-frozen, profile, safe-to-spend buffer). No device identifiers, no analytics ids, no credentials.
 
 ## 10. Data deletion and reset
 
 Three layers, from in-app to platform:
 
-1. **In-app reset (dashboard):** Privacy panel → "Reset local data" (two-step confirm). It calls `clearPersistedState()`, which removes the **only** storage key the dashboard uses — `sanchay.local.v1` (`web/src/data/persistence.ts:341`; repo-wide search confirms no other `localStorage`/`sessionStorage` keys in `web/src`) — then repopulates demo data. This erases all dashboard accounts, transactions, payees, goals, budgets, planned payments, attempts, preferences and the app-lock PIN from local storage (the PIN state is explicitly cleared, `App.tsx` `handleResetLocalData`).
+1. **In-app reset (dashboard):** Privacy panel → "Reset local data" (two-step confirm). It calls `clearPersistedState()`, which removes the **only** storage key the dashboard uses — `sanchay.local.v1` (`web/src/data/persistence.ts:341`; repo-wide search confirms no other `localStorage`/`sessionStorage` keys in `web/src`) — then repopulates demo data. This erases all dashboard accounts, transactions, payees, goals, budgets, planned payments, attempts, preferences and the app-lock credential/attempt state from local storage (`handleResetLocalData` clears the credential, legacy PIN, failure count and lockout timestamp).
 2. **Platform-level wipe (whole app):** Android Settings → Apps → Sanchay → Storage → **Clear data**. This removes app-private storage (WebView `localStorage`, DataStore incl. the poll `deviceId` and voted flags, SharedPrefs) and the Room database. `android:allowBackup="false"` means **no cloud backup copies exist** to clean up (§4).
 3. **Cloud records:** the only server-side records tied to this app are anonymous Firestore poll votes (`polls/{pollId}/votes/{deviceId}` = option id + timestamp, §5) — no dashboard data is stored in the cloud. Exported backup files on disk are the user's responsibility to delete (stated in the privacy panel).
 

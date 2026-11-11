@@ -498,7 +498,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                             {account.name}
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            {account.type} Ã‚Â· {account.currency}
+                            {account.type} · {account.currency}
                           </div>
                         </div>
                       </div>
@@ -629,6 +629,13 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 </p>
               </div>
 
+              {pinError && (
+                <div style={{ color: '#ef4444', fontSize: '11px' }}>{pinError}</div>
+              )}
+              {pinSuccess && (
+                <div style={{ color: '#10b981', fontSize: '11px' }}>{pinSuccess}</div>
+              )}
+
               {appLockEnabled ? (
                 <div
                   style={{
@@ -725,13 +732,6 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     </div>
                   </div>
 
-                  {pinError && (
-                    <div style={{ color: '#ef4444', fontSize: '11px' }}>{pinError}</div>
-                  )}
-                  {pinSuccess && (
-                    <div style={{ color: '#10b981', fontSize: '11px' }}>{pinSuccess}</div>
-                  )}
-
                   <button
                     type="submit"
                     className="btn-action-dark"
@@ -820,7 +820,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: 700 }}>
-                  Sample data {demoMode ? 'Ã¢â‚¬â€ active' : ''}
+                  Sample data {demoMode ? '— active' : ''}
                 </h4>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px' }}>
                   {demoMode

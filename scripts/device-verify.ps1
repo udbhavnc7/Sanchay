@@ -24,8 +24,14 @@ function Ok($msg)   { Write-Host "  OK  $msg" -ForegroundColor Green }
 function Bad($msg)  { Write-Host "  FAIL $msg" -ForegroundColor Red; $script:failures += $msg }
 
 function Invoke-Adb {
-  if ($Serial -ne '') { & adb -s $Serial @args }
-  else { & adb @args }
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    if ($Serial -ne '') { & adb -s $Serial @args 2>&1 }
+    else { & adb @args 2>&1 }
+  } finally {
+    $ErrorActionPreference = $previous
+  }
 }
 
 # --- preflight ---------------------------------------------------------------
@@ -73,7 +79,11 @@ foreach ($p in @('INTERNET', 'ACCESS_NETWORK_STATE', 'POST_NOTIFICATIONS')) {
 
 # --- launch + capture -------------------------------------------------------
 Step 'Launching RootActivity'
-Invoke-Adb shell am start -n "$Package/.RootActivity" | Out-Null
+$resolved = @(Invoke-Adb shell cmd package resolve-activity --brief $Package | Where-Object { $_ -match '/' })
+if ($resolved.Count -eq 0) { Bad "could not resolve launcher activity for $Package"; exit 1 }
+$component = $resolved[-1].Trim()
+Ok "launcher: $component"
+Invoke-Adb shell am start -n $component | Out-Null
 Start-Sleep -Seconds 5
 
 Step 'Capturing screenshot'
@@ -84,9 +94,15 @@ Invoke-Adb shell rm /sdcard/sanchay-verify.png | Out-Null
 if (Test-Path $shot) { Ok "screenshot: $shot" } else { Bad 'screenshot capture failed' }
 
 Step 'Dumping logcat'
+$appPid = @(Invoke-Adb shell pidof $Package | Where-Object { $_ -match '^\d+$' }) | Select-Object -First 1
 $logFile = Join-Path $EvidenceDir "logcat-$stamp.txt"
-Invoke-Adb logcat -d -v time | Set-Content -Path $logFile -Encoding utf8
-Ok "logcat: $logFile"
+if ($appPid) {
+  Invoke-Adb logcat -d --pid $appPid -v time | Set-Content -Path $logFile -Encoding utf8
+  Ok "logcat ($Package pid $appPid): $logFile"
+} else {
+  Invoke-Adb logcat -d -v time | Set-Content -Path $logFile -Encoding utf8
+  Ok "logcat (all processes - app not running): $logFile"
+}
 
 foreach ($pattern in @('upi://', 'READ_SMS', 'LocationManager')) {
   $hits = @(Select-String -Path $logFile -Pattern ([regex]::Escape($pattern)) -SimpleMatch -ErrorAction SilentlyContinue)

@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import com.ivy.wallet.BuildConfig
 import java.io.ByteArrayInputStream
 
 // WebView dashboard shell: PascalCase follows the @Composable convention;
@@ -66,6 +67,12 @@ fun SanchayModernUI(
         modifier = modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
+                // QA-only: expose the WebView to Chrome DevTools in debuggable builds
+                // so device automation and network audits can run via adb forward.
+                if (BuildConfig.DEBUG) {
+                    WebView.setWebContentsDebuggingEnabled(true)
+                }
+
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT

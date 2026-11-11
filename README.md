@@ -43,7 +43,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - **User Profile & Identity:** Click the header profile badge to edit your display name, contact email, avatar accent color, and primary UPI ID.
 - **UPI App Selection:** Set your preferred external UPI app (Google Pay, PhonePe, Paytm, BHIM, Cred, Navi) for payment assistance.
 - **Payment Requests:** Pre-fills your saved UPI ID automatically when generating clean, shareable payment requests.
-- **App Lock & PIN Security:** Set an optional 4-digit PIN lock. Features a dedicated lock screen with tactile audio keypad, quick "Lock App Now" capability, and secure session unlock for local financial privacy.
+- **App Lock & PIN Security:** Set an optional 4-digit PIN lock. Features a dedicated lock screen with tactile audio keypad, quick "Lock App Now" capability, and session unlock for local privacy. The PIN is stored only as a salted PBKDF2-SHA-256 credential (never plaintext), repeated failures trigger an exponential cooldown, and the lock is an access barrier for this device - it does not encrypt the ledger.
 
 ### Budgets and goals
 
@@ -82,7 +82,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Sound on/off preference.
 - Privacy panel that explains local storage and retention, exports a JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
 - Sample data is opt-in (first launch or Profile settings), labeled with a persistent banner while active, and can be removed at any time without touching real records.
-- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN.
+- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN or its hashed credential.
 - Backups are not encrypted; anyone with the file can read it. Store exported backups carefully and delete them when no longer needed.
 - Restoring a backup replaces the current data on this device after a confirmation preview; the app-lock PIN on the device is never replaced by a backup.
 - On Android, exports and receipt/CSV downloads are written to `Downloads/Sanchay` through a native bridge, and imports use the system file picker.
@@ -103,7 +103,7 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
 - Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, entered planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
 - Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
-- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version, and the app-lock PIN is never exported or imported.
+- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version, and the app-lock PIN/credential is never exported or imported.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
 - The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
 - UPI / Bank integration: Operates under Path A (payment assistance and local ledger reconciliation only). Sanchay does not connect to bank or UPI networks, does not verify bank settlement or UTRs, and does not initiate fund transfers.

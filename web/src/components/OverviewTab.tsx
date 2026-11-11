@@ -219,7 +219,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {greeting()}, Udbhav
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Here is where your money stands today â€” no jargon, no surprises.
+            Here is where your money stands today — no jargon, no surprises.
           </p>
         </div>
 
@@ -538,7 +538,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   const next = e.target.value === '' ? 0 : Number(e.target.value);
                   onSafeToSpendBufferChange(Number.isFinite(next) && next > 0 ? next : 0);
                 }}
-                placeholder="â‚¹0"
+                placeholder="₹0"
                 aria-label="Safe to spend safety buffer"
                 style={{
                   width: '100%',
@@ -569,7 +569,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   const next = e.target.value === '' ? 0 : Number(e.target.value);
                   onWhatIfOutflowChange(Number.isFinite(next) && next > 0 ? next : 0);
                 }}
-                placeholder="â‚¹0"
+                placeholder="₹0"
                 aria-label="What-if purchase amount"
                 style={{
                   width: '100%',
@@ -796,7 +796,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   {formatMoney(account.balance, account.currency)}
                 </div>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  {account.type} Â· {account.currency}
+                  {account.type} · {account.currency}
                 </div>
               </div>
             );
@@ -847,7 +847,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   >
                     <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.category}</span>
                     <span className="font-mono-numbers" style={{ color: 'var(--text-muted)' }}>
-                      {formatMoney(row.amount)} Â· {pct}%
+                      {formatMoney(row.amount)} · {pct}%
                     </span>
                   </div>
                   <div
@@ -1058,7 +1058,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       {tx.title}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      {tx.category} Â· {relativeDay(tx.date)}
+                      {tx.category} · {relativeDay(tx.date)}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -1070,7 +1070,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                         color: isCredit ? '#10b981' : 'var(--text-main)',
                       }}
                     >
-                      {isCredit ? '+' : 'âˆ’'}
+                      {isCredit ? '+' : '−'}
                       {formatMoney(tx.amount)}
                     </div>
                     <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{tx.status}</div>

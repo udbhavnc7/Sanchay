@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { Account, Transaction } from '../types/finance';
+import type { Account, Currency, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import { saveTextFile } from '../utils/fileSave';
 import {
@@ -25,9 +25,18 @@ import {
   shortMonth,
   startOfMonth,
   startOfYear,
-  subtractMoney,
   sumMoney,
 } from '../utils/money';
+import {
+  DEFAULT_CURRENCY,
+  buildStatementCsv,
+  computeCategoryBreakdown,
+  computePayeeBreakdown,
+  computeReportTotals,
+  reportCurrencies,
+  reportsAccountMap,
+  scopeToCurrency,
+} from '../utils/reporting';
 import {
   absoluteMoney,
   buildMonthlyComparison,
@@ -65,11 +74,6 @@ function endOfToday(): Date {
   return end;
 }
 
-function csvCell(value: string | number): string {
-  const text = String(value ?? '');
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
 export const ReportsTab: React.FC<ReportsTabProps> = ({
   transactions,
   accounts,
@@ -77,14 +81,12 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
 }) => {
   const [range, setRange] = useState<RangeKey>('month');
   const [drilldown, setDrilldown] = useState<CategoryMovement | null>(null);
+  const [currencyFilter, setCurrencyFilter] = useState<Currency | null>(null);
 
   const start = useMemo(() => rangeStart(range), [range]);
   const currentMonth = useMemo(() => startOfMonth(), []);
 
-  const accountNames = useMemo(
-    () => new Map(accounts.map((account) => [account.id, `${account.name} (${account.currency})`])),
-    [accounts]
-  );
+  const accountsById = useMemo(() => reportsAccountMap(accounts), [accounts]);
 
   const filtered = useMemo(
     () =>
@@ -94,38 +96,35 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
     [transactions, start]
   );
 
-  const totals = useMemo(() => {
-    let income = 0;
-    let spending = 0;
-    let saved = 0;
-    filtered.forEach((tx) => {
-      if (tx.status !== 'Completed') return;
-      if (tx.kind === 'transfer') {
-        if (tx.type === 'debit') saved = addMoney(saved, tx.amount);
-        return;
-      }
-      if (tx.kind === 'refund') {
-        spending = subtractMoney(spending, tx.amount);
-        return;
-      }
-      if (tx.type === 'credit') income = addMoney(income, tx.amount);
-      else spending = addMoney(spending, tx.amount);
-    });
-    return {
-      income,
-      spending,
-      saved,
-      net: subtractMoney(subtractMoney(income, spending), saved),
-    };
-  }, [filtered]);
+  const availableCurrencies = useMemo(
+    () => reportCurrencies(filtered, accountsById),
+    [filtered, accountsById]
+  );
+  const activeCurrency: Currency =
+    currencyFilter && availableCurrencies.includes(currencyFilter)
+      ? currencyFilter
+      : availableCurrencies[0] ?? DEFAULT_CURRENCY;
+  const inCurrency = useMemo(
+    () => scopeToCurrency(filtered, accountsById, activeCurrency),
+    [filtered, accountsById, activeCurrency]
+  );
+  const allInCurrency = useMemo(
+    () => scopeToCurrency(transactions, accountsById, activeCurrency),
+    [transactions, accountsById, activeCurrency]
+  );
 
-  const comparison = useMemo(() => buildMonthlyComparison(transactions), [transactions]);
+  const totals = useMemo(
+    () => computeReportTotals(inCurrency, activeCurrency),
+    [inCurrency, activeCurrency]
+  );
+
+  const comparison = useMemo(() => buildMonthlyComparison(allInCurrency), [allInCurrency]);
 
   const drilldownTransactions = useMemo(() => {
     if (!drilldown) return [];
     const monthStart = startOfMonth();
     const todayEnd = endOfToday();
-    return transactions
+    return allInCurrency
       .filter(
         (tx) =>
           tx.category === drilldown.category &&
@@ -136,51 +135,25 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
           new Date(tx.date) <= todayEnd
       )
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [drilldown, transactions]);
+  }, [drilldown, allInCurrency]);
 
   const drilldownTotal = useMemo(
-    () => sumMoney(drilldownTransactions.map((tx) => tx.amount)),
-    [drilldownTransactions]
+    () => sumMoney(drilldownTransactions.map((tx) => tx.amount), activeCurrency),
+    [drilldownTransactions, activeCurrency]
   );
 
-  const categories = useMemo(() => {
-    const map = new Map<string, number>();
-    filtered
-      .filter(
-        (tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer'
-      )
-      .forEach((tx) => {
-        map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount));
-      });
-    const total = sumMoney(map.values());
-    return Array.from(map.entries())
-      .map(([category, amount]) => ({
-        category,
-        amount,
-        pct: total > 0 ? Math.round((amount / total) * 100) : 0,
-      }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 6)
-      .map((row, index) => ({ ...row, color: CHART_COLORS[index % CHART_COLORS.length] }));
-  }, [filtered]);
+  const categories = useMemo(
+    () =>
+      computeCategoryBreakdown(inCurrency, activeCurrency)
+        .slice(0, 6)
+        .map((row, index) => ({ ...row, color: CHART_COLORS[index % CHART_COLORS.length] })),
+    [inCurrency, activeCurrency]
+  );
 
-  const payees = useMemo(() => {
-    const map = new Map<string, { amount: number; count: number }>();
-    filtered
-      .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer' && tx.status === 'Completed')
-      .forEach((tx) => {
-        const name = tx.counterparty ?? tx.title;
-        const current = map.get(name) ?? { amount: 0, count: 0 };
-        map.set(name, {
-          amount: addMoney(current.amount, tx.amount),
-          count: current.count + 1,
-        });
-      });
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, ...value }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-  }, [filtered]);
+  const payees = useMemo(
+    () => computePayeeBreakdown(inCurrency, activeCurrency),
+    [inCurrency, activeCurrency]
+  );
 
   const trend = useMemo(() => {
     const months = Array.from({ length: 6 }, (_, index) => {
@@ -192,54 +165,26 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
       return { key: monthKey(date), label: shortMonth(date), income: 0, spending: 0 };
     });
     const byKey = new Map(months.map((month) => [month.key, month]));
-    transactions
+    allInCurrency
       .filter((tx) => tx.status === 'Completed')
       .forEach((tx) => {
         const bucket = byKey.get(monthKey(new Date(tx.date)));
         if (!bucket || tx.kind === 'transfer') return;
-        if (tx.type === 'credit') bucket.income = addMoney(bucket.income, tx.amount);
-        else bucket.spending = addMoney(bucket.spending, tx.amount);
+        if (tx.type === 'credit') bucket.income = addMoney(bucket.income, tx.amount, activeCurrency);
+        else bucket.spending = addMoney(bucket.spending, tx.amount, activeCurrency);
       });
     return months;
-  }, [transactions, currentMonth]);
+  }, [allInCurrency, currentMonth, activeCurrency]);
 
   const maxTrend = Math.max(1, ...trend.map((month) => Math.max(month.income, month.spending)));
 
   const handleExport = () => {
     sound.success();
-    const header = [
-      'Date',
-      'Title',
-      'Category',
-      'Direction',
-      'Status',
-      'Amount',
-      'Currency',
-      'Account',
-      'Reference',
-      'Counterparty',
-      'Note',
-    ];
-    const rows = filtered.map((tx) => {
-      const account = tx.accountId ? accounts.find((item) => item.id === tx.accountId) : undefined;
-      return [
-        formatDate(tx.date),
-        tx.title,
-        tx.category,
-        tx.type,
-        tx.status,
-        tx.amount.toFixed(2),
-        account?.currency ?? 'INR',
-        tx.accountId ? accountNames.get(tx.accountId) ?? '' : '',
-        tx.reference ?? '',
-        tx.counterparty ?? '',
-        tx.note ?? '',
-      ]
-        .map(csvCell)
-        .join(',');
-    });
-    const csv = [header.map(csvCell).join(','), ...rows].join('\r\n');
-    saveTextFile(`sanchay-${range}-statement.csv`, csv, 'text/csv');
+    saveTextFile(
+      `sanchay-${range}-statement.csv`,
+      buildStatementCsv(filtered, accountsById),
+      'text/csv'
+    );
   };
 
   return (
@@ -317,6 +262,41 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
         </div>
       </div>
 
+      {availableCurrencies.length > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+            Reports currency
+          </span>
+          {availableCurrencies.map((currency) => (
+            <button
+              key={currency}
+              onClick={() => {
+                sound.click();
+                setCurrencyFilter(currency);
+              }}
+              style={{
+                padding: '5px 14px',
+                borderRadius: '9999px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border:
+                  currency === activeCurrency
+                    ? '1px solid rgba(255, 87, 34, 0.5)'
+                    : '1px solid var(--border-subtle)',
+                background: currency === activeCurrency ? 'rgba(255, 87, 34, 0.14)' : 'transparent',
+                color: currency === activeCurrency ? '#ff5722' : 'var(--text-muted)',
+              }}
+            >
+              {currency}
+            </button>
+          ))}
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            Totals never mix currencies. The CSV export keeps every row.
+          </span>
+        </div>
+      )}
+
       <div
         className="reports-metrics-grid"
         style={{
@@ -327,28 +307,28 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
       >
         <MetricCard
           label="Money in"
-          value={formatMoney(totals.income)}
-          hint={`${filtered.filter((tx) => tx.type === 'credit').length} incoming entries`}
+          value={formatMoney(totals.income, activeCurrency)}
+          hint={`${inCurrency.filter((tx) => tx.type === 'credit').length} incoming entries`}
           icon={ArrowDownLeft}
           tone="#10b981"
         />
         <MetricCard
           label="Money out"
-          value={formatMoney(totals.spending)}
-          hint={`${filtered.filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer').length} payments`}
+          value={formatMoney(totals.spending, activeCurrency)}
+          hint={`${inCurrency.filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer').length} payments`}
           icon={ArrowUpRight}
           tone="#ef4444"
         />
         <MetricCard
           label="Moved to goals"
-          value={formatMoney(totals.saved)}
+          value={formatMoney(totals.saved, activeCurrency)}
           hint="Savings transfers, not spending"
           icon={PiggyBank}
           tone="#a855f7"
         />
         <MetricCard
           label="Net cash flow"
-          value={formatMoney(totals.net)}
+          value={formatMoney(totals.net, activeCurrency)}
           hint={totals.net >= 0 ? 'You kept more than you spent' : 'Spending outpaced income'}
           icon={TrendingUp}
           tone={totals.net >= 0 ? '#10b981' : '#ef4444'}
@@ -406,6 +386,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             previous={comparison.previous.spending}
             delta={comparison.spendingDelta}
             previousLabel={comparison.previousLabel}
+            currency={activeCurrency}
           />
           <ComparisonMetric
             label="Income"
@@ -413,6 +394,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             previous={comparison.previous.income}
             delta={comparison.incomeDelta}
             previousLabel={comparison.previousLabel}
+            currency={activeCurrency}
           />
         </div>
 
@@ -481,7 +463,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                         style={{ fontWeight: 800, color: 'var(--text-main)' }}
                       >
                         {increased ? '+' : '-'}
-                        {formatMoney(absoluteMoney(movement.delta))}
+                        {formatMoney(absoluteMoney(movement.delta), activeCurrency)}
                       </span>
                       <ChevronRight size={13} color="var(--text-muted)" />
                     </span>
@@ -558,7 +540,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       className="font-mono-numbers"
                       style={{ fontWeight: 800, color: 'var(--text-main)' }}
                     >
-                      {formatMoney(row.amount)} Â· {row.pct}%
+                      {formatMoney(row.amount, activeCurrency)} · {row.pct}%
                     </span>
                   </div>
                   <div
@@ -652,7 +634,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                     className="font-mono-numbers"
                     style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}
                   >
-                    {formatMoney(payee.amount)}
+                    {formatMoney(payee.amount, activeCurrency)}
                   </div>
                 </div>
               ))}
@@ -737,7 +719,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       borderRadius: '6px 6px 0 0',
                       background: '#10b981',
                     }}
-                    title={`Income ${formatMoney(month.income)}`}
+                    title={`Income ${formatMoney(month.income, activeCurrency)}`}
                   />
                   <div
                     style={{
@@ -747,7 +729,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       borderRadius: '6px 6px 0 0',
                       background: '#ff5722',
                     }}
-                    title={`Spending ${formatMoney(month.spending)}`}
+                    title={`Spending ${formatMoney(month.spending, activeCurrency)}`}
                   />
                 </div>
                 <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)' }}>
@@ -772,7 +754,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
             Statement preview
           </h2>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {filtered.length} entries Â· CSV
+            {filtered.length} entries · CSV
           </span>
         </div>
 
@@ -823,7 +805,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                         {tx.category}
                       </td>
                       <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
-                        {account?.name ?? 'â€”'}
+                        {account?.name ?? '—'}
                       </td>
                       <td style={{ padding: '9px 10px' }}>
                         <span
@@ -851,7 +833,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {tx.type === 'credit' ? '+' : 'âˆ’'}
+                        {tx.type === 'credit' ? '+' : '−'}
                         {formatMoney(tx.amount, account?.currency ?? 'INR')}
                       </td>
                     </tr>
@@ -920,7 +902,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>
                   {drilldownTransactions.length} completed payment
                   {drilldownTransactions.length === 1 ? '' : 's'} totalling{' '}
-                  {formatMoney(drilldownTotal)} this month.
+                  {formatMoney(drilldownTotal, activeCurrency)} this month
                 </p>
               </div>
               <button
@@ -968,7 +950,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                   className="font-mono-numbers"
                   style={{ fontSize: '17px', fontWeight: 900, color: 'var(--text-main)' }}
                 >
-                  {formatMoney(drilldown.current)}
+                  {formatMoney(drilldown.current, activeCurrency)}
                 </div>
               </div>
               <div
@@ -986,7 +968,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                   className="font-mono-numbers"
                   style={{ fontSize: '17px', fontWeight: 900, color: 'var(--text-main)' }}
                 >
-                  {formatMoney(drilldown.previous)}
+                  {formatMoney(drilldown.previous, activeCurrency)}
                 </div>
               </div>
             </div>
@@ -1049,7 +1031,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {formatMoney(tx.amount)}
+                    {formatMoney(tx.amount, activeCurrency)}
                   </div>
                 </button>
               ))}
@@ -1067,7 +1049,8 @@ const ComparisonMetric: React.FC<{
   previous: number;
   delta: number;
   previousLabel: string;
-}> = ({ label, current, previous, delta, previousLabel }) => {
+  currency: Currency;
+}> = ({ label, current, previous, delta, previousLabel, currency }) => {
   const unchanged = compareMoney(delta, 0) === 0;
   const increased = compareMoney(delta, 0) > 0;
   const DeltaIcon = unchanged ? Minus : increased ? ArrowUpRight : ArrowDownRight;
@@ -1101,7 +1084,7 @@ const ComparisonMetric: React.FC<{
           marginTop: '4px',
         }}
       >
-        {formatMoney(current)}
+        {formatMoney(current, currency)}
       </div>
       <div
         style={{
@@ -1114,7 +1097,7 @@ const ComparisonMetric: React.FC<{
           color: 'var(--text-muted)',
         }}
       >
-        <span>{previousLabel}: {formatMoney(previous)}</span>
+        <span>{previousLabel}: {formatMoney(previous, currency)}</span>
         <span
           style={{
             display: 'inline-flex',
@@ -1128,7 +1111,7 @@ const ComparisonMetric: React.FC<{
           <DeltaIcon size={12} />
           {unchanged
             ? 'No change'
-            : `${increased ? '+' : '-'}${formatMoney(absoluteMoney(delta))}`}
+            : `${increased ? '+' : '-'}${formatMoney(absoluteMoney(delta), currency)}`}
         </span>
       </div>
     </div>

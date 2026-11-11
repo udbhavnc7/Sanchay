@@ -408,7 +408,7 @@ export const App: React.FC = () => {
       if (compareMoney(remaining, 0) > 0 && remaining <= goal.targetAmount * 0.1) {
         list.push({
           tone: 'good',
-          text: `${goal.title} is almost funded ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ${formatMoney(remaining)} to go`,
+          text: `${goal.title} is almost funded — ${formatMoney(remaining)} to go`,
         });
       }
     });
@@ -619,7 +619,7 @@ export const App: React.FC = () => {
       date: new Date().toISOString(),
       accountId: account.id,
       counterparty: goal.title,
-      note: 'Savings transfer ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â not counted as spending.',
+      note: 'Savings transfer — not counted as spending.',
       kind: 'transfer',
       goalId: goal.id,
     };
@@ -1411,7 +1411,7 @@ export const App: React.FC = () => {
                 }}
               >
                 <span>
-                  Sample data ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â fictional records for exploring Sanchay. Not your real finances.
+                  Sample data — fictional records for exploring Sanchay. Not your real finances.
                 </span>
                 <button
                   type="button"
@@ -1673,7 +1673,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastAdded.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {formatMoney(lastAdded.amount)}
+                {lastAdded.title} · {formatMoney(lastAdded.amount)}
               </div>
             </div>
             <button type="button" onClick={handleUndoAdd} className="sanchay-toast-undo">
@@ -1701,7 +1701,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastDeleted[0]?.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {formatMoney(lastDeleted[0]?.amount ?? 0, lastDeleted[0]?.currency)}
+                {lastDeleted[0]?.title} · {formatMoney(lastDeleted[0]?.amount ?? 0, lastDeleted[0]?.currency)}
               </div>
             </div>
             <button type="button" onClick={handleUndoDelete} className="sanchay-toast-undo">
@@ -1745,7 +1745,7 @@ export const App: React.FC = () => {
                 Your accounts, transactions, budgets and goals are saved in this browser&apos;s
                 local storage on this device. Nothing in this dashboard is uploaded or synced.
                 Search, reports and receipts are generated locally. Your data stays here until
-                you delete it ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
+                you delete it — use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
                 storage from device settings. Backups you export are files you control; delete
                 them when you no longer need them.
               </p>
@@ -1786,7 +1786,7 @@ export const App: React.FC = () => {
               >
                 The JSON backup includes accounts, transactions, payees, goals, budgets,
                 planned payments, payment assistance attempts and preferences. Backups are not
-                encrypted ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â anyone with the file can read it ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â so store it carefully. Your
+                encrypted — anyone with the file can read it — so store it carefully. Your
                 app-lock PIN is never included in an export and is never taken from an imported
                 file. Importing replaces the data on this device.
               </p>

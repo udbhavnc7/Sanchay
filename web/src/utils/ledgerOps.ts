@@ -374,7 +374,7 @@ export function deleteAccount(state: LedgerState, accountId: string): LedgerStat
     return {
       ok: false,
       error:
-        `Cannot delete "${account.name}" â€” ${linkedCount} transaction${linkedCount === 1 ? '' : 's'} ` +
+        `Cannot delete "${account.name}" — ${linkedCount} transaction${linkedCount === 1 ? '' : 's'} ` +
         `${verb} it. Archive the account instead so its history stays intact.`,
     };
   }
