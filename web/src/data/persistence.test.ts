@@ -158,6 +158,44 @@ describe('local persistence', () => {
     expect(createPersistedState(input).preferences.appLockPin).toBe('9137');
   });
 
+  it('round-trips a hashed app-lock credential and keeps it out of backups', () => {
+    const credential = {
+      algorithm: 'PBKDF2-SHA-256' as const,
+      iterations: 120_000,
+      salt: 'c2FsdA==',
+      hash: 'aGFzaA==',
+    };
+    const input: PersistedStateInput = {
+      ...snapshot(),
+      preferences: {
+        ...snapshot().preferences,
+        appLock: credential,
+        appLockFailures: 2,
+        appLockLockedUntil: 1_700_000_000_000,
+      },
+    };
+
+    const state = createPersistedState(input);
+    expect(parsePersistedState(JSON.stringify(state))?.preferences.appLock).toEqual(credential);
+
+    const backup = createBackupState(input);
+    const raw = JSON.stringify(backup);
+    expect(backup.preferences.appLock).toBeUndefined();
+    expect(backup.preferences.appLockPin).toBeUndefined();
+    expect(backup.preferences.appLockFailures).toBeUndefined();
+    expect(backup.preferences.appLockLockedUntil).toBeUndefined();
+    expect(raw).not.toContain(credential.salt);
+    expect(raw).not.toContain(credential.hash);
+  });
+
+  it('rejects a malformed app-lock credential', () => {
+    const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
+      preferences: { appLock: unknown };
+    };
+    raw.preferences.appLock = { algorithm: 'md5', iterations: 1, salt: '', hash: '' };
+    expect(parsePersistedState(JSON.stringify(raw))).toBeNull();
+  });
+
   it('rejects invalid transaction amounts and text fields', () => {
     const raw = JSON.parse(JSON.stringify(createPersistedState(snapshot()))) as {
       transactions: Array<{ amount: unknown; counterparty: unknown }>;

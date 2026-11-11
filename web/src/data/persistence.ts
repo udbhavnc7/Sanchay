@@ -10,6 +10,7 @@ import type {
   Transaction,
   UserProfile,
 } from '../types/finance';
+import type { PinCredential } from '../utils/appLock';
 
 export const STORAGE_KEY = 'sanchay.local.v1';
 export const STORAGE_VERSION = 1;
@@ -19,7 +20,12 @@ export interface PersistedPreferences {
   isAudioEnabled: boolean;
   isCardFrozen: boolean;
   userProfile?: UserProfile;
+  /** Salted PBKDF2 credential. Replaces the legacy plaintext PIN. */
+  appLock?: PinCredential;
+  /** Legacy plaintext PIN from earlier builds; cleared after unlock upgrades it. */
   appLockPin?: string;
+  appLockFailures?: number;
+  appLockLockedUntil?: number;
   safeToSpendBuffer?: number;
   /** True while the ledger holds fictional sample records instead of the user's own data. */
   demoMode?: boolean;
@@ -246,6 +252,17 @@ function isUserProfile(value: unknown): value is UserProfile {
   return isString(value.name) && isString(value.email);
 }
 
+function isPinCredential(value: unknown): value is PinCredential {
+  if (!isRecord(value)) return false;
+  return (
+    value.algorithm === 'PBKDF2-SHA-256' &&
+    isNumber(value.iterations) &&
+    value.iterations >= 1000 &&
+    isString(value.salt) &&
+    isString(value.hash)
+  );
+}
+
 function isPreferences(value: unknown): value is PersistedPreferences {
   if (!isRecord(value)) return false;
   return (
@@ -253,7 +270,12 @@ function isPreferences(value: unknown): value is PersistedPreferences {
     typeof value.isAudioEnabled === 'boolean' &&
     typeof value.isCardFrozen === 'boolean' &&
     (value.userProfile === undefined || isUserProfile(value.userProfile)) &&
+    (value.appLock === undefined || isPinCredential(value.appLock)) &&
     (value.appLockPin === undefined || isString(value.appLockPin)) &&
+    (value.appLockFailures === undefined ||
+      (isNumber(value.appLockFailures) && value.appLockFailures >= 0)) &&
+    (value.appLockLockedUntil === undefined ||
+      (isNumber(value.appLockLockedUntil) && value.appLockLockedUntil >= 0)) &&
     (value.safeToSpendBuffer === undefined ||
       (isNumber(value.safeToSpendBuffer) && value.safeToSpendBuffer >= 0)) &&
     (value.demoMode === undefined || typeof value.demoMode === 'boolean')

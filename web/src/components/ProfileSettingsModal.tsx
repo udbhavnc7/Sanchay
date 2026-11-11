@@ -33,14 +33,15 @@ interface ProfileSettingsModalProps {
   accounts: Account[];
   isDarkMode: boolean;
   isAudioEnabled: boolean;
-  appLockPin?: string;
+  appLockEnabled: boolean;
   onUpdateProfile: (profile: UserProfile) => void;
   onUpdatePreferences: (updates: {
     isDarkMode?: boolean;
     isAudioEnabled?: boolean;
     isCardFrozen?: boolean;
-    appLockPin?: string;
   }) => void;
+  onSetAppLockPin: (pin: string) => Promise<void>;
+  onRemoveAppLock: () => void;
   onToggleAccountStatus: (accountId: string) => void;
   onDeleteAccount: (accountId: string) => string | null;
   onExportBackup: () => void;
@@ -80,9 +81,11 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   accounts,
   isDarkMode,
   isAudioEnabled,
-  appLockPin,
+  appLockEnabled,
   onUpdateProfile,
   onUpdatePreferences,
+  onSetAppLockPin,
+  onRemoveAppLock,
   onToggleAccountStatus,
   onDeleteAccount,
   onExportBackup,
@@ -133,7 +136,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     window.setTimeout(() => setProfileSaved(false), 2000);
   };
 
-  const handleSavePin = (e: React.FormEvent) => {
+  const handleSavePin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinError('');
     setPinSuccess('');
@@ -148,16 +151,20 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       return;
     }
 
-    sound.success();
-    onUpdatePreferences({ appLockPin: newPin });
-    setNewPin('');
-    setConfirmPin('');
-    setPinSuccess('PIN lock configured successfully.');
+    try {
+      await onSetAppLockPin(newPin);
+      sound.success();
+      setNewPin('');
+      setConfirmPin('');
+      setPinSuccess('PIN lock configured. It is an access barrier, not encryption.');
+    } catch {
+      setPinError('Could not secure the PIN on this device. Please try again.');
+    }
   };
 
   const handleRemovePin = () => {
     sound.click();
-    onUpdatePreferences({ appLockPin: '' });
+    onRemoveAppLock();
     setPinSuccess('PIN lock removed.');
     setNewPin('');
     setConfirmPin('');
@@ -491,7 +498,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                             {account.name}
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                            {account.type} · {account.currency}
+                            {account.type} Ã‚Â· {account.currency}
                           </div>
                         </div>
                       </div>
@@ -618,11 +625,11 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   App Lock & Privacy PIN
                 </h4>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Protect your financial ledger with an optional 4-digit PIN lock.
+                  Add an optional 4-digit access barrier for this device. The PIN is never stored in plaintext, but it does not encrypt your ledger data.
                 </p>
               </div>
 
-              {appLockPin ? (
+              {appLockEnabled ? (
                 <div
                   style={{
                     padding: '14px',
@@ -641,7 +648,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                         PIN Lock is Active
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                        4-digit security code enabled
+                        Access barrier enabled - not encryption
                       </div>
                     </div>
                   </div>
@@ -678,7 +685,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                         required
                         value={newPin}
                         onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••"
+                        placeholder="4 digits"
                         style={{
                           width: '100%',
                           padding: '9px 12px',
@@ -702,7 +709,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                         required
                         value={confirmPin}
                         onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••"
+                        placeholder="4 digits"
                         style={{
                           width: '100%',
                           padding: '9px 12px',
@@ -813,7 +820,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
 
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: 700 }}>
-                  Sample data {demoMode ? '— active' : ''}
+                  Sample data {demoMode ? 'Ã¢â‚¬â€ active' : ''}
                 </h4>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px' }}>
                   {demoMode

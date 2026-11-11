@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { sound } from '../utils/audio';
 import { Lock, Delete, AlertCircle } from 'lucide-react';
 
-
 interface AppLockScreenProps {
-  pin: string;
+  verify: (pin: string) => Promise<boolean>;
+  failures: number;
+  lockedUntil: number;
+  onFailure: () => void;
   userName: string;
   onUnlock: () => void;
   onResetData?: () => void;
 }
 
+const keypadButtonStyle: React.CSSProperties = {
+  height: '60px',
+  borderRadius: '50%',
+  fontSize: '20px',
+  fontWeight: 700,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 0,
+};
+
 export const AppLockScreen: React.FC<AppLockScreenProps> = ({
-  pin,
+  verify,
+  failures,
+  lockedUntil,
+  onFailure,
   userName,
   onUnlock,
   onResetData,
@@ -19,32 +35,69 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
   const [enteredPin, setEnteredPin] = useState('');
   const [error, setError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (lockedUntil <= Date.now()) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (lockedUntil <= current) {
+        window.clearInterval(timer);
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [lockedUntil]);
+
+  const remainingMs = Math.max(0, lockedUntil - now);
+  const isLockedOut = remainingMs > 0;
+  const remainingSeconds = Math.ceil(remainingMs / 1000);
+  const isInputDisabled = isLockedOut || isVerifying;
+
+  const submitPin = async (candidate: string) => {
+    setIsVerifying(true);
+    let unlocked = false;
+    try {
+      unlocked = await verify(candidate);
+    } catch {
+      unlocked = false;
+    }
+    setIsVerifying(false);
+
+    if (unlocked) {
+      sound.success();
+      onUnlock();
+      return;
+    }
+
+    sound.error();
+    onFailure();
+    setError('Incorrect PIN. Please try again.');
+    setIsShaking(true);
+    window.setTimeout(() => {
+      setEnteredPin('');
+      setIsShaking(false);
+    }, 600);
+  };
 
   const handleDigit = (digit: string) => {
+    if (isInputDisabled) return;
     sound.click();
     setError('');
     if (enteredPin.length < 4) {
       const next = enteredPin + digit;
       setEnteredPin(next);
-
       if (next.length === 4) {
-        if (next === pin) {
-          sound.success();
-          onUnlock();
-        } else {
-          sound.error();
-          setError('Incorrect PIN. Please try again.');
-          setIsShaking(true);
-          window.setTimeout(() => {
-            setEnteredPin('');
-            setIsShaking(false);
-          }, 600);
-        }
+        void submitPin(next);
       }
     }
   };
 
   const handleDelete = () => {
+    if (isInputDisabled) return;
     sound.click();
     setError('');
     setEnteredPin((prev) => prev.slice(0, -1));
@@ -95,16 +148,26 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
           Welcome back, {userName}
         </h2>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '28px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
           Enter your 4-digit PIN to access Sanchay
         </p>
+        <p
+          style={{
+            fontSize: '10px',
+            color: 'var(--text-muted)',
+            marginTop: '2px',
+            marginBottom: '24px',
+            opacity: 0.8,
+          }}
+        >
+          Access barrier only. This PIN does not encrypt your data.
+        </p>
 
-        {/* PIN indicator dots */}
         <div
           style={{
             display: 'flex',
             gap: '16px',
-            marginBottom: '28px',
+            marginBottom: '24px',
             transform: isShaking ? 'translateX(6px)' : 'none',
             transition: 'transform 0.1s',
           }}
@@ -127,7 +190,23 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           })}
         </div>
 
-        {error && (
+        {isLockedOut ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: '#f59e0b',
+              fontSize: '12px',
+              marginBottom: '18px',
+            }}
+          >
+            <AlertCircle size={14} />
+            <span>
+              Too many attempts ({failures}). Try again in {remainingSeconds}s.
+            </span>
+          </div>
+        ) : error ? (
           <div
             style={{
               display: 'flex',
@@ -139,11 +218,12 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
             }}
           >
             <AlertCircle size={14} />
-            <span>{error}</span>
+            <span>{isVerifying ? 'Checking PIN...' : error}</span>
           </div>
+        ) : (
+          <div style={{ height: '18px', marginBottom: '18px' }} />
         )}
 
-        {/* Keypad */}
         <div
           style={{
             display: 'grid',
@@ -151,6 +231,8 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
             gap: '14px',
             width: '100%',
             maxWidth: '280px',
+            opacity: isInputDisabled ? 0.5 : 1,
+            transition: 'opacity 0.15s',
           }}
         >
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
@@ -158,17 +240,9 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
               key={digit}
               type="button"
               onClick={() => handleDigit(digit)}
+              disabled={isInputDisabled}
               className="btn-action-light"
-              style={{
-                height: '60px',
-                borderRadius: '50%',
-                fontSize: '20px',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-              }}
+              style={keypadButtonStyle}
             >
               {digit}
             </button>
@@ -177,32 +251,18 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           <button
             type="button"
             onClick={() => handleDigit('0')}
+            disabled={isInputDisabled}
             className="btn-action-light"
-            style={{
-              height: '60px',
-              borderRadius: '50%',
-              fontSize: '20px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
+            style={keypadButtonStyle}
           >
             0
           </button>
           <button
             type="button"
             onClick={handleDelete}
+            disabled={isInputDisabled}
             className="btn-action-light"
-            style={{
-              height: '60px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-            }}
+            style={{ ...keypadButtonStyle, fontSize: '16px' }}
             title="Delete"
           >
             <Delete size={20} />
@@ -213,7 +273,11 @@ export const AppLockScreen: React.FC<AppLockScreenProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('Resetting data will clear this device storage. Are you sure?')) {
+              if (
+                window.confirm(
+                  'This clears all local data on this device, including the ledger and the PIN. This cannot be undone. Continue?'
+                )
+              ) {
                 onResetData();
               }
             }}

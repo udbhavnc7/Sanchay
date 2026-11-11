@@ -44,6 +44,13 @@ import {
   type PersistedState,
 } from './data/persistence';
 import {
+  createPinCredential,
+  isValidPinFormat,
+  lockoutDelayMs,
+  verifyPinCredential,
+  type PinCredential,
+} from './utils/appLock';
+import {
   addTransaction as addTransactionOp,
   createTransfer as createTransferOp,
   deleteAccount as deleteAccountOp,
@@ -145,12 +152,20 @@ export const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile>(
     initialSnapshot?.preferences.userProfile ?? defaultUserProfile
   );
-  const [appLockPin, setAppLockPin] = useState<string>(
+  const [appLock, setAppLock] = useState<PinCredential | null>(
+    initialSnapshot?.preferences.appLock ?? null
+  );
+  const [legacyAppLockPin, setLegacyAppLockPin] = useState<string>(
     initialSnapshot?.preferences.appLockPin ?? ''
   );
-  const [isAppLocked, setIsAppLocked] = useState<boolean>(() => {
-    return Boolean(initialSnapshot?.preferences.appLockPin);
-  });
+  const [appLockFailures, setAppLockFailures] = useState<number>(
+    initialSnapshot?.preferences.appLockFailures ?? 0
+  );
+  const [appLockLockedUntil, setAppLockLockedUntil] = useState<number>(
+    initialSnapshot?.preferences.appLockLockedUntil ?? 0
+  );
+  const hasAppLock = Boolean(appLock || legacyAppLockPin);
+  const [isAppLocked, setIsAppLocked] = useState<boolean>(hasAppLock);
   const [safeToSpendBuffer, setSafeToSpendBuffer] = useState<number>(
     initialSnapshot?.preferences.safeToSpendBuffer ?? 0
   );
@@ -246,7 +261,10 @@ export const App: React.FC = () => {
         isAudioEnabled,
         isCardFrozen,
         userProfile,
-        appLockPin: appLockPin || undefined,
+        appLock: appLock ?? undefined,
+        appLockPin: legacyAppLockPin || undefined,
+        appLockFailures: appLockFailures > 0 ? appLockFailures : undefined,
+        appLockLockedUntil: appLockLockedUntil > 0 ? appLockLockedUntil : undefined,
         safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
         demoMode: demoMode || undefined,
       },
@@ -264,7 +282,10 @@ export const App: React.FC = () => {
     isAudioEnabled,
     isCardFrozen,
     userProfile,
-    appLockPin,
+    appLock,
+    legacyAppLockPin,
+    appLockFailures,
+    appLockLockedUntil,
     safeToSpendBuffer,
     demoMode,
   ]);
@@ -387,7 +408,7 @@ export const App: React.FC = () => {
       if (compareMoney(remaining, 0) > 0 && remaining <= goal.targetAmount * 0.1) {
         list.push({
           tone: 'good',
-          text: `${goal.title} is almost funded Ã¢â‚¬â€ ${formatMoney(remaining)} to go`,
+          text: `${goal.title} is almost funded ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ${formatMoney(remaining)} to go`,
         });
       }
     });
@@ -598,7 +619,7 @@ export const App: React.FC = () => {
       date: new Date().toISOString(),
       accountId: account.id,
       counterparty: goal.title,
-      note: 'Savings transfer Ã¢â‚¬â€ not counted as spending.',
+      note: 'Savings transfer ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â not counted as spending.',
       kind: 'transfer',
       goalId: goal.id,
     };
@@ -911,7 +932,10 @@ export const App: React.FC = () => {
           isAudioEnabled,
           isCardFrozen,
           userProfile,
-          appLockPin: appLockPin || undefined,
+          appLock: appLock ?? undefined,
+        appLockPin: legacyAppLockPin || undefined,
+        appLockFailures: appLockFailures > 0 ? appLockFailures : undefined,
+        appLockLockedUntil: appLockLockedUntil > 0 ? appLockLockedUntil : undefined,
           safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
           demoMode: seed.demoMode || undefined,
         },
@@ -919,7 +943,17 @@ export const App: React.FC = () => {
       queueMicrotask(() => setStorageError(result.ok ? '' : result.error));
       sound.success();
     },
-    [isDarkMode, isAudioEnabled, isCardFrozen, userProfile, appLockPin, safeToSpendBuffer]
+    [
+      isDarkMode,
+      isAudioEnabled,
+      isCardFrozen,
+      userProfile,
+      appLock,
+      legacyAppLockPin,
+      appLockFailures,
+      appLockLockedUntil,
+      safeToSpendBuffer,
+    ]
   );
 
   const handleLoadSampleData = () => {
@@ -958,7 +992,10 @@ export const App: React.FC = () => {
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
     setUserProfile(defaultUserProfile);
-    setAppLockPin('');
+    setAppLock(null);
+    setLegacyAppLockPin('');
+    setAppLockFailures(0);
+    setAppLockLockedUntil(0);
     setIsAppLocked(false);
     setSafeToSpendBuffer(0);
     setWhatIfOutflow(0);
@@ -1021,7 +1058,6 @@ export const App: React.FC = () => {
     isDarkMode?: boolean;
     isAudioEnabled?: boolean;
     isCardFrozen?: boolean;
-    appLockPin?: string;
   }) => {
     if (updates.isDarkMode !== undefined) {
       setIsDarkMode(updates.isDarkMode);
@@ -1033,9 +1069,59 @@ export const App: React.FC = () => {
     if (updates.isCardFrozen !== undefined) {
       setIsCardFrozen(updates.isCardFrozen);
     }
-    if (updates.appLockPin !== undefined) {
-      setAppLockPin(updates.appLockPin);
+  };
+
+  const handleSetAppLockPin = async (pin: string) => {
+    if (!isValidPinFormat(pin)) {
+      throw new Error('PIN must be exactly 4 digits.');
     }
+    const credential = await createPinCredential(pin);
+    setAppLock(credential);
+    setLegacyAppLockPin('');
+    setAppLockFailures(0);
+    setAppLockLockedUntil(0);
+  };
+
+  const handleRemoveAppLock = () => {
+    setAppLock(null);
+    setLegacyAppLockPin('');
+    setAppLockFailures(0);
+    setAppLockLockedUntil(0);
+  };
+
+  const verifyAppLockPin = async (pin: string): Promise<boolean> => {
+    if (appLock) {
+      return verifyPinCredential(pin, appLock);
+    }
+    if (!legacyAppLockPin) {
+      return false;
+    }
+    if (pin !== legacyAppLockPin) {
+      return false;
+    }
+    try {
+      const upgraded = await createPinCredential(pin);
+      setAppLock(upgraded);
+      setLegacyAppLockPin('');
+    } catch {
+      // Keep the legacy PIN usable if secure hashing is unavailable.
+    }
+    return true;
+  };
+
+  const handleAppLockFailure = () => {
+    const next = appLockFailures + 1;
+    setAppLockFailures(next);
+    const delay = lockoutDelayMs(next);
+    if (delay > 0) {
+      setAppLockLockedUntil(Date.now() + delay);
+    }
+  };
+
+  const handleUnlockApp = () => {
+    setAppLockFailures(0);
+    setAppLockLockedUntil(0);
+    setIsAppLocked(false);
   };
 
   const selectedAccount = selectedTransaction?.accountId
@@ -1325,7 +1411,7 @@ export const App: React.FC = () => {
                 }}
               >
                 <span>
-                  Sample data Ã¢â‚¬â€ fictional records for exploring Sanchay. Not your real finances.
+                  Sample data ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â fictional records for exploring Sanchay. Not your real finances.
                 </span>
                 <button
                   type="button"
@@ -1488,9 +1574,11 @@ export const App: React.FC = () => {
             accounts={accounts}
             isDarkMode={isDarkMode}
             isAudioEnabled={isAudioEnabled}
-            appLockPin={appLockPin}
+            appLockEnabled={hasAppLock}
             onUpdateProfile={handleUpdateProfile}
             onUpdatePreferences={handleUpdatePreferences}
+            onSetAppLockPin={handleSetAppLockPin}
+            onRemoveAppLock={handleRemoveAppLock}
             onToggleAccountStatus={handleToggleAccountStatus}
             onDeleteAccount={handleDeleteAccount}
             onExportBackup={handleExportBackup}
@@ -1515,11 +1603,15 @@ export const App: React.FC = () => {
           />
         )}
 
-        {isAppLocked && Boolean(appLockPin) && (
+        {isAppLocked && hasAppLock && (
           <AppLockScreen
-            pin={appLockPin}
+            key={appLockLockedUntil}
+            verify={verifyAppLockPin}
+            failures={appLockFailures}
+            lockedUntil={appLockLockedUntil}
+            onFailure={handleAppLockFailure}
             userName={userProfile.name}
-            onUnlock={() => setIsAppLocked(false)}
+            onUnlock={handleUnlockApp}
             onResetData={handleResetLocalData}
           />
         )}
@@ -1581,7 +1673,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastAdded.title} Ã‚Â· {formatMoney(lastAdded.amount)}
+                {lastAdded.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {formatMoney(lastAdded.amount)}
               </div>
             </div>
             <button type="button" onClick={handleUndoAdd} className="sanchay-toast-undo">
@@ -1609,7 +1701,7 @@ export const App: React.FC = () => {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {lastDeleted[0]?.title} Ã‚Â· {formatMoney(lastDeleted[0]?.amount ?? 0, lastDeleted[0]?.currency)}
+                {lastDeleted[0]?.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· {formatMoney(lastDeleted[0]?.amount ?? 0, lastDeleted[0]?.currency)}
               </div>
             </div>
             <button type="button" onClick={handleUndoDelete} className="sanchay-toast-undo">
@@ -1653,7 +1745,7 @@ export const App: React.FC = () => {
                 Your accounts, transactions, budgets and goals are saved in this browser&apos;s
                 local storage on this device. Nothing in this dashboard is uploaded or synced.
                 Search, reports and receipts are generated locally. Your data stays here until
-                you delete it Ã¢â‚¬â€ use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
+                you delete it ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â use &ldquo;Reset local data&rdquo; below or clear the app&apos;s
                 storage from device settings. Backups you export are files you control; delete
                 them when you no longer need them.
               </p>
@@ -1694,7 +1786,7 @@ export const App: React.FC = () => {
               >
                 The JSON backup includes accounts, transactions, payees, goals, budgets,
                 planned payments, payment assistance attempts and preferences. Backups are not
-                encrypted Ã¢â‚¬â€ anyone with the file can read it Ã¢â‚¬â€ so store it carefully. Your
+                encrypted ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â anyone with the file can read it ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â so store it carefully. Your
                 app-lock PIN is never included in an export and is never taken from an imported
                 file. Importing replaces the data on this device.
               </p>
