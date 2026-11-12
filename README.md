@@ -17,6 +17,8 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 | <img src="docs/screenshots/01-overview.png" width="240" alt="Overview screen"> | <img src="docs/screenshots/02-activity.png" width="240" alt="Activity screen"> | <img src="docs/screenshots/03-reports.png" width="240" alt="Reports screen"> |
 | **Goals & budgets** | **Accounts** | **Payees** |
 | <img src="docs/screenshots/04-plan.png" width="240" alt="Goals and budgets screen"> | <img src="docs/screenshots/05-accounts.png" width="240" alt="Accounts screen"> | <img src="docs/screenshots/06-payees.png" width="240" alt="Payees screen"> |
+| **Budget history** | | |
+| <img src="docs/screenshots/07-budget-history.png" width="240" alt="Six-month budget history table"> | | |
 
 Captured from the dashboard build at a 390×844 phone viewport using the sample ledger. On-device WebView screenshots still need to be captured for the release candidate.
 
@@ -58,7 +60,10 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 ### Budgets and goals
 
 - View monthly budgets and spending progress.
-- Adjust category budget limits.
+- Adjust category budget limits. Each edit applies from the current month as a new period, so earlier months keep their recorded limits.
+- Review a six-month budget history table with budgeted, spent and result per month, plus per-category progress for the current month.
+- Archive a budget to stop tracking it; archived budgets keep their past months and can be restored.
+- Spending counts only completed INR payments and nets refunds; transfers, pending entries and other currencies are excluded, consistent with reports.
 - Create savings goals with a target amount, target month, icon, and color.
 - Deposit money into a goal from an active INR account.
 - View goal progress and amounts still needed.
@@ -91,7 +96,7 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 
 - Light and dark themes.
 - Sound on/off preference.
-- Privacy panel that explains local storage and retention, exports a JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
+- Privacy panel that explains local storage and retention, summarizes privacy and terms (including the no-analytics and Path A limits), exports a JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
 - Sample data is opt-in (first launch or Profile settings), labeled with a persistent banner while active, and can be removed at any time without touching real records.
 - Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN or its hashed credential.
 - Backups are not encrypted; anyone with the file can read it. Store exported backups carefully and delete them when no longer needed.

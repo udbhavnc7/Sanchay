@@ -22,6 +22,11 @@ function monthsAgo(months: number, day: number, hour = 12): string {
   return date.toISOString();
 }
 
+function monthStartAgo(months: number): string {
+  const date = new Date(now.getFullYear(), now.getMonth() - months, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
 function daysFromNow(days: number, hour = 12): string {
   const date = new Date(now);
   date.setDate(now.getDate() + days);
@@ -470,11 +475,74 @@ export const initialGoals: SavingsGoal[] = [
 ];
 
 export const initialBudgets: Budget[] = [
-  { id: 'b1', category: 'Groceries', limit: 12000, color: '#ff5722' },
-  { id: 'b2', category: 'Dining', limit: 4000, color: '#f59e0b' },
+  {
+    id: 'b1',
+    category: 'Groceries',
+    limit: 12000,
+    color: '#ff5722',
+    history: [
+      {
+        id: 'b1-groceries-5',
+        limit: 10000,
+        effectiveFrom: monthStartAgo(5),
+        createdAt: monthsAgo(5, 1),
+      },
+      {
+        id: 'b1-groceries-2',
+        limit: 11000,
+        effectiveFrom: monthStartAgo(2),
+        createdAt: monthsAgo(2, 1),
+      },
+      {
+        id: 'b1-groceries-0',
+        limit: 12000,
+        effectiveFrom: monthStartAgo(0),
+        createdAt: monthsAgo(0, 1),
+      },
+    ],
+  },
+  {
+    id: 'b2',
+    category: 'Dining',
+    limit: 4000,
+    color: '#f59e0b',
+    history: [
+      {
+        id: 'b2-dining-3',
+        limit: 3500,
+        effectiveFrom: monthStartAgo(3),
+        createdAt: monthsAgo(3, 1),
+      },
+      {
+        id: 'b2-dining-0',
+        limit: 4000,
+        effectiveFrom: monthStartAgo(0),
+        createdAt: monthsAgo(0, 1),
+      },
+    ],
+  },
   { id: 'b3', category: 'Transport', limit: 3000, color: '#38bdf8' },
   { id: 'b4', category: 'Shopping', limit: 9000, color: '#8b5cf6' },
-  { id: 'b5', category: 'Bills', limit: 5000, color: '#10b981' },
+  {
+    id: 'b5',
+    category: 'Bills',
+    limit: 5000,
+    color: '#10b981',
+    history: [
+      {
+        id: 'b5-bills-4',
+        limit: 4500,
+        effectiveFrom: monthStartAgo(4),
+        createdAt: monthsAgo(4, 1),
+      },
+      {
+        id: 'b5-bills-0',
+        limit: 5000,
+        effectiveFrom: monthStartAgo(0),
+        createdAt: monthsAgo(0, 1),
+      },
+    ],
+  },
   { id: 'b6', category: 'Entertainment', limit: 1500, color: '#ec4899' },
   { id: 'b7', category: 'Rent', limit: 22000, color: '#64748b' },
 ];

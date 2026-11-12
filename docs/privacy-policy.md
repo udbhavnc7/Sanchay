@@ -7,6 +7,9 @@ Status: **draft for maintainer review — not yet published.** Created 2026-11-0
 
 Before publishing, the maintainer must fill in every `[TODO]` and host this document at a public
 HTTPS URL, then link that URL in the Google Play listing, the README, and the in-app privacy panel.
+The in-app panel already shows an embedded privacy/terms summary (verified E2E); replace or
+supplement it with the public URL link once hosted. The companion terms draft is
+[terms-of-use.md](terms-of-use.md).
 
 ---
 

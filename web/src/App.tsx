@@ -66,7 +66,18 @@ import {
 } from './utils/ledgerOps';
 import { TransferModal } from './components/TransferModal';
 import { buildSafeToSpend } from './utils/safeToSpend';
-import { applyBudgetLimit, setBudgetArchived } from './utils/budgetHistory';
+import {
+  activeBudgets,
+  applyBudgetLimit,
+  budgetLimitForMonth,
+  setBudgetArchived,
+} from './utils/budgetHistory';
+import {
+  computeCategorySpending,
+  DEFAULT_CURRENCY,
+  reportsAccountMap,
+  scopeToCurrency,
+} from './utils/reporting';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
 import { CardsTab } from './components/CardsTab';
@@ -322,10 +333,14 @@ export const App: React.FC = () => {
     [transactions, monthStart]
   );
 
-  const monthlyBudget = useMemo(
-    () => sumMoney(budgets.map((budget) => budget.limit)),
-    [budgets]
-  );
+  const monthlyBudget = useMemo(() => {
+    const currentMonth = monthKey(startOfMonth());
+    return sumMoney(
+      activeBudgets(budgets).map(
+        (budget) => budgetLimitForMonth(budget, currentMonth)?.limit ?? budget.limit
+      )
+    );
+  }, [budgets]);
 
   const availableBalance = useMemo(
     () =>
@@ -373,34 +388,25 @@ export const App: React.FC = () => {
   const alerts = useMemo<Alert[]>(() => {
     const list: Alert[] = [];
     const month = startOfMonth();
-    const spendByCategory = new Map<string, number>();
+    const accountsById = reportsAccountMap(accounts);
+    const inrThisMonth = scopeToCurrency(transactions, accountsById, DEFAULT_CURRENCY).filter(
+      (tx) => new Date(tx.date) >= month
+    );
+    const spendByCategory = computeCategorySpending(inrThisMonth, DEFAULT_CURRENCY);
+    const currentMonth = monthKey(month);
 
-    transactions
-      .filter(
-        (tx) =>
-          tx.status === 'Completed' &&
-          tx.type === 'debit' &&
-          tx.kind !== 'transfer' &&
-          new Date(tx.date) >= month
-      )
-      .forEach((tx) => {
-        spendByCategory.set(
-          tx.category,
-          addMoney(spendByCategory.get(tx.category) ?? 0, tx.amount)
-        );
-      });
-
-    budgets.forEach((budget) => {
+    activeBudgets(budgets).forEach((budget) => {
+      const limit = budgetLimitForMonth(budget, currentMonth)?.limit ?? budget.limit;
       const spent = spendByCategory.get(budget.category) ?? 0;
-      if (compareMoney(spent, budget.limit) > 0) {
+      if (compareMoney(spent, limit) > 0) {
         list.push({
           tone: 'warn',
-          text: `${budget.category} is ${formatMoney(subtractMoney(spent, budget.limit))} over budget`,
+          text: `${budget.category} is ${formatMoney(subtractMoney(spent, limit))} over budget`,
         });
-      } else if (budget.limit > 0 && spent / budget.limit >= 0.8) {
+      } else if (limit > 0 && spent / limit >= 0.8) {
         list.push({
           tone: 'info',
-          text: `${budget.category} is at ${Math.round((spent / budget.limit) * 100)}% of its budget`,
+          text: `${budget.category} is at ${Math.round((spent / limit) * 100)}% of its budget`,
         });
       }
     });
@@ -428,7 +434,7 @@ export const App: React.FC = () => {
     }
 
     return list.slice(0, 5);
-  }, [transactions, budgets, goals]);
+  }, [transactions, budgets, goals, accounts]);
 
   const toggleTheme = (dark: boolean) => {
     sound.click();
@@ -822,6 +828,15 @@ export const App: React.FC = () => {
     setPendingImport(null);
     setBackupStatus('');
   };
+
+  useEffect(() => {
+    if (!showPrivacy) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') handleClosePrivacy();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showPrivacy]);
 
   const handleExportBackup = () => {
     const state = createBackupState({
@@ -1741,10 +1756,16 @@ export const App: React.FC = () => {
           >
             <div
               className="s-card privacy-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="privacy-panel-title"
               style={{ maxWidth: '480px', width: '100%', maxHeight: '88vh', overflowY: 'auto' }}
               onClick={(event) => event.stopPropagation()}
             >
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}>
+              <h3
+                id="privacy-panel-title"
+                style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)' }}
+              >
                 Your data stays with you
               </h3>
               <p
@@ -1762,6 +1783,53 @@ export const App: React.FC = () => {
                 storage from device settings. Backups you export are files you control; delete
                 them when you no longer need them.
               </p>
+
+              <div className="privacy-section">
+                <h4>Privacy</h4>
+                <ul>
+                  <li>
+                    Your accounts, transactions, payees, goals and budgets stay in this
+                    device&apos;s app storage. There is no Sanchay account, server or sync.
+                  </li>
+                  <li>
+                    No analytics, advertising or crash-reporting code is included. The dashboard
+                    sends no ledger data anywhere; the Android app blocks every external host,
+                    including the font stylesheet referenced by the page.
+                  </li>
+                  <li>
+                    Inherited native screens that are not reachable from this dashboard can
+                    contact Firebase Firestore, GitHub and currency-rate services, without any
+                    ledger data. The repository data-flow inventory lists every destination.
+                  </li>
+                  <li>
+                    Exported backups are unencrypted JSON files you control. Your app-lock PIN is
+                    never included in an export.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="privacy-section">
+                <h4>Terms</h4>
+                <ul>
+                  <li>
+                    Sanchay is a personal record-keeping tool, not a bank, lender or payment
+                    service. It does not move money, connect to UPI or bank networks, or verify
+                    payments or UTRs.
+                  </li>
+                  <li>
+                    Budgets, safe-to-spend and reports are estimates for your own use, not
+                    financial advice.
+                  </li>
+                  <li>
+                    Data can be lost if Android clears app storage. Keep your own backups;
+                    exported files are your responsibility.
+                  </li>
+                  <li>
+                    Sanchay is provided under GPL-3.0 without warranty and is a fork of Ivy
+                    Wallet.
+                  </li>
+                </ul>
+              </div>
 
               <div className="privacy-data-actions">
                 <button type="button" onClick={handleExportBackup} className="btn-action-light">

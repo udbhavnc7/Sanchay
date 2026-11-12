@@ -103,6 +103,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   onAddGoal,
   onUpdateGoal,
   onUpdateBudget,
+  onArchiveBudget,
   onAddPlannedPayment,
   onDeletePlannedPayment,
 }) => {
@@ -121,22 +122,34 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   const [goalError, setGoalError] = useState('');
 
   const monthStart = useMemo(() => startOfMonth(), []);
+  const currentMonth = useMemo(() => monthKey(monthStart), [monthStart]);
+  const accountsById = useMemo(() => reportsAccountMap(accounts), [accounts]);
+  const liveBudgets = useMemo(() => activeBudgets(budgets), [budgets]);
+  const pausedBudgets = useMemo(() => archivedBudgets(budgets), [budgets]);
 
   const monthSpendByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    transactions
-      .filter(
-        (tx) =>
-          tx.status === 'Completed' &&
-          tx.type === 'debit' &&
-          tx.kind !== 'transfer' &&
-          new Date(tx.date) >= monthStart
-      )
-      .forEach((tx) => {
-        map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount));
-      });
-    return map;
-  }, [transactions, monthStart]);
+    const inrThisMonth = scopeToCurrency(transactions, accountsById, DEFAULT_CURRENCY).filter(
+      (tx) => new Date(tx.date) >= monthStart
+    );
+    return computeCategorySpending(inrThisMonth, DEFAULT_CURRENCY);
+  }, [transactions, accountsById, monthStart]);
+
+  const budgetLimitByBudgetId = useMemo(() => {
+    const limits = new Map<string, number>();
+    budgets.forEach((budget) => {
+      const forMonth = budgetLimitForMonth(budget, currentMonth);
+      limits.set(budget.id, forMonth?.limit ?? budget.limit);
+    });
+    return limits;
+  }, [budgets, currentMonth]);
+
+  const budgetHistoryRows = useMemo(
+    () => buildBudgetHistory(budgets, transactions, accounts, currentMonth, 6),
+    [budgets, transactions, accounts, currentMonth]
+  );
+  const hasBudgetHistory = budgetHistoryRows.some(
+    (row) => row.budgetedCategories > 0 || row.spent > 0
+  );
 
   const totalSaved = useMemo(
     () => sumMoney(goals.map((goal) => goal.savedAmount)),
@@ -480,10 +493,12 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               marginTop: '8px',
             }}
           >
-            {formatMoney(sumMoney(budgets.map((budget) => budget.limit)))}
+            {formatMoney(
+              sumMoney(liveBudgets.map((budget) => budgetLimitByBudgetId.get(budget.id) ?? budget.limit))
+            )}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Across {budgets.length} categories
+            Across {liveBudgets.length} categories
           </div>
         </div>
       </div>
@@ -815,7 +830,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               Monthly budgets
             </h2>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Edit any limit — progress updates from completed payments this month.
+              Limits apply from {formatBudgetMonth(currentMonth)}. Edits record a new period, so
+              earlier months keep their limits.
             </p>
           </div>
           <span
@@ -828,15 +844,17 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               color: 'var(--text-muted)',
             }}
           >
-            {budgets.length} categories
+            {liveBudgets.length} categories
           </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {budgets.map((budget) => {
-            const spent = monthSpendByCategory.get(budget.category) ?? 0;
-            const pct = budget.limit > 0 ? Math.round((spent / budget.limit) * 100) : 0;
-            const over = spent > budget.limit;
+          {liveBudgets.map((budget) => {
+            const limit = budgetLimitByBudgetId.get(budget.id) ?? budget.limit;
+            const rawSpent = monthSpendByCategory.get(budget.category) ?? 0;
+            const spent = rawSpent > 0 ? rawSpent : 0;
+            const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+            const over = spent > limit;
             return (
               <div
                 key={budget.id}
@@ -860,7 +878,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
                     {budget.category}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
                       className="font-mono-numbers"
                       style={{
@@ -876,7 +894,8 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                       type="number"
                       min={0}
                       step={100}
-                      value={budget.limit}
+                      aria-label={`${budget.category} monthly limit`}
+                      value={limit}
                       onChange={(event) => {
                         const next = parseMoneyInput(event.target.value);
                         onUpdateBudget(budget.id, next.ok ? next.amount : 0);
@@ -894,6 +913,23 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                         outline: 'none',
                       }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => onArchiveBudget(budget.id, true)}
+                      aria-label={`Archive ${budget.category} budget`}
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: 'transparent',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Archive
+                    </button>
                   </div>
                 </div>
                 <div
@@ -927,14 +963,177 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   <span>{pct}% used</span>
                   <span>
                     {over
-                      ? `${formatMoney(subtractMoney(spent, budget.limit))} over`
-                      : `${formatMoney(subtractMoney(budget.limit, spent))} left`}
+                      ? `${formatMoney(subtractMoney(spent, limit))} over`
+                      : `${formatMoney(subtractMoney(limit, spent))} left`}
                   </span>
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
+
+      {pausedBudgets.length > 0 && (
+        <div
+          style={{
+            padding: '16px',
+            borderRadius: '18px',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Archived budgets
+            </h2>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+              {pausedBudgets.length} hidden from this month
+            </span>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Archived limits stop counting toward this month but stay in the history below.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+            {pausedBudgets.map((budget) => {
+              const limit = budgetLimitForMonth(budget, currentMonth)?.limit ?? budget.limit;
+              return (
+                <div
+                  key={budget.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {budget.category}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="font-mono-numbers">{formatMoney(limit)}</span>
+                    <button
+                      type="button"
+                      onClick={() => onArchiveBudget(budget.id, false)}
+                      aria-label={`Restore ${budget.category} budget`}
+                      style={{
+                        padding: '4px 9px',
+                        borderRadius: '9999px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: 'transparent',
+                        border: '1px solid var(--border-subtle)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{
+          padding: '16px',
+          borderRadius: '18px',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+            Budget history
+          </h2>
+          <span style={{ fontSize: '10px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+            Last 6 months
+          </span>
+        </div>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          Only categories that had a limit that month are counted. Refunds reduce spending and
+          transfers are excluded.
+        </p>
+        {!hasBudgetHistory ? (
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+              marginTop: '12px',
+              padding: '12px',
+              borderRadius: '12px',
+              background: 'var(--bg-pill)',
+            }}
+          >
+            No budget history yet. Limits you set and spending you record will appear here as the
+            months pass.
+          </p>
+        ) : (
+          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '86px 1fr 1fr 1.2fr',
+                gap: '6px',
+                fontSize: '9px',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+              }}
+            >
+              <span>Month</span>
+              <span style={{ textAlign: 'right' }}>Budgeted</span>
+              <span style={{ textAlign: 'right' }}>Spent</span>
+              <span style={{ textAlign: 'right' }}>Result</span>
+            </div>
+            {budgetHistoryRows.map((row) => {
+              const noBudget = row.budgetedCategories === 0;
+              const diff = subtractMoney(row.spent, row.budgeted);
+              return (
+                <div
+                  key={row.month}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '86px 1fr 1fr 1.2fr',
+                    gap: '6px',
+                    fontSize: '11px',
+                    padding: '8px 0',
+                    borderTop: '1px solid var(--border-subtle)',
+                    color: noBudget ? 'var(--text-muted)' : 'var(--text-main)',
+                  }}
+                >
+                  <span style={{ fontWeight: 700 }}>
+                    {row.month === currentMonth ? 'This month' : formatBudgetMonth(row.month)}
+                  </span>
+                  <span className="font-mono-numbers" style={{ textAlign: 'right' }}>
+                    {noBudget ? '—' : formatMoney(row.budgeted)}
+                  </span>
+                  <span className="font-mono-numbers" style={{ textAlign: 'right' }}>
+                    {formatMoney(row.spent)}
+                  </span>
+                  <span
+                    style={{
+                      textAlign: 'right',
+                      fontWeight: 700,
+                      color: noBudget ? 'var(--text-muted)' : row.over ? '#ef4444' : '#10b981',
+                    }}
+                  >
+                    {noBudget
+                      ? 'No budget recorded'
+                      : row.over
+                        ? `${formatMoney(diff)} over`
+                        : `${formatMoney(subtractMoney(row.budgeted, row.spent))} left`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <PlannedPaymentsSection

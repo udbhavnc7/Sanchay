@@ -25,6 +25,10 @@ from [data-flow-inventory.md](data-flow-inventory.md) (release-variant static au
 - **No data is shared with third parties.** No advertising, no analytics, no data brokers.
 - Google (Firebase Firestore) processes the poll vote as the **service provider** hosting the
   backend — declare under Google's SDK, not as "sharing".
+- Runtime evidence (12 Nov 2026): the production dashboard build makes **no outbound requests
+  except localhost assets**; the only remote reference in `index.html` is a Google Fonts CSS
+  request, which the Android WebView host allowlist blocks. On-device packet capture of the
+  release build is still pending (release checklist 3).
 
 ### Data security & deletion
 
@@ -79,12 +83,14 @@ records (spec item 350) — do not publish confidential correspondence.]`
 ## 3. Working-link checklist before submission (spec items 231, 355)
 
 - [ ] Privacy policy URL published (draft: [privacy-policy.md](privacy-policy.md)) — linked in
-  Play Console **and** inside the app (privacy panel + README).
+  Play Console **and** inside the app (privacy panel + README). The privacy panel already carries
+  an embedded privacy/terms summary, but a public URL still needs maintainer hosting.
 - [ ] Support/contact address live (same `[TODO]` as the privacy policy).
-- [ ] Terms of use published or consciously omitted with a Play-appropriate note.
+- [ ] Terms of use published or consciously omitted with a Play-appropriate note
+  (draft: [terms-of-use.md](terms-of-use.md)).
 - [ ] Data safety form above entered and cross-checked against the release APK's actual SDKs.
 - [ ] Financial features declaration completed (§2).
 - [ ] Store screenshots captured from the release build on a phone (2–8 required; current
   phone-viewport candidates are in [docs/screenshots](../docs/screenshots/) — Overview, Activity,
-  Reports, Plan, Accounts, Payees; re-capture on-device so the WebView chrome and status bar are
+  Reports, Plan, Accounts, Payees, Budget history; re-capture on-device so the WebView chrome and status bar are
   real).

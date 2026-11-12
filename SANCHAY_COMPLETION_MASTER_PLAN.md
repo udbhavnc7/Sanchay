@@ -62,7 +62,7 @@ The Antigravity briefing supplied for this plan reports 68/68 tests passing acro
 | Safe-to-Spend | 30-day estimate, buffer, planned events, goal pace, what-if purchase | Implemented; assumptions and edge cases need validation |
 | Planned payments | One-time inflows/outflows and due indicators | Implemented; recurring rules are missing |
 | Savings goals | Targets, progress, monthly pace, goal deposits | Implemented; verify ledger/account/goal consistency |
-| Budgets | Category limits, progress and warnings | Implemented; history and custom categories are missing |
+| Budgets | Category limits, progress, warnings, effective-dated history, archive/restore | Implemented; custom categories are missing |
 | Payees | Saved payees and favorites | Implemented; validate data and UX |
 | Payment assistance | Manual external UPI assistance and local reconciliation under Path A | Implemented according to the current compliance direction; release audit required |
 | Request money | Copy/share plain-text request | Implemented; must never be described as UPI Collect |
@@ -77,7 +77,6 @@ The Antigravity briefing supplied for this plan reports 68/68 tests passing acro
 - First-run demo seed data can be confused with real personal financial records. A new user must be able to start with a genuinely blank ledger.
 - Planned payments are one-time only; recurring schedules and reminders are not complete.
 - Categories are fixed; user-created categories are not complete.
-- Budget history and multi-month performance are incomplete.
 - Backup files are not encrypted. Backup version migration and clean-install restore need stronger coverage.
 - Multi-currency accounts may appear in seed/display data, but full transaction entry, conversion and reporting are incomplete. Current quick-add flows are INR-oriented.
 - The Android WebView dashboard uses `localStorage` under `sanchay.local.v1`; the inherited native Room database is a separate, unused ledger. There must not be two competing writable ledgers.
@@ -1066,7 +1065,7 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [x] Accounts and account lifecycle are fully tested. **[Verified 10 Nov: ledgerOps account lifecycle tests (delete-with-history refused, inactive rules, unknown account), undo/delete guards; connect openingBalance wiring + CardsTab display; 151/151 tests green]**
 - [x] Custom categories/tags are complete or explicitly deferred in release notes. **[Deferred to Phase 2 - fixed category list documented in README + `docs/implementation-status.md`]**
 - [x] Planned and recurring payments are complete or clearly marked one-time only. **[Deferred to Phase 2 - current UI supports one-time planned payments only; recurring design `docs/design-recurring-payments.md` awaits approval]**
-- [ ] Budgets and budget history are accurate. **[Partial: limits/category spend/budget health implemented and unit-tested; budget history + custom categories deferred to Phase 2]**
+- [x] Budgets and budget history are accurate. **[Verified 12 Nov: `utils/budgetHistory.ts` stores effective-dated periods so edits never rewrite earlier months; archive/restore keeps past performance; 6-month history table (budgeted/spent/result) in GoalsTab and historical limits in Overview/alerts; INR-scoped spend nets refunds and excludes transfers/pending/foreign currency; legacy snapshots still parse; `budgetHistory.test.ts` 14 tests + `reporting.test.ts` 12 + budget E2E 16 checks; custom categories remain deferred (1067)]**
 - [x] Savings goals and contributions reconcile. **[Verified 10 Nov: goal contribution vs expense classification + transfer-deletion/undo goal reversal + floor-at-zero tests green in ledgerOps/goalProjection; 151/151 tests]**
 - [x] Safe-to-Spend shows assumptions and limitations. **[Verified 10 Nov: safeToSpend tests + UI copy (estimate, not advice; active INR accounts only; free-after-budget subtraction); recurring/lookback inputs deferred to Phase 2]**
 - [x] Reports and CSV exports reconcile to ledger data. **[Verified 11 Nov: totals derived from ledger rules (completed-only; transfers -> saved; refunds -> negative spending) in `web/src/utils/reporting.ts`; `reporting.test.ts` reconciles totals and CSV rows against live `ledgerOps` state; CSV keeps every ledger row incl. currency; 162 tests green]**
@@ -1093,11 +1092,11 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [ ] Release APK tested on physical Android devices.
 - [ ] WebView lifecycle, file import/export and keyboard behavior pass.
 - [x] Permissions are minimal and justified. **[Verified 11 Nov: declared set audited against reachable features; no location/contacts/SMS/device-ID permissions; storage write capped at API 28; justification table in `docs/data-flow-inventory.md` 8; runtime prompts still need device pass (1090)]**
-- [ ] Privacy Policy and Terms are published and linked in-app.
-- [ ] Play declarations are accurate.
+- [ ] Privacy Policy and Terms are published and linked in-app. **[Partial 12 Nov: the in-app privacy panel now embeds privacy and terms summaries (local-only storage, no analytics, Path A limits, backup/PIN rules); privacy and terms drafts exist in `docs/`. Still pending: maintainer fills contact/effective-date TODOs, hosts public URLs, and links them in the app/listing]**
+- [ ] Play declarations are accurate. **[Partial 12 Nov: data-safety/financial-feature drafts cross-checked against the release classpath and the web runtime audit (localhost assets only, blocked font request, no analytics); in-app privacy/terms summaries match the disclosure copy; terms draft added. Still pending: Play Console entry and signed-release/on-device confirmation]**
 - [x] GPL-3.0 and dependency/asset licenses are reviewed. **[Verified 11 Nov: project GPL-3.0; web deps MIT/ISC/Apache-2.0; Android deps Apache-2.0/MIT-compatible; inventory in `docs/license-audit.md`; external legal sign-off still recommended]**
-- [ ] README and store screenshots reflect the release candidate. **[Partial: README now embeds six phone-viewport dashboard screenshots generated from the current build (`docs/screenshots/`); on-device WebView/store screenshots remain pending with 1092]**
-- [ ] No known P0 issue remains.
+- [ ] README and store screenshots reflect the release candidate. **[Partial: README embeds seven phone-viewport dashboard screenshots generated from the current build (`docs/screenshots/`, incl. budget history); on-device WebView/store screenshots remain pending with 1092]**
+- [ ] No known P0 issue remains. **[Partial: no known P0 data-loss, calculation, privacy or payment-status defect; remaining P0 release gates are external (published privacy/terms URL, Play declarations) and the physical-device pass]**
 
 ---
 

@@ -4,6 +4,7 @@ import { addTransaction, createTransfer, recordRefund, type LedgerState } from '
 import {
   buildStatementCsv,
   computeCategoryBreakdown,
+  computeCategorySpending,
   computePayeeBreakdown,
   computeReportTotals,
   reportCurrencies,
@@ -208,6 +209,21 @@ describe('breakdown math', () => {
     const slices = computeCategoryBreakdown(rows, 'INR');
     expect(slices[0]).toEqual({ category: 'Dining', amount: 400, pct: 80 });
     expect(slices[1]).toEqual({ category: 'Groceries', amount: 100, pct: 20 });
+  });
+
+  it('nets refunds into category spending and drops categories that net to zero', () => {
+    const rows = [
+      tx({ category: 'Dining', amount: 300 }),
+      tx({ category: 'Groceries', amount: 500 }),
+      tx({ category: 'Groceries', amount: 500, type: 'credit', kind: 'refund' }),
+      tx({ category: 'Dining', amount: 100, kind: 'transfer' }),
+    ];
+    const spending = computeCategorySpending(rows, 'INR');
+    expect(spending.get('Dining')).toBe(300);
+    expect(spending.get('Groceries')).toBe(0);
+    expect(computeCategoryBreakdown(rows, 'INR')).toEqual([
+      { category: 'Dining', amount: 300, pct: 100 },
+    ]);
   });
 
   it('respects minor-unit precision for zero-decimal currencies', () => {

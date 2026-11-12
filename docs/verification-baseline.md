@@ -1,6 +1,6 @@
 # Verification Baseline
 
-**Recorded:** 10 November 2026 - **Re-verified:** 11 November 2026 (app-lock security hardening)
+**Recorded:** 10 November 2026 - **Re-verified:** 12 November 2026 (budget history + archived budgets)
 **Recorded:** 10 November 2026
 **Machine:** Windows 11, PowerShell 5.1 (WSL present but broken — use `"C:\Program Files\Git\bin\bash.exe"` for shell scripts)
 
@@ -24,10 +24,11 @@
 | `pnpm install --frozen-lockfile` | exit 0 |
 | `pnpm -C web run lint` (oxlint) | exit 0 |
 | `pnpm -C web exec tsc -b --pretty false` | exit 0 |
-| `pnpm -C web test` (vitest) | **162/162 passed, 15 files** (was 83/12 after first-run work; +41 ledger-engine acceptance tests for plan 4.2/4.3; +8 app-lock credential/lockout tests + 2 persistence credential tests; +11 reporting/currency tests; TZ legs America/New_York / Europe/London / Asia/Kolkata / Australia/Sydney also green) |
-| Reports/currency suite (`reporting.test.ts`) | **11/11 PASS** - totals reconcile with `ledgerOps` state, refunds net spending, transfer debits become goal savings, currencies never mix, CSV quoting/currency column (11 Nov) |
-| `pnpm -C web run build` | exit 0 (chunk-size warning pre-existing; bundle `index-DUvBnQr_.js`) |
-| `node scripts/check-release-compliance.mjs` | **PASS - 3,139 checks** (count scales with shipped files; 748 Kotlin/Java incl. `temp/`, web incl. `upi://`/`intent://`) |
+| `pnpm -C web test` (vitest) | **176/176 passed, 16 files** (was 83/12 after first-run work; +41 ledger-engine acceptance tests for plan 4.2/4.3; +8 app-lock credential/lockout tests + 2 persistence credential tests; +11 reporting/currency tests; +14 budget-history/period tests; TZ legs America/New_York / Europe/London / Asia/Kolkata / Australia/Sydney also green) |
+| Reports/currency suite (`reporting.test.ts`) | **12/12 PASS** - totals reconcile with `ledgerOps` state, refunds net spending (incl. category breakdown), transfer debits become goal savings, currencies never mix, CSV quoting/currency column (12 Nov) |
+| Budget-history suite (`budgetHistory.test.ts`) | **14/14 PASS** - legacy snapshots still parse, same-month edit replaces the period, future scheduling, year rollover, negative clamp, no limit before first period, archive/restore, 6-month rows newest-first, refunds net and transfers/pending/foreign-currency rows excluded, zero-budget overspend, archived budgets keep past performance, empty state (12 Nov) |
+| `pnpm -C web run build` | exit 0 (chunk-size warning pre-existing; bundle `index-DIPRswIf.js`) |
+| `node scripts/check-release-compliance.mjs` | **PASS - 3,142 checks** (count scales with shipped files; 748 Kotlin/Java incl. `temp/`, web incl. `upi://`/`intent://`) |
 | `gradlew detekt` | GREEN (`config/detekt/config.yml` + `baseline.yml`, 450 pre-existing TopLevelPropertyNaming entries — do not regenerate) |
 | `gradlew lintRelease` | GREEN |
 | `gradlew testDebugUnitTest` | GREEN (full suite) |
@@ -37,8 +38,10 @@
 | `git diff --check` | clean (CRLF warnings only) |
 | First-run E2E (headless Edge/CDP vs production build) | **17/17 PASS** — see below; re-run 10 Nov after ledger-engine extraction, still ALL PASS |
 | App-lock E2E (headless Edge/CDP vs production build) | **17/17 PASS** - set PIN, PBKDF2 credential persisted with no plaintext PIN, wrong + correct unlock, reload/process-restart lock, legacy plaintext upgrade, 5-failure lockout persisted across reload (11 Nov) |
+| Privacy/terms panel E2E (headless Edge/CDP vs production build) | **13/13 PASS** - header opens the panel, local-only storage copy, no analytics/ads/crash code statement, Android host blocking, inherited native destinations, "not a bank / does not move money / no UTR verification", estimates-not-advice, unencrypted-backup + PIN exclusion copy, export/import/reset actions, `role="dialog"` + `aria-modal`, Escape closes, Got it closes (12 Nov) |
 | Reports/currency E2E (headless Edge/CDP vs production build) | **11/11 PASS, 2 consecutive runs** - metrics render, single-currency hides selector, CSV statement downloads (13 rows), mixed-currency fixture shows chips, USD scope filters to $25 only, INR scope formats in rupees, CSV export keeps every currency row (11 Nov) |
-| README screenshots (`docs/screenshots/`) | **6/6 captured** at 390×844 @2x from the production build with sample data (Overview, Activity, Reports, Plan, Accounts, Payees); on-device screenshots pending (11 Nov) |
+| Budget-history E2E (headless Edge/CDP vs production build) | **16/16 PASS, 2 consecutive runs** - sample history shows ₹56,500 current / ₹54,500 October; editing Groceries 12000->15000 records a November period while October stays ₹11,000; totals move to ₹59,500 vs ₹54,500; Overview budget follows; archiving Shopping drops the card to 6 categories and adds "Archived budgets" while October history is intact; restore returns 7 categories; reload keeps the edit and archive state (12 Nov) |
+| README screenshots (`docs/screenshots/`) | **7/7 captured** at 390×844 @2x from the production build with sample data (Overview, Activity, Reports, Plan, Accounts, Payees, Budget history); on-device screenshots pending (12 Nov) |
 | Runtime network audit (headless Edge/CDP vs production build) | **PASS** - 8 requests total: localhost assets only, plus one Google Fonts CSS request blocked via CDP to mirror the WebView allowlist; no analytics/telemetry hosts; first-run, Reports and CSV export still work offline (11 Nov) |
 | Text encoding sweep (all tracked `md/ts/tsx/json/kt/xml/css/html/js/mjs/yml/properties/gradle/txt`) | **PASS** - 0 mojibake markers and 0 U+FFFD after repair of `App.tsx`, `CardsTab`, `OverviewTab`, `ReportsTab`, `TransactionDrawer`, `ledgerOps(.test)`, `ProfileSettingsModal`, `README`, plan, `data-flow-inventory` (11 Nov) |
 
@@ -64,5 +67,5 @@ Production build served by `vite preview` on `:4173`, driven over CDP in a clean
 
 ## Test inventory (web)
 
-`web/src/utils/`: money, ledger, ledgerOps (add/edit/delete/undo/account-lifecycle acceptance, plan 4.2/4.3), appLock (PIN derivation + lockout backoff), safeToSpend, goalProjection, paymentAttempts, paymentWorkflowIntegration, categorySuggestion, spendingComparison, transactionTemplates, fileSave.
+`web/src/utils/`: money, ledger, ledgerOps (add/edit/delete/undo/account-lifecycle acceptance, plan 4.2/4.3), appLock (PIN derivation + lockout backoff), budgetHistory (periods, archive, 6-month history), safeToSpend, goalProjection, paymentAttempts, paymentWorkflowIntegration, categorySuggestion, spendingComparison, transactionTemplates, fileSave.
 `web/src/data/`: persistence (incl. demo-mode + backup rules), firstRun (blank/sample seeds).

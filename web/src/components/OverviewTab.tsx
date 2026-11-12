@@ -16,7 +16,14 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { addMoney, formatMoney, relativeDay, startOfMonth, subtractMoney, sumMoney } from '../utils/money';
+import { addMoney, formatMoney, monthKey, relativeDay, startOfMonth, subtractMoney, sumMoney } from '../utils/money';
+import { activeBudgets, budgetLimitForMonth } from '../utils/budgetHistory';
+import {
+  computeCategorySpending,
+  DEFAULT_CURRENCY,
+  reportsAccountMap,
+  scopeToCurrency,
+} from '../utils/reporting';
 import type { SafeToSpendResult } from '../utils/safeToSpend';
 
 interface OverviewTabProps {
@@ -144,29 +151,24 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   }, [monthTransactions]);
 
   const budgetHealth = useMemo(() => {
-    const spend = new Map<string, number>();
-    monthTransactions
-      .filter((tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer')
-      .forEach((tx) => {
-        spend.set(tx.category, addMoney(spend.get(tx.category) ?? 0, tx.amount));
-      });
-    monthTransactions
-      .filter((tx) => tx.status === 'Completed' && tx.type === 'credit' && tx.kind === 'refund')
-      .forEach((tx) => {
-        spend.set(tx.category, subtractMoney(spend.get(tx.category) ?? 0, tx.amount));
-      });
-    return budgets
+    const accountsById = reportsAccountMap(accounts);
+    const inrMonthTransactions = scopeToCurrency(monthTransactions, accountsById, DEFAULT_CURRENCY);
+    const spend = computeCategorySpending(inrMonthTransactions, DEFAULT_CURRENCY);
+    const currentMonth = monthKey(monthStart);
+    return activeBudgets(budgets)
       .map((budget) => {
+        const limit = budgetLimitForMonth(budget, currentMonth)?.limit ?? budget.limit;
         const spent = spend.get(budget.category) ?? 0;
         return {
           ...budget,
+          limit,
           spent,
-          pct: budget.limit > 0 ? Math.round((spent / budget.limit) * 100) : 0,
+          pct: limit > 0 ? Math.round((spent / limit) * 100) : 0,
         };
       })
       .sort((a, b) => b.pct - a.pct)
       .slice(0, 4);
-  }, [budgets, monthTransactions]);
+  }, [budgets, monthTransactions, accounts, monthStart]);
 
   const budgetUsedPct = monthlyBudget > 0 ? Math.round((monthlySpent / monthlyBudget) * 100) : 0;
   const savingsRate =
