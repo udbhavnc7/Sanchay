@@ -189,13 +189,30 @@ function isGoal(value: unknown): value is SavingsGoal {
   );
 }
 
+function isBudgetPeriod(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    isString(value.id) &&
+    isNumber(value.limit) &&
+    typeof value.effectiveFrom === 'string' &&
+    /^\d{4}-\d{2}-01$/.test(value.effectiveFrom) &&
+    isString(value.createdAt)
+  );
+}
+
 function isBudget(value: unknown): value is Budget {
   if (!isRecord(value)) return false;
+  const historyValid =
+    value.history === undefined ||
+    (Array.isArray(value.history) && value.history.every(isBudgetPeriod));
+  const archivedValid = value.archived === undefined || typeof value.archived === 'boolean';
   return (
     isString(value.id) &&
     isCategory(value.category) &&
     isNumber(value.limit) &&
-    isString(value.color)
+    isString(value.color) &&
+    historyValid &&
+    archivedValid
   );
 }
 

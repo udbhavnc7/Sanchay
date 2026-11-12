@@ -94,11 +94,22 @@ export interface SavingsGoal {
   color: string;
 }
 
+export interface BudgetPeriod {
+  id: string;
+  limit: number;
+  /** First day of the month this limit applies from (YYYY-MM-01). */
+  effectiveFrom: string;
+  createdAt: string;
+}
+
 export interface Budget {
   id: string;
   category: Category;
   limit: number;
   color: string;
+  /** Optional so legacy stored budgets without history keep working. */
+  history?: BudgetPeriod[];
+  archived?: boolean;
 }
 
 export interface PlannedPayment {

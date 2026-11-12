@@ -235,6 +235,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                   sound.click();
                   setRange(key);
                 }}
+                aria-pressed={range === key}
                 style={{
                   padding: '5px 14px',
                   borderRadius: '9999px',
@@ -274,6 +275,8 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                 sound.click();
                 setCurrencyFilter(currency);
               }}
+              aria-pressed={currency === activeCurrency}
+              aria-label={`Show reports in ${currency}`}
               style={{
                 padding: '5px 14px',
                 borderRadius: '9999px',

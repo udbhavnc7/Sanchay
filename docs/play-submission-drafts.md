@@ -84,3 +84,7 @@ records (spec item 350) — do not publish confidential correspondence.]`
 - [ ] Terms of use published or consciously omitted with a Play-appropriate note.
 - [ ] Data safety form above entered and cross-checked against the release APK's actual SDKs.
 - [ ] Financial features declaration completed (§2).
+- [ ] Store screenshots captured from the release build on a phone (2–8 required; current
+  phone-viewport candidates are in [docs/screenshots](../docs/screenshots/) — Overview, Activity,
+  Reports, Plan, Accounts, Payees; re-capture on-device so the WebView chrome and status bar are
+  real).

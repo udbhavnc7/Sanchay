@@ -83,18 +83,40 @@ export function computeReportTotals(
   };
 }
 
+/**
+ * Net completed spending per category in one currency:
+ * transfers are excluded, refunds reduce their category, spending is positive.
+ */
+export function computeCategorySpending(
+  transactions: readonly Transaction[],
+  currency: Currency = DEFAULT_CURRENCY
+): Map<string, number> {
+  const map = new Map<string, number>();
+  transactions.forEach((tx) => {
+    if (tx.status !== 'Completed') return;
+    if (tx.kind === 'transfer') return;
+    if (tx.kind === 'refund') {
+      map.set(tx.category, subtractMoney(map.get(tx.category) ?? 0, tx.amount, currency));
+      return;
+    }
+    if (tx.type === 'debit') {
+      map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount, currency));
+    }
+  });
+  return map;
+}
+
 export function computeCategoryBreakdown(
   transactions: readonly Transaction[],
   currency: Currency = DEFAULT_CURRENCY
 ): CategorySlice[] {
-  const map = new Map<string, number>();
-  transactions
-    .filter((tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer')
-    .forEach((tx) => {
-      map.set(tx.category, addMoney(map.get(tx.category) ?? 0, tx.amount, currency));
-    });
-  const total = sumMoney(map.values(), currency);
-  return Array.from(map.entries())
+  const map = computeCategorySpending(transactions, currency);
+  const entries = Array.from(map.entries()).filter(([, amount]) => amount > 0);
+  const total = sumMoney(
+    entries.map(([, amount]) => amount),
+    currency
+  );
+  return entries
     .map(([category, amount]) => ({
       category,
       amount,

@@ -1082,7 +1082,8 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [x] Encrypted backup behavior is tested if included. **[Not included: design `docs/design-encrypted-backups.md` awaits approval]**
 - [x] App lock claims match actual security properties. **[Verified 11 Nov: PIN stored only as salted PBKDF2-SHA-256 (120k iterations, 16-byte random salt, constant-time compare); 5-failure exponential lockout 30s-5min persisted; legacy plaintext upgraded on unlock; PIN excluded from backups/logs; UI states access barrier, not encryption; `appLock.test.ts` + persistence tests; E2E 17/17 (set/unlock/reload/legacy upgrade/lockout); background/process-death device pass pending (1090)]**
 - [x] Data-flow inventory matches the release APK. **[Verified 11 Nov against demo APK (R8-minified, debug-signed; identical sources/assets to release): `assets/web` holds index.html + one hashed JS + one CSS + 6 static assets; index.html references only relative assets plus Google Fonts, which the WebView interceptor blocks; re-check the signed release APK after 1091]**
-- [ ] Runtime network behavior is verified. **[Static scan only: no fetch/XMLHttpRequest/axios/beacon in `web/src`; release-APK packet capture pending (blocked on device 1090)]**
+- [ ] Runtime network behavior is verified. **[Partial: static scan finds no fetch/XMLHttpRequest/axios/beacon in `web/src`; headless-browser runtime audit of the production build records only localhost asset loads plus one Google Fonts CSS request (blocked to mirror the WebView allowlist) while first-run, reports and CSV export still work - no analytics/telemetry hosts. On-device WebView/release packet capture still pending]**
+
 - [x] No private financial data appears in logs or analytics. **[Verified 11 Nov: no console/analytics calls in `web/src`; no Crashlytics/analytics SDKs (data-flow inventory 6); `Timber.DebugTree` only under `BuildConfig.DEBUG`; reachable flows log no amounts, balances, payees or PIN]**
 - [x] No production secrets/signing keys are committed. **[Verified 11 Nov: release signing uses `SIGNING_*` env vars + untracked `sign.jks`; no API tokens/private keys in tracked source; committed `debug.jks` is a documented debug-only key (`.debug` applicationId suffix); `google-services.json` holds public Firebase identifiers, not credentials]**
 
@@ -1095,7 +1096,7 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 - [ ] Privacy Policy and Terms are published and linked in-app.
 - [ ] Play declarations are accurate.
 - [x] GPL-3.0 and dependency/asset licenses are reviewed. **[Verified 11 Nov: project GPL-3.0; web deps MIT/ISC/Apache-2.0; Android deps Apache-2.0/MIT-compatible; inventory in `docs/license-audit.md`; external legal sign-off still recommended]**
-- [ ] README and store screenshots reflect the release candidate.
+- [ ] README and store screenshots reflect the release candidate. **[Partial: README now embeds six phone-viewport dashboard screenshots generated from the current build (`docs/screenshots/`); on-device WebView/store screenshots remain pending with 1092]**
 - [ ] No known P0 issue remains.
 
 ---

@@ -10,6 +10,16 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 
 > **Project status:** early development. The dashboard stores data in local browser storage. On first launch you choose a blank ledger (default) or clearly labeled fictional sample data. It is not a production banking or accounting application.
 
+## Screenshots
+
+| Overview | Activity | Reports |
+| --- | --- | --- |
+| <img src="docs/screenshots/01-overview.png" width="240" alt="Overview screen"> | <img src="docs/screenshots/02-activity.png" width="240" alt="Activity screen"> | <img src="docs/screenshots/03-reports.png" width="240" alt="Reports screen"> |
+| **Goals & budgets** | **Accounts** | **Payees** |
+| <img src="docs/screenshots/04-plan.png" width="240" alt="Goals and budgets screen"> | <img src="docs/screenshots/05-accounts.png" width="240" alt="Accounts screen"> | <img src="docs/screenshots/06-payees.png" width="240" alt="Payees screen"> |
+
+Captured from the dashboard build at a 390×844 phone viewport using the sample ledger. On-device WebView screenshots still need to be captured for the release candidate.
+
 ---
 
 ## What is implemented today
@@ -72,9 +82,10 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 ### Reports
 
 - View cash-flow and category summaries calculated from local transactions.
+- Reports pick one currency at a time (with a selector when the ledger holds accounts in several currencies), so totals never mix currencies.
 - Compare month-to-date spending and income with the same days last month, including the largest category changes.
 - Open a category change to see the current-month payments behind it and jump into a transaction.
-- Export the transaction list as a CSV file.
+- Export the transaction list as a CSV file; the export keeps every row and records each row's own currency.
 
 ### Privacy and preferences
 
@@ -98,14 +109,14 @@ Sanchay is an open-source Android personal finance project focused on simple, lo
 - Recent quick-fill is inferred from local transaction history; saved custom templates are not implemented.
 - Category suggestions use simple local text matching and only change the category when the user taps Use.
 - Goal monthly-pace figures assume equal contributions and do not schedule or move money automatically.
-- Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive INR account can still be edited.
-- USD, EUR, GBP, and JPY accounts appear in seed/display data, but full multi-currency entry and conversion are incomplete.
+- Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive INR account can still be edited. Other currencies are supported through account creation and transfers with an explicit rate, and reports are always grouped per currency.
+- USD, EUR, GBP, and JPY accounts appear in seed/display data; quick entry for those currencies is not implemented yet.
 - Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
 - Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, entered planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
 - Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
 - Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version, and the app-lock PIN/credential is never exported or imported.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
-- The dashboard has been tested in a desktop browser and emulated mobile viewports, but not yet verified on a physical Android device.
+- The dashboard has been tested in a desktop browser and emulated phone viewports; a debug APK has been installed and launched on a physical Android device. Full on-device flows and the signed release APK are still pending.
 - UPI / Bank integration: Operates under Path A (payment assistance and local ledger reconciliation only). Sanchay does not connect to bank or UPI networks, does not verify bank settlement or UTRs, and does not initiate fund transfers.
 - Data can be lost if Android clears WebView storage or the app's data.
 

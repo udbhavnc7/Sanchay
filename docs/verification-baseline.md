@@ -38,6 +38,8 @@
 | First-run E2E (headless Edge/CDP vs production build) | **17/17 PASS** — see below; re-run 10 Nov after ledger-engine extraction, still ALL PASS |
 | App-lock E2E (headless Edge/CDP vs production build) | **17/17 PASS** - set PIN, PBKDF2 credential persisted with no plaintext PIN, wrong + correct unlock, reload/process-restart lock, legacy plaintext upgrade, 5-failure lockout persisted across reload (11 Nov) |
 | Reports/currency E2E (headless Edge/CDP vs production build) | **11/11 PASS, 2 consecutive runs** - metrics render, single-currency hides selector, CSV statement downloads (13 rows), mixed-currency fixture shows chips, USD scope filters to $25 only, INR scope formats in rupees, CSV export keeps every currency row (11 Nov) |
+| README screenshots (`docs/screenshots/`) | **6/6 captured** at 390×844 @2x from the production build with sample data (Overview, Activity, Reports, Plan, Accounts, Payees); on-device screenshots pending (11 Nov) |
+| Runtime network audit (headless Edge/CDP vs production build) | **PASS** - 8 requests total: localhost assets only, plus one Google Fonts CSS request blocked via CDP to mirror the WebView allowlist; no analytics/telemetry hosts; first-run, Reports and CSV export still work offline (11 Nov) |
 | Text encoding sweep (all tracked `md/ts/tsx/json/kt/xml/css/html/js/mjs/yml/properties/gradle/txt`) | **PASS** - 0 mojibake markers and 0 U+FFFD after repair of `App.tsx`, `CardsTab`, `OverviewTab`, `ReportsTab`, `TransactionDrawer`, `ledgerOps(.test)`, `ProfileSettingsModal`, `README`, plan, `data-flow-inventory` (11 Nov) |
 
 ## First-run E2E evidence (plan §3.3 acceptance)

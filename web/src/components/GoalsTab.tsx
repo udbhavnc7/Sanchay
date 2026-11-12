@@ -37,6 +37,19 @@ import {
   sumMoney,
 } from '../utils/money';
 import { buildGoalProjection, goalTargetMonthValue } from '../utils/goalProjection';
+import {
+  activeBudgets,
+  archivedBudgets,
+  budgetLimitForMonth,
+  buildBudgetHistory,
+  formatBudgetMonth,
+} from '../utils/budgetHistory';
+import {
+  computeCategorySpending,
+  DEFAULT_CURRENCY,
+  reportsAccountMap,
+  scopeToCurrency,
+} from '../utils/reporting';
 import { PlannedPaymentsSection } from './PlannedPaymentsSection';
 
 interface GoalsTabProps {
@@ -49,6 +62,7 @@ interface GoalsTabProps {
   onAddGoal: (goal: SavingsGoal) => void;
   onUpdateGoal: (goal: SavingsGoal) => void;
   onUpdateBudget: (budgetId: string, limit: number) => void;
+  onArchiveBudget: (budgetId: string, archived: boolean) => void;
   onAddPlannedPayment: (payment: PlannedPayment) => void;
   onDeletePlannedPayment: (paymentId: string) => void;
 }

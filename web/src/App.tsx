@@ -30,6 +30,7 @@ import {
   formatMoney,
   fromMinorUnits,
   isValidAmount,
+  monthKey,
   startOfMonth,
   subtractMoney,
   sumMoney,
@@ -65,6 +66,7 @@ import {
 } from './utils/ledgerOps';
 import { TransferModal } from './components/TransferModal';
 import { buildSafeToSpend } from './utils/safeToSpend';
+import { applyBudgetLimit, setBudgetArchived } from './utils/budgetHistory';
 import { OverviewTab } from './components/OverviewTab';
 import { ActivityTab } from './components/ActivityTab';
 import { CardsTab } from './components/CardsTab';
@@ -679,9 +681,19 @@ export const App: React.FC = () => {
 
   const handleUpdateBudget = (budgetId: string, limit: number) => {
     const normalized = compareMoney(limit, 0) < 0 ? 0 : fromMinorUnits(toMinorUnits(limit));
+    const effectiveMonth = monthKey(new Date());
     setBudgets((prev) =>
       prev.map((budget) =>
-        budget.id === budgetId ? { ...budget, limit: normalized } : budget
+        budget.id === budgetId ? applyBudgetLimit(budget, normalized, effectiveMonth) : budget
+      )
+    );
+  };
+
+  const handleArchiveBudget = (budgetId: string, archived: boolean) => {
+    sound.click();
+    setBudgets((prev) =>
+      prev.map((budget) =>
+        budget.id === budgetId ? setBudgetArchived(budget, archived) : budget
       )
     );
   };
@@ -1493,6 +1505,7 @@ export const App: React.FC = () => {
                 onAddGoal={handleAddGoal}
                 onUpdateGoal={handleUpdateGoal}
                 onUpdateBudget={handleUpdateBudget}
+                onArchiveBudget={handleArchiveBudget}
                 onAddPlannedPayment={handleAddPlannedPayment}
                 onDeletePlannedPayment={handleDeletePlannedPayment}
               />
