@@ -157,17 +157,19 @@ fun SanchayModernUI(
                         request: WebResourceRequest?
                     ): Boolean {
                         val url = request?.url ?: return false
-                        if (url.host == "sanchay.local") return false
-                        if (url.scheme != "https" && url.scheme != "http") return true
-                        return try {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, url).addFlags(
-                                    Intent.FLAG_ACTIVITY_NEW_TASK
+                        return when {
+                            url.host == "sanchay.local" -> false
+                            url.scheme != "https" && url.scheme != "http" -> true
+                            else -> try {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, url).addFlags(
+                                        Intent.FLAG_ACTIVITY_NEW_TASK
+                                    )
                                 )
-                            )
-                            true
-                        } catch (_: Exception) {
-                            true
+                                true
+                            } catch (_: Exception) {
+                                true
+                            }
                         }
                     }
 

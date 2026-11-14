@@ -1,0 +1,39 @@
+name: Record Paparazzi goldens
+
+# Manual only. Paparazzi renders text with the host's font stack, so goldens
+# recorded on macOS or Windows differ pixel-by-pixel from the Linux CI runner.
+# Use this workflow to re-record snapshots on the same platform CI verifies on,
+# download the artifact, and commit the PNGs under
+# `<module>/src/test/snapshots/images/`.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GIT
+        uses: actions/checkout@v4
+
+      - name: Setup Java SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Record snapshots
+        run: ./gradlew recordPaparazziDebug
+
+      - name: Upload goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: paparazzi-goldens
+          path: |
+            **/src/test/snapshots/images/*.png
+            !**/build/**
+          if-no-files-found: error
+          retention-days: 7
