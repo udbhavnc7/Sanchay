@@ -1,9 +1,9 @@
 name: 'Gradle Wrapper Upgrade'
 
+# Manual only: the inherited task clones the archived upstream Ivy Wallet repo,
+# whose layout no longer matches, so a scheduled run fails every day.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 8 * * *'
 
 jobs:
   upgrade-gradle-wrapper:
