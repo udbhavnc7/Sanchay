@@ -62,7 +62,7 @@ Production build served by `vite preview` on `:4173`, driven over CDP in a clean
 
 ## Known environment caveats
 
-- **Paparazzi:** golden-image tests fail locally on Windows only (~0.137% pixel delta on `DisclaimerScreenPaparazziTest`, `OpenSourceCardPaparazziTest`); goldens recorded on Linux CI. Never re-record locally — CI (`ubuntu-latest`) is authoritative.
+- **Paparazzi:** goldens are recorded on Linux CI, never locally (Windows font rasterisation differs; `OpenSourceCardPaparazziTest` and `DisclaimerScreenPaparazziTest` show sub-perceptual diffs on this machine). On 14 Nov 2026 the four `DisclaimerScreenPaparazziTest` goldens were still pre-rebranding images ("Ivy Wallet is open-source", "I accept"), so CI failed while local Windows runs failed for the unrelated rendering reason. Re-recorded on `ubuntu-latest` via the manual `record_paparazzi_goldens.yml` workflow and committed; the remaining 48 goldens were byte-noisy but pixel-identical or within tolerance and were left untouched.
 - **Gradle harness:** long builds may report `ChildProcess.kill` spuriously; poll redirect files, check **stderr** (`BUILD FAILED` often lands there only).
 - **Emulator:** boots but the AVD goes/stays `adb offline` on this machine (window-manager + adb-server issues); androidTest suites (`Migration128to129Test`, `IvyRoomDatabaseMigrationTest`, `BackupDataUseCaseAndroidTest`, `SyncExchangeRatesUseCaseTest`) have **not been run locally** — see `docs/implementation-status.md`.
 - **Physical device:** none attached; checklist §3 / master plan §1.5 remain open (runbook + `scripts/device-verify.ps1` ready).

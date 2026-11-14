@@ -44,16 +44,16 @@ Commit goldens together with the UI change that produced them.
 | `./gradlew :<module>:recordPaparazziDebug` | Re-records that module's goldens — only for **intentional** UI changes |
 | `./scripts/paparazziScreenshotTests.sh` | Repo-root wrapper that runs `verifyPaparazziDebug` |
 
-CI runs verification on every push/PR in `.github/workflows/paparazzi_screenshot_test.yml` (`ubuntu-latest`).
+CI runs verification on every push/PR in `.github/workflows/paparazzi_screenshot_test.yml` (`ubuntu-latest`). When goldens must be re-recorded, run the manual **Record Paparazzi goldens** workflow (`record_paparazzi_goldens.yml`): it renders on the same Ubuntu image CI verifies with, uploads the PNGs as the `paparazzi-goldens` artifact, and you commit only the ones that genuinely changed.
 
 ## ⚠️ Platform rendering differences (read before re-recording)
 
-Golden images are rendered with Linux font rasterisation in CI. **Windows renders fonts with different antialiasing**, which can produce sub-pixel diffs (~0.1% of pixels) on text-heavy screens — for example `DisclaimerScreenPaparazziTest` and `OpenSourceCardPaparazziTest` fail locally on Windows while passing in CI.
+Golden images are rendered with Linux font rasterisation in CI. **Windows renders fonts with different antialiasing**, which can produce sub-pixel diffs (~0.1% of pixels) on text-heavy screens — for example `OpenSourceCardPaparazziTest` and `DisclaimerScreenPaparazziTest` differ locally on Windows while passing in CI.
 
 **Rule: never re-record goldens on Windows.** Re-recording there would bake Windows rendering into the committed images and break the Linux CI job. If `verifyPaparazziDebug` fails only on your Windows machine:
 
 1. Confirm the same test passes in CI (or on Linux).
 2. Treat CI as the source of truth; do not touch the goldens.
-3. If CI also fails, the delta is a real visual regression — fix the UI, or re-record intentionally on Linux/CI.
+3. If CI also fails, the delta is a real visual regression — fix the UI, or re-record intentionally on Linux/CI (the manual workflow above).
 
 See also the [Paparazzi Tests section of CI-Troubleshooting](../CI-Troubleshooting.md#paparazzi-tests).
