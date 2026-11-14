@@ -1,21 +1,19 @@
-# Sanchay — Privacy policy (DRAFT)
+# Sanchay — Privacy policy
 
-Status: **draft for maintainer review — not yet published.** Created 2026-11-08 to satisfy the
-"public privacy policy" work item (`SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md` §7 item 201 and
+**Published:** 12 November 2026 at
+<https://github.com/udbhavnc7/Sanchay/blob/main/docs/privacy-policy.md>
+**Effective date:** 12 November 2026
+**Contact (privacy questions, data-deletion requests, complaints):**
+<https://github.com/udbhavnc7/Sanchay/issues> (maintainer: `@udbhavnc7`)
+
+Created 2026-11-08 to satisfy the "public privacy policy" work item
+(`SANCHAY_UPI_COMPLIANCE_FIRST_SPEC.md` §7 item 201 and
 [release checklist](release-checklist.md) §1). Every statement below is grounded in
 [data-flow-inventory.md](data-flow-inventory.md); re-verify that inventory if behaviour changes.
-
-Before publishing, the maintainer must fill in every `[TODO]` and host this document at a public
-HTTPS URL, then link that URL in the Google Play listing, the README, and the in-app privacy panel.
-The in-app panel already shows an embedded privacy/terms summary (verified E2E); replace or
-supplement it with the public URL link once hosted. The companion terms draft is
-[terms-of-use.md](terms-of-use.md).
+The companion terms are [terms-of-use.md](terms-of-use.md). The in-app privacy panel shows a
+summary of this policy and links back here.
 
 ---
-
-**Effective date:** `[TODO: publication date]`
-**Contact:** `[TODO: name or entity, email address for privacy questions, data-deletion requests
-and complaints]`
 
 ## Who collects what
 
@@ -52,10 +50,12 @@ served from bundled assets (inventory §4).
 
 ### Files you export
 
-JSON backups, CSV exports and receipts are written only to local storage (`Downloads/Sanchay` on
-Android, browser downloads elsewhere). **Backups are not encrypted** — anyone with the file can
-read it. Your app-lock PIN is never included in an export and is never taken from an imported
-backup. Store exports carefully and delete them when you no longer need them.
+Backups, CSV exports and receipts are written only to local storage (`Downloads/Sanchay` on
+Android, browser downloads elsewhere). Sanchay can write a password-encrypted `.sanchay` backup
+(AES-256-GCM with a PBKDF2-SHA-256 key derived from your password); the password is never stored,
+so a forgotten password cannot be recovered. A **plain JSON backup is unencrypted** — anyone with
+that file can read it. Your app-lock PIN is never included in an export and is never taken from an
+imported backup. Store exports carefully and delete them when you no longer need them.
 
 ## Third parties / SDKs in the app
 
@@ -72,16 +72,18 @@ backup. Store exports carefully and delete them when you no longer need them.
   "Reset local data", or remove everything at once with Android Settings → Apps → Sanchay →
   Storage → Clear data. The app is excluded from Android cloud backup (`allowBackup="false"`), so
   no server-side copy exists.
-- Poll votes: retained on Google Firestore until `[TODO: retention decision, e.g. "removed on the
-  maintainer's schedule" or "indefinitely"]`. Request deletion via the contact address above.
+- Poll votes: retained on Google Firestore only for aggregate poll tallies, and deleted when the
+  poll is retired or on request via the contact above (target: within 30 days). Poll votes contain
+  no dashboard data, account identifier, phone number or email.
 - Exported files: under your control; delete them with your file manager.
 - Logs: release builds emit no app logs (debug-only Timber); nothing financial is logged.
 
 ## Legal basis / who is responsible
 
-`[TODO: maintainer identity as required for Play's data-safety and privacy requirements: name or
-registered entity, country/region, and the complaint/contact process — e.g. "Requests are
-answered within 30 days at [email]".]`
+Sanchay is maintained by the Sanchay project under the GitHub account `@udbhavnc7`. The Google
+Play listing, once published, identifies the developer/legal entity responsible for that build.
+For this repository and its demo builds, privacy requests and complaints go through
+<https://github.com/udbhavnc7/Sanchay/issues> and are answered within 30 days where applicable.
 
 This app does not target children and does not knowingly collect data from children.
 

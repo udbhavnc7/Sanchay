@@ -103,14 +103,13 @@ describe('addTransaction', () => {
     expect(result.error).toContain('not active');
   });
 
-  it('rejects a non-INR account', () => {
-    const base = state({
-      accounts: [account({ currency: 'USD' }), account({ id: 'acc2', balance: 500 })],
-    });
+  it.each(['INR', 'USD', 'EUR', 'GBP', 'JPY'] as const)('records transactions in %s', (currency) => {
+    const base = state({ accounts: [account({ currency })] });
     const result = addTransaction(base, expenseInput(), NOW);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toContain('INR');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.transaction.currency).toBe(currency);
+    expect(result.state.accounts[0].balance).toBe(900);
   });
 
   it.each([0, -5, Number.NaN])('rejects invalid amount %s', (amount) => {
@@ -741,6 +740,211 @@ describe('transfers', () => {
   });
 });
 
+
+describe('currency completion safeguards', () => {
+  it.each([
+    ['INR', 0.1, 0.2, 999.9, 999.8],
+    ['USD', 0.1, 0.2, 999.9, 999.8],
+    ['EUR', 0.1, 0.2, 999.9, 999.8],
+    ['GBP', 0.1, 0.2, 999.9, 999.8],
+    ['JPY', 1, 2, 999, 998],
+  ] as const)('%s add/edit/delete/undo stays exact', (currency, amount, editedAmount, afterAdd, afterEdit) => {
+    const base = state({ accounts: [account({ currency })] });
+    const added = addTransaction(base, expenseInput({ amount }), NOW);
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+    expect(added.state.accounts[0].balance).toBe(afterAdd);
+    expect(undoAddTransaction(added.state, added.transaction).accounts[0].balance).toBe(1000);
+    const edited = updateTransaction(added.state, { ...expenseInput({ amount: editedAmount }), id: added.transaction.id }, NOW);
+    expect(edited.ok).toBe(true);
+    if (!edited.ok) return;
+    expect(edited.state.accounts[0].balance).toBe(afterEdit);
+    const deleted = deleteTransaction(edited.state, edited.transaction.id);
+    expect(deleted.ok).toBe(true);
+    if (!deleted.ok) return;
+    expect(deleted.state.accounts[0].balance).toBe(1000);
+    const undone = undoDeleteTransaction(deleted.state, deleted.transaction);
+    expect(undone.accounts[0].balance).toBe(afterEdit);
+    expect(undoDeleteTransaction(undone, deleted.transaction)).toBe(undone);
+    const income = updateTransaction(undone, { ...expenseInput({ amount, type: 'income' }), id: edited.transaction.id }, NOW);
+    expect(income.ok).toBe(true);
+    if (!income.ok) return;
+    expect(income.state.accounts[0].balance).toBe(currency === 'JPY' ? 1001 : 1000.1);
+    expect(undoAddTransaction(income.state, added.transaction).accounts[0].balance).toBe(1000);
+  });
+
+  it('moves an expense from USD to JPY and back using each account currency', () => {
+    const base = state({ accounts: [account({ currency: 'USD' }), account({ id: 'acc2', currency: 'JPY', balance: 500 })] });
+    const added = addTransaction(base, expenseInput({ amount: 10.25 }), NOW);
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+    const moved = updateTransaction(added.state, { ...expenseInput({ amount: 200, accountId: 'acc2' }), id: added.transaction.id }, NOW);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    expect(moved.transaction).toMatchObject({ currency: 'JPY', amount: 200, accountId: 'acc2' });
+    expect(moved.state.accounts.map(a => a.balance)).toEqual([1000, 300]);
+    const back = updateTransaction(moved.state, { ...expenseInput({ amount: 0.25 }), id: added.transaction.id }, NOW);
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    expect(back.state.accounts.map(a => a.balance)).toEqual([999.75, 500]);
+    expect(back.transaction.currency).toBe('USD');
+  });
+
+  it.each(['INR', 'USD', 'EUR', 'GBP', 'JPY'] as const)('%s permits history edits but not new inactive entries', currency => {
+    const tx: Transaction = { id: 'history', title: 'Old', category: 'Dining', amount: 10, type: 'debit', status: 'Completed', date: NOW.toISOString(), accountId: 'acc1' };
+    const base = state({ accounts: [account({ currency, status: 'Inactive' }), account({ id: 'acc2', currency, status: 'Inactive' })], transactions: [tx] });
+    expect(addTransaction(base, expenseInput(), NOW).ok).toBe(false);
+    const edited = updateTransaction(base, { ...expenseInput({ amount: 20 }), id: tx.id }, NOW);
+    expect(edited.ok).toBe(true);
+    if (edited.ok) expect(edited.state.accounts[0].balance).toBe(990);
+    expect(updateTransaction(base, { ...expenseInput({ accountId: 'acc2' }), id: tx.id }, NOW).ok).toBe(false);
+  });
+
+  it.each([0, -1, NaN, Infinity, 1.01, 1.000000001, Number.MAX_SAFE_INTEGER + 1])('rejects invalid JPY amount %s without mutation', amount => {
+    const base = state({ accounts: [account({ currency: 'JPY' })] });
+    expect(addTransaction(base, expenseInput({ amount }), NOW).ok).toBe(false);
+    expect(base.accounts[0].balance).toBe(1000);
+    const tx: Transaction = { id: 'tx', title: 'Old', category: 'Dining', amount: 10, type: 'debit', status: 'Completed', date: NOW.toISOString(), accountId: 'acc1' };
+    expect(updateTransaction({ ...base, transactions: [tx] }, { ...expenseInput({ amount }), id: tx.id }, NOW).ok).toBe(false);
+  });
+
+  it.each(['2026-02-30', '2026-04-31', '2025-02-29', '2026-2-01', '2026-11-11'])('rejects invalid completed dates %s for add/edit/transfer', date => {
+    expect(addTransaction(state(), expenseInput({ date }), NOW).ok).toBe(false);
+    const added = addTransaction(state(), expenseInput(), NOW);
+    if (!added.ok) throw new Error(added.error);
+    expect(updateTransaction(added.state, { ...expenseInput({ date }), id: added.transaction.id }, NOW).ok).toBe(false);
+    expect(createTransfer(state(), { fromAccountId: 'acc1', toAccountId: 'acc2', amount: 10, date }, NOW).ok).toBe(false);
+  });
+
+  it('accepts a real leap day', () => {
+    expect(addTransaction(state(), expenseInput({ date: '2024-02-29' }), NOW).ok).toBe(true);
+  });
+
+  it('rejects unsafe resulting balances rather than losing precision', () => {
+    const base = state({ accounts: [account({ balance: 90071992547409.9 })] });
+    expect(addTransaction(base, expenseInput({ type: 'income', amount: 1 }), NOW).ok).toBe(false);
+    const tx: Transaction = { id: 'tx', title: 'Old', category: 'Dining', amount: 1, type: 'debit', status: 'Completed', date: NOW.toISOString(), accountId: 'acc1' };
+    const withTx = { ...base, transactions: [tx] };
+    expect(deleteTransaction(withTx, tx.id).ok).toBe(false);
+    expect(updateTransaction(withTx, { ...expenseInput({ type: 'income', amount: 1 }), id: tx.id }, NOW).ok).toBe(false);
+    expect(undoAddTransaction(withTx, tx)).toBe(withTx);
+    expect(undoDeleteTransaction(base, { ...tx, type: 'credit' })).toBe(base);
+  });
+
+  it('normalizes tags on add/edit without replacing custom category ids', () => {
+    const input = { ...expenseInput(), category: 'custom-food' as NewTransactionInput['category'], tags: [' work ', '', 'work', 'Travel', 'travel'] };
+    const added = addTransaction(state(), input, NOW);
+    expect(added.ok).toBe(true);
+    if (!added.ok) return;
+    expect(added.transaction).toMatchObject({ category: 'custom-food', tags: ['work', 'Travel'] });
+    const edited = updateTransaction(added.state, { ...input, tags: ['  home '], id: added.transaction.id }, NOW);
+    expect(edited.ok).toBe(true);
+    if (edited.ok) expect(edited.transaction).toMatchObject({ tags: ['home'] });
+  });
+
+  it('undoing either transfer leg removes the linked pair atomically', () => {
+    const made = createTransfer(state(), { fromAccountId: 'acc1', toAccountId: 'acc2', amount: 10, date: '2026-11-10' }, NOW);
+    if (!made.ok) throw new Error(made.error);
+    const undone = undoAddTransaction(made.state, made.legs[1]);
+    expect(undone.transactions).toHaveLength(0);
+    expect(undone.accounts.map(a => a.balance)).toEqual([1000, 500]);
+    const deleted = deleteTransaction(made.state, made.legs[0].id);
+    if (!deleted.ok) throw new Error(deleted.error);
+    expect(undoDeleteTransaction(deleted.state, deleted.transaction)).toBe(deleted.state);
+  });
+
+  it('rejects transfer balance/conversion overflow and fractional JPY source amounts', () => {
+    const base = state({ accounts: [account({ currency: 'JPY' }), account({ id: 'acc2', currency: 'USD', balance: 90071992547409.9 })] });
+    for (const [amount, rate] of [[1, 1], [1.000000001, 1], [100, Number.MAX_VALUE]]) {
+      expect(createTransfer(base, { fromAccountId: 'acc1', toAccountId: 'acc2', amount, rate, date: '2026-11-10' }, NOW).ok).toBe(false);
+    }
+  });
+});
+
+// Fixtures intentionally predate the operation: bad existing refund kind must not evade caps.
+function refundableState(currency: Account['currency'] = 'INR'): LedgerState {
+  return state({ accounts: [account({ currency })], transactions: [{
+    id: 'original', title: 'Purchase', category: 'Dining', amount: 100, type: 'debit',
+    status: 'Completed', date: '2026-10-01T12:00:00.000Z', accountId: 'acc1', kind: 'expense', currency,
+  }] });
+}
+
+describe('refund integrity', () => {
+  it.each(['INR', 'USD', 'EUR', 'GBP', 'JPY'] as const)('%s supports the transactionId API, partial caps, edit and undo', currency => {
+    const base = refundableState(currency);
+    const first = recordRefund(base, { transactionId: 'original', amount: 40, date: '2026-11-01', note: ' returned ' }, NOW);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.transaction).toMatchObject({ amount: 40, currency, kind: 'refund', refundOfId: 'original', note: 'returned' });
+    expect(first.state.accounts[0].balance).toBe(1040);
+    const edited = updateTransaction(first.state, { ...expenseInput({ type: 'income', amount: 60 }), id: first.transaction.id }, NOW);
+    expect(edited.ok).toBe(true);
+    if (!edited.ok) return;
+    expect(edited.transaction).toMatchObject({ amount: 60, kind: 'refund', refundOfId: 'original', type: 'credit' });
+    expect(edited.state.accounts[0].balance).toBe(1060);
+    const second = recordRefund(edited.state, { transactionId: 'original', amount: 40, date: '2026-11-10' }, NOW);
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(recordRefund(second.state, { transactionId: 'original', amount: 1, date: '2026-11-10' }, NOW).ok).toBe(false);
+    expect(updateTransaction(second.state, { ...expenseInput({ type: 'income', amount: 61 }), id: first.transaction.id }, NOW).ok).toBe(false);
+    const deleted = deleteTransaction(second.state, first.transaction.id);
+    expect(deleted.ok).toBe(true);
+    if (!deleted.ok) return;
+    expect(deleted.state.accounts[0].balance).toBe(1040);
+    expect(undoDeleteTransaction(deleted.state, deleted.transaction).accounts[0].balance).toBe(1100);
+    expect(undoAddTransaction(second.state, second.transaction).accounts[0].balance).toBe(1060);
+  });
+
+  it.each([0, -5, NaN, Infinity, 0.000000001, 1.001, 90071992547410])('rejects bad refund amount %s', amount => {
+    expect(recordRefund(refundableState(), { originalTransactionId: 'original', amount, date: '2026-11-01' }, NOW).ok).toBe(false);
+  });
+
+  it.each(['2026-02-30', '2026-11-11', '2026-09-30'])('rejects impossible, future or pre-expense refund date %s', date => {
+    expect(recordRefund(refundableState(), { originalTransactionId: 'original', amount: 1, date }, NOW).ok).toBe(false);
+  });
+
+  it('only refunds completed expenses into active same-currency accounts', () => {
+    const base = refundableState();
+    for (const patch of [{ type: 'credit' as const, kind: 'income' as const }, { status: 'Pending' as const }, { kind: 'transfer' as const }, { kind: 'refund' as const }]) {
+      expect(recordRefund({ ...base, transactions: [{ ...base.transactions[0], ...patch }] }, { originalTransactionId: 'original', amount: 1 }, NOW).ok).toBe(false);
+    }
+    for (const patch of [{ status: 'Inactive' as const }, { id: 'missing' }]) {
+      expect(recordRefund({ ...base, accounts: [account(patch)] }, { originalTransactionId: 'original', amount: 1 }, NOW).ok).toBe(false);
+    }
+    expect(recordRefund({ ...base, accounts: [...base.accounts, account({ id: 'usd', currency: 'USD' })] }, { originalTransactionId: 'original', amount: 1, accountId: 'usd' }, NOW).ok).toBe(false);
+    expect(recordRefund(refundableState('JPY'), { originalTransactionId: 'original', amount: 1.000000001 }, NOW).ok).toBe(false);
+  });
+
+  it('guards parent edits/deletes and stale undo against orphaning or exceeding refunds', () => {
+    const base = refundableState();
+    const first = recordRefund(base, { originalTransactionId: 'original', amount: 60, date: '2026-11-01' }, NOW);
+    if (!first.ok) throw new Error(first.error);
+    expect(deleteTransaction(first.state, 'original').ok).toBe(false);
+    expect(undoAddTransaction(first.state, base.transactions[0])).toBe(first.state);
+    for (const patch of [{ amount: 59 }, { type: 'income' as const }, { category: 'Other' as const }, { date: '2026-11-02' }]) {
+      expect(updateTransaction(first.state, { ...expenseInput(), ...patch, id: 'original' }, NOW).ok).toBe(false);
+    }
+    const safeEdit = updateTransaction(first.state, { ...expenseInput({ amount: 60, date: '2026-10-01', title: 'Corrected' }), id: 'original' }, NOW);
+    expect(safeEdit.ok).toBe(true);
+    const deleted = deleteTransaction(first.state, first.transaction.id);
+    if (!deleted.ok) throw new Error(deleted.error);
+    const replacement = recordRefund(deleted.state, { originalTransactionId: 'original', amount: 100, date: '2026-11-01' }, NOW);
+    if (!replacement.ok) throw new Error(replacement.error);
+    expect(undoDeleteTransaction(replacement.state, first.transaction)).toBe(replacement.state);
+    expect(undoDeleteTransaction(state(), first.transaction).transactions).toHaveLength(0);
+  });
+
+  it('counts every refundOfId link and never allows refund conversion to an expense', () => {
+    const base = refundableState();
+    const legacy: Transaction = { ...base.transactions[0], id: 'legacy-refund', refundOfId: 'original', type: 'credit', kind: 'income', amount: 90 };
+    const withRefund = { ...base, transactions: [...base.transactions, legacy] };
+    expect(recordRefund(withRefund, { originalTransactionId: 'original', amount: 11 }, NOW).ok).toBe(false);
+    expect(updateTransaction(withRefund, { ...expenseInput({ amount: 90 }), id: legacy.id }, NOW).ok).toBe(false);
+    const edited = updateTransaction(withRefund, { ...expenseInput({ type: 'income', amount: 80 }), id: legacy.id }, NOW);
+    expect(edited.ok).toBe(true);
+    if (edited.ok) expect(edited.transaction.kind).toBe('refund');
+  });
+});
 
 describe('refunds', () => {
   function originalExpense(): Transaction {

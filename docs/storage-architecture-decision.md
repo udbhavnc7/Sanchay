@@ -64,7 +64,7 @@ Enforcement: the JS↔native bridge (`SanchayFileBridge`, `SanchayModernUI`) exp
 | IndexedDB | rewrite persistence layer + tests; async everywhere | moderate — new failure modes, no user-visible gain yet | Revisit only with evidence (quota errors or measured jank) |
 | Room-backed adapter for Android | full data migration, dual-runtime divergence (browser has no Room), bridge expansion | **high** — exactly the two-writer failure mode the plan forbids | Rejected for now; only as part of a deliberate "Room becomes the ledger" project |
 
-Limitations of the chosen path that must stay documented for users: data lives in WebView storage only; clearing app data or uninstalling without an export destroys it; backups are unencrypted (until the encrypted-backup design ships).
+Limitations of the chosen path that must stay documented for users: data lives in WebView storage only; clearing app data or uninstalling without an export destroys it; backups are manual, and plain JSON exports are unencrypted (password-encrypted `.sanchay` backups shipped 14 Nov 2026).
 
 ## Acceptance criteria (plan §3.4) — status
 

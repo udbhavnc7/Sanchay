@@ -1,5 +1,6 @@
-import type { Account, Currency, Transaction } from '../types/finance';
-import { addMoney, formatDate, subtractMoney, sumMoney } from './money';
+import type { Account, CategoryDefinition, Currency, Transaction } from '../types/finance';
+import { addMoney, formatDate, minorDigits, subtractMoney, sumMoney } from './money';
+import { categoryLabel } from './categories';
 
 export const DEFAULT_CURRENCY: Currency = 'INR';
 
@@ -20,6 +21,11 @@ export interface PayeeSlice {
   name: string;
   amount: number;
   count: number;
+}
+
+export interface StatementOptions {
+  categoryDefinitions?: CategoryDefinition[];
+  includeTags?: boolean;
 }
 
 export function transactionCurrency(
@@ -65,7 +71,9 @@ export function computeReportTotals(
   transactions.forEach((tx) => {
     if (tx.status !== 'Completed') return;
     if (tx.kind === 'transfer') {
-      if (tx.type === 'debit') saved = addMoney(saved, tx.amount, currency);
+      // Only completed goal contributions count as saved. Internal account
+      // transfers move money without changing net worth or spending.
+      if (tx.goalId && tx.type === 'debit') saved = addMoney(saved, tx.amount, currency);
       return;
     }
     if (tx.kind === 'refund') {
@@ -131,31 +139,70 @@ export function computePayeeBreakdown(
   limit = 5
 ): PayeeSlice[] {
   const map = new Map<string, { amount: number; count: number }>();
-  transactions
-    .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer' && tx.status === 'Completed')
-    .forEach((tx) => {
-      const name = tx.counterparty ?? tx.title;
-      const current = map.get(name) ?? { amount: 0, count: 0 };
+  transactions.forEach((tx) => {
+    if (tx.status !== 'Completed' || tx.kind === 'transfer') return;
+    const name = tx.counterparty ?? tx.title;
+    const current = map.get(name);
+    if (tx.type === 'debit') {
       map.set(name, {
-        amount: addMoney(current.amount, tx.amount, currency),
-        count: current.count + 1,
+        amount: addMoney(current?.amount ?? 0, tx.amount, currency),
+        count: (current?.count ?? 0) + 1,
       });
-    });
+      return;
+    }
+    // Refunds reduce what the payee actually took, without adding a payment.
+    if ((tx.kind === 'refund' || tx.refundOfId) && current) {
+      map.set(name, {
+        amount: subtractMoney(current.amount, tx.amount, currency),
+        count: current.count,
+      });
+    }
+  });
   return Array.from(map.entries())
+    .filter(([, value]) => value.amount > 0)
     .map(([name, value]) => ({ name, ...value }))
     .sort((a, b) => b.amount - a.amount)
     .slice(0, limit);
 }
 
+/** True when any searchable field, readable category label or tag matches. */
+export function transactionMatchesSearch(
+  transaction: Transaction,
+  query: string,
+  accountsById: ReadonlyMap<string, Account>,
+  categoryDefinitions: CategoryDefinition[] = []
+): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  const account = transaction.accountId ? accountsById.get(transaction.accountId) : undefined;
+  return [
+    transaction.title,
+    transaction.counterparty ?? '',
+    transaction.recipient ?? '',
+    transaction.category,
+    categoryLabel(transaction.category, categoryDefinitions),
+    transaction.reference ?? '',
+    transaction.note ?? '',
+    account?.name ?? '',
+    ...(transaction.tags ?? []),
+  ].some((value) => value.toLowerCase().includes(normalized));
+}
+
+const FORMULA_LEAD = /^\s*[=+\-@\t\r\n]/;
+
 function csvCell(value: string | number): string {
-  const text = String(value ?? '');
+  let text = String(value ?? '');
+  // Neutralize spreadsheet formulas without losing the original text.
+  if (FORMULA_LEAD.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
 export function buildStatementCsv(
   transactions: readonly Transaction[],
-  accountsById: ReadonlyMap<string, Account>
+  accountsById: ReadonlyMap<string, Account>,
+  options: StatementOptions = {}
 ): string {
+  const { categoryDefinitions = [], includeTags = true } = options;
   const header = [
     'Date',
     'Title',
@@ -168,26 +215,29 @@ export function buildStatementCsv(
     'Reference',
     'Counterparty',
     'Note',
+    ...(includeTags ? ['Tags'] : []),
   ];
   const rows = transactions.map((tx) => {
     const account = tx.accountId ? accountsById.get(tx.accountId) : undefined;
+    const currency = transactionCurrency(tx, accountsById);
+    const digits = minorDigits(currency);
+    const amount = digits === 0 ? String(Math.round(tx.amount)) : tx.amount.toFixed(digits);
     return [
       formatDate(tx.date),
       tx.title,
-      tx.category,
+      categoryLabel(tx.category, categoryDefinitions),
       tx.type,
       tx.status,
-      tx.amount.toFixed(2),
-      transactionCurrency(tx, accountsById),
+      amount,
+      currency,
       account ? `${account.name} (${account.currency})` : '',
       tx.reference ?? '',
       tx.counterparty ?? '',
       tx.note ?? '',
+      ...(includeTags ? [(tx.tags ?? []).join('; ')] : []),
     ]
       .map(csvCell)
       .join(',');
   });
   return [header.map(csvCell).join(','), ...rows].join('\r\n');
 }
-
-

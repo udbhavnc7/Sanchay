@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import type { Account, MoneyResult, Transaction } from '../types/finance';
+import type {
+  Account,
+  CategoryDefinition,
+  MoneyResult,
+  Transaction,
+} from '../types/finance';
+import type { RefundInput } from '../utils/ledgerOps';
 import { sound } from '../utils/audio';
 import {
   X,
@@ -16,13 +22,18 @@ import {
   Pencil,
   Trash2,
   AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
-import { formatDateTime, formatMoney } from '../utils/money';
+import { formatDateTime, formatMoney, minorDigits, parseMoneyInput } from '../utils/money';
 import { saveTextFile } from '../utils/fileSave';
+import { categoryLabel } from '../utils/categories';
 
 interface TransactionDrawerProps {
   transaction: Transaction | null;
   account?: Account;
+  categoryDefinitions?: CategoryDefinition[];
+  refundableAmount?: number;
+  onRefund?: (input: RefundInput) => MoneyResult;
   onEdit: (transaction: Transaction) => void;
   onDelete: (id: string) => MoneyResult;
   onClose: () => void;
@@ -31,6 +42,9 @@ interface TransactionDrawerProps {
 export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   transaction,
   account,
+  categoryDefinitions,
+  refundableAmount = 0,
+  onRefund,
   onEdit,
   onDelete,
   onClose,
@@ -38,6 +52,10 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [showRefund, setShowRefund] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundNote, setRefundNote] = useState('');
+  const [refundError, setRefundError] = useState('');
 
   useEffect(() => {
     if (!transaction) return;
@@ -50,10 +68,44 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
 
   if (!transaction) return null;
 
-  const currency = account?.currency ?? 'INR';
+  const currency = account?.currency ?? transaction.currency ?? 'INR';
   const isIncome = transaction.kind === 'income';
   const isTransfer = transaction.kind === 'transfer';
-  const canEdit = isTransfer ? Boolean(transaction.transferId) : currency === 'INR';
+  const isRefund = transaction.kind === 'refund' || Boolean(transaction.refundOfId);
+  const canEdit = isTransfer ? Boolean(transaction.transferId) : Boolean(transaction.accountId);
+  const categoryName = categoryLabel(transaction.category, categoryDefinitions ?? []);
+  const canRefund =
+    Boolean(onRefund) &&
+    refundableAmount > 0 &&
+    transaction.type === 'debit' &&
+    transaction.status === 'Completed' &&
+    !isTransfer &&
+    !isRefund &&
+    Boolean(transaction.accountId);
+
+  const submitRefund = () => {
+    if (!onRefund) return;
+    const parsed = parseMoneyInput(refundAmount, currency);
+    if (!parsed.ok) {
+      setRefundError(parsed.error ?? `Enter a valid ${currency} amount.`);
+      return;
+    }
+    if (parsed.amount > refundableAmount) {
+      setRefundError(`You can refund up to ${formatMoney(refundableAmount, currency)}.`);
+      return;
+    }
+    const result = onRefund({
+      transactionId: transaction.id,
+      amount: parsed.amount,
+      note: refundNote,
+    });
+    if (!result.ok) {
+      setRefundError(result.error ?? 'Could not record this refund.');
+      return;
+    }
+    sound.success();
+    onClose();
+  };
 
   const handleDelete = () => {
     sound.click();
@@ -89,14 +141,15 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
       '',
       `Reference:    ${transaction.reference}`,
       `Status:       ${transaction.status}`,
-      `Type:         ${isIncome ? 'Income' : isTransfer ? (transaction.transferId ? 'Transfer' : 'Savings transfer') : 'Expense'}`,
+      `Type:         ${isIncome ? 'Income' : isRefund ? 'Refund' : isTransfer ? (transaction.transferId ? 'Transfer' : 'Savings transfer') : 'Expense'}`,
       `Amount:       ${formatMoney(transaction.amount, currency)}`,
       `Title:        ${transaction.title}`,
       `Counterparty: ${transaction.counterparty}`,
       `Account:      ${account?.name ?? 'Unknown account'}`,
-      `Category:     ${transaction.category}`,
+      `Category:     ${categoryName}`,
       `Date:         ${formatDateTime(transaction.date)}`,
       `Fee:          ${formatMoney(transaction.fee ?? 0, currency)}`,
+      transaction.tags?.length ? `Tags:         ${transaction.tags.join(', ')}` : '',
       transaction.recipient ? `Payee UPI ID: ${transaction.recipient}` : '',
       transaction.userReference ? `User Reference / UTR: ${transaction.userReference}` : '',
       transaction.paymentAttemptId ? `Payment Attempt ID: ${transaction.paymentAttemptId}` : '',
@@ -206,9 +259,24 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
             <div className="flex justify-between">
               <span className="text-slate-400">Category</span>
               <span className="font-semibold text-slate-900 dark:text-white">
-                {transaction.category}
+                {categoryName}
               </span>
             </div>
+            {transaction.tags && transaction.tags.length > 0 && (
+              <div className="flex justify-between gap-4">
+                <span className="text-slate-400">Tags</span>
+                <span className="flex flex-wrap justify-end gap-1">
+                  {transaction.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/60 text-[10px] font-semibold text-slate-600 dark:text-slate-300"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between gap-4">
               <span className="text-slate-400">Account</span>
               <span className="font-semibold text-slate-900 dark:text-white text-right">
@@ -269,6 +337,83 @@ export const TransactionDrawer: React.FC<TransactionDrawerProps> = ({
         </div>
 
         <div className="pt-6 border-t border-slate-200/70 dark:border-white/10">
+          {canRefund && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-white/5">
+              {!showRefund ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.click();
+                    setShowRefund(true);
+                    setRefundAmount(
+                      refundableAmount.toFixed(minorDigits(currency))
+                    );
+                    setRefundError('');
+                  }}
+                  className="btn-action-light w-full"
+                  style={{ padding: '10px 0' }}
+                >
+                  <RotateCcw size={14} />
+                  Record a refund
+                </button>
+              ) : (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitRefund();
+                  }}
+                  className="space-y-2.5"
+                >
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                    Refund up to {formatMoney(refundableAmount, currency)} to{' '}
+                    {account?.name ?? 'the original account'}.
+                  </div>
+                  <input
+                    value={refundAmount}
+                    onChange={(event) => {
+                      setRefundAmount(event.target.value);
+                      setRefundError('');
+                    }}
+                    inputMode="decimal"
+                    placeholder={`0.${'0'.repeat(Math.max(1, minorDigits(currency)))}`}
+                    className="w-full px-3 py-2 rounded-xl text-sm font-mono-numbers bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                    aria-label="Refund amount"
+                  />
+                  <input
+                    value={refundNote}
+                    onChange={(event) => setRefundNote(event.target.value)}
+                    placeholder="Note (optional)"
+                    maxLength={200}
+                    className="w-full px-3 py-2 rounded-xl text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                    aria-label="Refund note"
+                  />
+                  {refundError && (
+                    <div className="transaction-delete-warning" style={{ color: '#ef4444' }}>
+                      <AlertTriangle size={13} />
+                      <span>{refundError}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn-primary flex-1 py-2.5 text-xs">
+                      Save refund
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.click();
+                        setShowRefund(false);
+                        setRefundError('');
+                      }}
+                      className="btn-action-light flex-1 py-2.5 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
           <div className="transaction-drawer-actions">
             {canEdit && (
               <button

@@ -6,12 +6,12 @@
   screenshot + logcat into device-evidence/. Manual checklist steps stay in the runbook.
   Requires: adb in PATH, exactly one connected device (or -Serial).
 .EXAMPLE
-  .\scripts\device-verify.ps1 -Apk app\build\outputs\apk\demo\app-demo.apk -Package com.ivy.wallet.debug
+  .\scripts\device-verify.ps1 -Apk app\build\outputs\apk\demo\app-demo.apk -Package app.sanchay.debug
 #>
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)][string]$Apk,
-  [string]$Package = 'com.ivy.wallet.debug',
+  [string]$Package = 'app.sanchay.debug',
   [string]$Serial = '',
   [string]$EvidenceDir = 'device-evidence'
 )

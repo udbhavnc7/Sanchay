@@ -1,59 +1,81 @@
-# This file contains the fastlane.tools configuration
-# You can find the documentation at https://docs.fastlane.tools
-#
-# For a list of all available actions, check out
-#
-#     https://docs.fastlane.tools/actions
-#
-# For a list of all available plugins, check out
-#
-#     https://docs.fastlane.tools/plugins/available-plugins
-#
-
-# Uncomment the line if you want fastlane to automatically update itself
-# update_fastlane
+# Fastlane configuration for Sanchay (app.sanchay).
+# Release lanes fail closed: they never upload an inherited Ivy Wallet package,
+# never generate metadata, and never continue without explicit confirmation.
 
 default_platform(:android)
 
+def sanchay_root
+  File.expand_path('..', __dir__).tr('\\', '/')
+end
+
+def sanitized_path(relative)
+  File.join(sanchay_root, relative).tr('\\', '/')
+end
+
+def require_signing!
+  missing = %w[SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD SIGNING_STORE_PASSWORD].select do |name|
+    ENV[name].to_s.strip.empty?
+  end
+  unless missing.empty?
+    UI.user_error!("Missing Android signing credentials: #{missing.join(', ')}.")
+  end
+
+  keystore = File.join(sanchay_root, 'sign.jks')
+  unless File.exist?(keystore)
+    UI.user_error!('Place the production keystore at sign.jks in the repository root.')
+  end
+  keystore
+end
+
 platform :android do
-    desc "Run UI tests"
-    lane :ui_tests do
-        gradle(
-            task: "connectedDebugAndroidTest"
-        )
+  desc 'Run UI tests'
+  lane :ui_tests do
+    gradle(task: 'connectedDebugAndroidTest')
+  end
+
+  desc 'Build a signed release app bundle (AAB) with the current web dashboard.'
+  lane :production_build do
+    require_signing!
+
+    sh('node', sanitized_path('scripts/build-web.js'))
+
+    gradle(
+      tasks: ['clean', ':app:bundleRelease'],
+      project_dir: sanchay_root
+    )
+  end
+
+  desc "Upload a signed AAB to Sanchay's internal testing track as a draft"
+  lane :internal_release do
+    unless ENV['SANCHAY_PUBLISH_INTERNAL'] == 'true' &&
+           ENV['SANCHAY_CONFIRM_PACKAGE'] == 'app.sanchay'
+      UI.user_error!(
+        'Confirm the release with SANCHAY_PUBLISH_INTERNAL=true and ' \
+        'SANCHAY_CONFIRM_PACKAGE=app.sanchay.'
+      )
     end
 
-    desc "Builds release app bundle (AAB) for the Google Play Store."
-    lane :production_build do
-        gradle(
-            task: "clean"
-        )
+    aab = sanitized_path('app/build/outputs/bundle/release/app-release.aab')
+    key = sanitized_path('google-play-console-user.json')
+    UI.user_error!('Build a signed release bundle first: app-release.aab is missing.') unless File.exist?(aab)
+    UI.user_error!('Place the Play service account JSON at google-play-console-user.json.') unless File.exist?(key)
 
-        gradle(
-            task: "bundle",
-            build_type: "Release"
-        )
-    end
+    supply(
+      package_name: 'app.sanchay',
+      track: 'internal',
+      release_status: 'draft',
+      aab: aab,
+      json_key: key,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
 
-    desc "Releases a generated AAB to Google PlayStore's Internal Testing"
-    lane :internal_release do
-        supply(
-            track: "internal",
-            aab: "app/build/outputs/bundle/release/app-release.aab",
-            #release_status: "draft",
-            rollout: "1",
-            skip_upload_apk: true,
-            skip_upload_metadata: true,
-            skip_upload_changelogs: false,
-            skip_upload_images: true,
-            skip_upload_screenshots: true
-        )
-    end
-
-    desc "Cleans the project"
-    lane :clean do
-        gradle(
-            task: "clean"
-        )
-    end
+  desc 'Clean the project'
+  lane :clean do
+    gradle(task: 'clean')
+  end
 end

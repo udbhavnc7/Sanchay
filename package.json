@@ -1,9 +1,11 @@
 {
   "name": "sanchay",
   "private": true,
+  "packageManager": "pnpm@10.34.3",
   "scripts": {
     "build": "node scripts/build-web.js",
-    "test": "npm --prefix web test",
-    "lint": "npm --prefix web run lint"
+    "test": "pnpm --dir web test",
+    "test:build": "node --test scripts/build-web.test.js",
+    "lint": "pnpm --dir web run lint"
   }
 }

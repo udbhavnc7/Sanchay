@@ -1,6 +1,7 @@
 package com.ivy.wallet
 
 import android.appwidget.AppWidgetManager
+import app.sanchay.BuildConfig
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent

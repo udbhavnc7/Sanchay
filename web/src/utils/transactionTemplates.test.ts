@@ -74,7 +74,7 @@ describe('buildRecentTemplates', () => {
     ]);
   });
 
-  it('excludes transfers, pending rows, unavailable currencies and inactive accounts', () => {
+  it('includes supported currencies but excludes transfers, pending rows and inactive accounts', () => {
     const templates = buildRecentTemplates(
       [
         transaction({ id: 'transfer', kind: 'transfer', category: 'Savings' }),
@@ -87,7 +87,7 @@ describe('buildRecentTemplates', () => {
       'expense'
     );
 
-    expect(templates.map((template) => template.id)).toEqual(['valid']);
+    expect(templates.map((template) => template.id)).toEqual(['usd', 'valid']);
   });
 
   it('keeps income and expense suggestions separate and respects the limit', () => {
@@ -107,6 +107,21 @@ describe('buildRecentTemplates', () => {
       },
     ]);
     expect(buildRecentTemplates(transactions, accounts, 'expense', 1)).toHaveLength(1);
+  });
+
+  it('never turns refunds or linked credits into ordinary income templates', () => {
+    const templates = buildRecentTemplates([
+      transaction({ id: 'refund', type: 'credit', kind: 'refund', refundOfId: 'original' }),
+      transaction({ id: 'legacy', type: 'credit', kind: 'income', refundOfId: 'original' }),
+      transaction({ id: 'income', type: 'credit', kind: 'income' }),
+    ], accounts, 'income');
+    expect(templates.map(t => t.id)).toEqual(['income']);
+  });
+
+  it.each(['INR', 'USD', 'EUR', 'GBP', 'JPY'] as const)('uses active %s accounts and preserves custom ids', currency => {
+    const result = buildRecentTemplates([transaction({ category: 'custom-id' as Transaction['category'] })], [{ ...accounts[0], currency }], 'expense');
+    expect(result).toHaveLength(1);
+    expect(result[0].category).toBe('custom-id');
   });
 
   it('falls back to the category when a transaction has no title', () => {

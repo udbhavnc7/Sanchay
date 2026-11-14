@@ -1,6 +1,7 @@
 import type { PlannedPayment, SavingsGoal } from '../types/finance';
 import { buildGoalProjection } from './goalProjection';
-import { addMoney, compareMoney, subtractMoney, sumMoney } from './money';
+import { addMoney, compareMoney, fromMinorUnits, subtractMoney, sumMoney, toMinorUnits } from './money';
+import { expandOccurrences, localCalendarDate, MAX_DISPLAY_OCCURRENCES } from './recurrence';
 
 export const SAFE_TO_SPEND_HORIZON_DAYS = 30;
 
@@ -25,7 +26,9 @@ export interface SafeToSpendResult {
   safeToSpend: number;
   shortfall: number;
   horizonDays: number;
-  upcoming: PlannedPayment[];
+  upcoming: (PlannedPayment & { occurrenceKey: string })[];
+  occurrenceCount: number;
+  warnings: string[];
   missingPlannedPayments: boolean;
 }
 
@@ -61,20 +64,35 @@ export function buildSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
     input.goals.map((goal) => buildGoalProjection(goal, now).requiredMonthly ?? 0)
   );
 
-  const upcoming = input.plannedPayments
-    .filter((payment) => {
-      const due = new Date(payment.dueDate).getTime();
-      if (!Number.isFinite(due) || due > end.getTime()) return false;
-      return payment.direction === 'out' || due >= start.getTime();
-    })
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
-  const plannedOutflows = sumMoney(
-    upcoming.filter((payment) => payment.direction === 'out').map((payment) => payment.amount)
-  );
-  const plannedInflows = sumMoney(
-    upcoming.filter((payment) => payment.direction === 'in').map((payment) => payment.amount)
-  );
+  const seen = new Set<string>();
+  const warnings: string[] = [];
+  let upcoming: SafeToSpendResult['upcoming'] = [];
+  let occurrenceCount = 0;
+  let outflowMinor = 0;
+  let inflowMinor = 0;
+  let uncertainOutflows = false;
+  const earliest = new Date('0001-01-01T12:00:00');
+  for (const payment of input.plannedPayments) {
+    // The dashboard balance/budgets/goals are INR; never treat a foreign amount as INR.
+    if ((payment.currency ?? 'INR') !== 'INR' || seen.has(payment.id)) continue;
+    seen.add(payment.id);
+    const expansion = expandOccurrences(payment, payment.direction === 'out' ? earliest : start, end);
+    if (expansion.warning) warnings.push(`${payment.title}: ${expansion.warning}`);
+    if (expansion.warning && !expansion.truncated && payment.direction === 'out') uncertainOutflows = true;
+    occurrenceCount += expansion.totalCount;
+    const minor = toMinorUnits(payment.amount) * expansion.totalCount;
+    if (payment.direction === 'out') outflowMinor += minor;
+    else inflowMinor += minor;
+    upcoming.push(...expansion.occurrences.map((occurrence) => ({
+      ...payment, dueDate: occurrence.date, occurrenceKey: occurrence.occurrenceKey,
+    })));
+    // Bound memory across many series, retaining the oldest obligations for display.
+    upcoming.sort((a, b) => (localCalendarDate(a.dueDate) ?? '').localeCompare(localCalendarDate(b.dueDate) ?? '') || a.occurrenceKey.localeCompare(b.occurrenceKey));
+    upcoming = upcoming.slice(0, MAX_DISPLAY_OCCURRENCES);
+  }
+  if (occurrenceCount > upcoming.length) warnings.push(`Showing ${upcoming.length} of ${occurrenceCount} planned occurrences; all are included in totals.`);
+  const plannedOutflows = fromMinorUnits(outflowMinor);
+  const plannedInflows = fromMinorUnits(inflowMinor);
 
   const afterObligations = subtractMoney(
     subtractMoney(
@@ -88,7 +106,7 @@ export function buildSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
     subtractMoney(addMoney(afterObligations, plannedInflows), buffer),
     whatIfOutflow
   );
-  const safeToSpend = nonNegative(rawSafe);
+  const safeToSpend = uncertainOutflows ? 0 : nonNegative(rawSafe);
 
   return {
     availableBalance: input.availableBalance,
@@ -101,6 +119,8 @@ export function buildSafeToSpend(input: SafeToSpendInput): SafeToSpendResult {
     shortfall: compareMoney(rawSafe, 0) < 0 ? subtractMoney(0, rawSafe) : 0,
     horizonDays,
     upcoming,
-    missingPlannedPayments: upcoming.length === 0,
+    occurrenceCount,
+    warnings,
+    missingPlannedPayments: occurrenceCount === 0,
   };
 }

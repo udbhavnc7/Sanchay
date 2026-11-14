@@ -16,7 +16,7 @@ export function buildRecentTemplates(
 ): TransactionTemplate[] {
   const usableAccountIds = new Set(
     accounts
-      .filter((account) => account.currency === 'INR' && account.status === 'Active')
+      .filter((account) => account.status === 'Active')
       .map((account) => account.id)
   );
   const seen = new Set<string>();
@@ -25,6 +25,9 @@ export function buildRecentTemplates(
     .filter((transaction) => {
       if (!transaction.accountId || !usableAccountIds.has(transaction.accountId)) return false;
       if (transaction.status !== 'Completed' || transaction.kind === 'transfer') return false;
+      // Refunds and legacy refund-linked credits belong to their original expense,
+      // never to ordinary income suggestions.
+      if (transaction.kind === 'refund' || transaction.refundOfId) return false;
       return type === 'income' ? transaction.type === 'credit' : transaction.type === 'debit';
     })
     .sort((left, right) => {

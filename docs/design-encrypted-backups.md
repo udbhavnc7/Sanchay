@@ -1,9 +1,9 @@
 # Design — Password-encrypted backups
 
-Status: **draft for maintainer approval — do not implement until approved** (release checklist §5,
-"Encrypted/automatic backups"). Created 2026-11-09. The current release ships the spec §7 item 205
-"make the risks clear" branch (panel + README warnings); this design is the optional
-"provide an encrypted backup" branch.
+Status: **implemented 2026-11-14** (`web/src/utils/backupCrypto.ts`,
+`web/src/components/BackupPasswordModal.tsx`, `backupCrypto.test.ts`). Created 2026-11-09.
+Password-encrypted `.sanchay` export is available alongside the plain JSON export; the spec §7
+item 205 "make the risks clear" branch remains for plain exports.
 
 ## 1. Problem
 

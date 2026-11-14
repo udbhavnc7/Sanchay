@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { Account, Contact, SavingsGoal, Transaction } from '../types/finance';
+import type { Account, CategoryDefinition, Contact, SavingsGoal, Transaction } from '../types/finance';
 import type { MainTab } from '../App';
 import { sound } from '../utils/audio';
 import {
@@ -16,6 +16,8 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { formatMoney, relativeDay } from '../utils/money';
+import { categoryLabel } from '../utils/categories';
+import { transactionCurrency, transactionMatchesSearch } from '../utils/reporting';
 
 interface SearchOverlayProps {
   open: boolean;
@@ -23,6 +25,7 @@ interface SearchOverlayProps {
   contacts: Contact[];
   goals: SavingsGoal[];
   accounts: Account[];
+  categoryDefinitions?: CategoryDefinition[];
   onClose: () => void;
   onNavigate: (tab: MainTab) => void;
   onSelectTransaction: (transaction: Transaction) => void;
@@ -42,6 +45,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
   contacts,
   goals,
   accounts,
+  categoryDefinitions = [],
   onClose,
   onNavigate,
   onSelectTransaction,
@@ -88,14 +92,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
 
     const tx = normalized
       ? transactions.filter((transaction) =>
-          [
-            transaction.title,
-            transaction.counterparty ?? '',
-            transaction.category,
-            transaction.reference ?? '',
-            transaction.note ?? '',
-            (transaction.accountId ? accountById.get(transaction.accountId)?.name : '') ?? '',
-          ].some(matches)
+          transactionMatchesSearch(transaction, normalized, accountById, categoryDefinitions)
         )
       : transactions;
 
@@ -118,7 +115,7 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
         : accounts
       ).slice(0, 3),
     };
-  }, [normalized, transactions, contacts, goals, accounts, accountById]);
+  }, [normalized, transactions, contacts, goals, accounts, accountById, categoryDefinitions]);
 
   const hasResults =
     results.transactions.length > 0 ||
@@ -198,6 +195,11 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                 const account = transaction.accountId
                   ? accountById.get(transaction.accountId)
                   : undefined;
+                const isTransfer = transaction.kind === 'transfer';
+                const isCredit =
+                  transaction.kind === 'income' ||
+                  transaction.kind === 'refund' ||
+                  (isTransfer && transaction.type === 'credit');
                 return (
                   <button
                     key={transaction.id}
@@ -210,16 +212,16 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                   >
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        transaction.kind === 'income'
+                        isCredit
                           ? 'bg-emerald-500/10 text-emerald-500'
-                          : transaction.kind === 'transfer'
+                          : isTransfer
                             ? 'bg-orange-500/10 text-orange-500'
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                       }`}
                     >
-                      {transaction.kind === 'income' ? (
+                      {isCredit ? (
                         <ArrowDownLeft size={14} />
-                      ) : transaction.kind === 'transfer' ? (
+                      ) : isTransfer ? (
                         <ArrowLeftRight size={14} />
                       ) : (
                         <ArrowUpRight size={14} />
@@ -230,21 +232,17 @@ export const SearchOverlay: React.FC<SearchOverlayProps> = ({
                         {transaction.title}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate">
-                        {transaction.counterparty} · {account?.name ?? 'Unknown'} ·{' '}
-                        {relativeDay(transaction.date)}
+                        {categoryLabel(transaction.category, categoryDefinitions)} ·{' '}
+                        {account?.name ?? 'Unknown'} · {relativeDay(transaction.date)}
                       </div>
                     </div>
                     <span
                       className={`text-xs font-bold font-mono-numbers shrink-0 ${
-                        transaction.kind === 'income'
-                          ? 'text-emerald-500'
-                          : 'text-slate-900 dark:text-slate-200'
+                        isCredit ? 'text-emerald-500' : 'text-slate-900 dark:text-slate-200'
                       }`}
                     >
-                      {transaction.kind === 'income' ? '+' : '−'}
-                      {formatMoney(transaction.amount, account?.currency ?? 'INR', {
-                        decimals: false,
-                      })}
+                      {isCredit ? '+' : '−'}
+                      {formatMoney(transaction.amount, transactionCurrency(transaction, accountById))}
                     </span>
                   </button>
                 );

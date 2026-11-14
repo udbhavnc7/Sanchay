@@ -1,2 +1,5 @@
-json_key_file("google-play-console-user.json") # Path to the json secret file - Follow https://docs.fastlane.tools/actions/supply/#setup to get one
-package_name("com.ivy.wallet") # e.g. com.krausefx.app
+# Sanchay publishes only under its own Play application ID.
+# Resolve the credential from the repository root so the result does not
+# depend on the directory fastlane happens to run from.
+json_key_file(File.expand_path('../google-play-console-user.json', __dir__).tr('\\', '/'))
+package_name('app.sanchay')

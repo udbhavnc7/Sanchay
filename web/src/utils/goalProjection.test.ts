@@ -12,6 +12,21 @@ function goal(overrides: Partial<{ savedAmount: number; targetAmount: number; ta
   };
 }
 
+describe('goal lifecycle', () => {
+  it.each(['paused', 'completed', 'archived'] as const)('excludes %s goals from monthly pace without removing saved assets', (status) => {
+    const input = { ...goal(), status };
+    const result = buildGoalProjection(input, now);
+    expect(result.requiredMonthly).toBeNull();
+    expect(result.status).toBe(status);
+    expect(result.remaining).toBe(65000);
+    expect(input.savedAmount).toBe(85000);
+  });
+
+  it('keeps explicit active status equivalent to legacy goals', () => {
+    expect(buildGoalProjection({ ...goal(), status: 'active' }, now).requiredMonthly).toBe(7222.23);
+  });
+});
+
 describe('buildGoalProjection', () => {
   it('calculates the monthly amount needed for a named target month', () => {
     const result = buildGoalProjection(goal(), now);

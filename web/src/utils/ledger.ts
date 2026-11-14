@@ -1,5 +1,22 @@
 import type { Currency, Transaction } from '../types/finance';
-import { fromMinorUnits, toMinorUnits } from './money';
+import { fromMinorUnits, isValidAmount, toMinorUnits } from './money';
+
+function safeMinor(amount: number, currency: Currency): number {
+  const minor = toMinorUnits(amount, currency);
+  if (!Number.isFinite(amount) || !Number.isSafeInteger(minor)) {
+    throw new RangeError('That amount or resulting balance is too large.');
+  }
+  return minor;
+}
+
+function checkedBalance(minor: bigint, currency: Currency): number {
+  const value = Number(minor);
+  const balance = fromMinorUnits(value, currency);
+  if (!Number.isSafeInteger(value) || toMinorUnits(balance, currency) !== value) {
+    throw new RangeError('That amount or resulting balance is too large.');
+  }
+  return balance;
+}
 
 type TransactionEffect = Pick<Transaction, 'type' | 'amount'> &
   Partial<Pick<Transaction, 'currency'>>;
@@ -16,9 +33,13 @@ export function transactionMinorDelta(
   currency?: Currency
 ): number {
   const ccy = effectCurrency(transaction, currency);
-  return transaction.type === 'credit'
-    ? toMinorUnits(transaction.amount, ccy)
-    : -toMinorUnits(transaction.amount, ccy);
+  if (!isValidAmount(transaction.amount, ccy) ||
+      (ccy === 'JPY' && !Number.isInteger(transaction.amount))) {
+    throw new RangeError('Enter a valid amount in the account currency.');
+  }
+  const minor = safeMinor(transaction.amount, ccy);
+  if (minor <= 0) throw new RangeError('Enter an amount greater than zero.');
+  return transaction.type === 'credit' ? minor : -minor;
 }
 
 export function applyTransactionToBalance(
@@ -27,8 +48,8 @@ export function applyTransactionToBalance(
   currency?: Currency
 ): number {
   const ccy = effectCurrency(transaction, currency);
-  return fromMinorUnits(
-    toMinorUnits(balance, ccy) + transactionMinorDelta(transaction, ccy),
+  return checkedBalance(
+    BigInt(safeMinor(balance, ccy)) + BigInt(transactionMinorDelta(transaction, ccy)),
     ccy
   );
 }
@@ -39,8 +60,8 @@ export function reverseTransactionFromBalance(
   currency?: Currency
 ): number {
   const ccy = effectCurrency(transaction, currency);
-  return fromMinorUnits(
-    toMinorUnits(balance, ccy) - transactionMinorDelta(transaction, ccy),
+  return checkedBalance(
+    BigInt(safeMinor(balance, ccy)) - BigInt(transactionMinorDelta(transaction, ccy)),
     ccy
   );
 }
@@ -52,10 +73,10 @@ export function replaceTransactionOnBalance(
   currency?: Currency
 ): number {
   const ccy = effectCurrency(next, currency ?? previous.currency);
-  return fromMinorUnits(
-    toMinorUnits(balance, ccy) -
-      transactionMinorDelta(previous, ccy) +
-      transactionMinorDelta(next, ccy),
+  return checkedBalance(
+    BigInt(safeMinor(balance, ccy)) -
+      BigInt(transactionMinorDelta(previous, ccy)) +
+      BigInt(transactionMinorDelta(next, ccy)),
     ccy
   );
 }

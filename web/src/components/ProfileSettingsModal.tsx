@@ -25,6 +25,7 @@ import {
   Landmark,
   Wallet,
   PiggyBank,
+  Tags,
 } from 'lucide-react';
 import { formatMoney } from '../utils/money';
 
@@ -45,7 +46,13 @@ interface ProfileSettingsModalProps {
   onToggleAccountStatus: (accountId: string) => void;
   onDeleteAccount: (accountId: string) => string | null;
   onExportBackup: () => void;
+  onExportEncryptedBackup: () => void;
   onImportBackup: (file: File) => void;
+  onOpenCategories: () => void;
+  backupStatus?: string;
+  pendingImportSummary?: string | null;
+  onRestorePendingImport?: () => void;
+  onCancelPendingImport?: () => void;
   onResetData: () => void;
   onLoadSampleData: () => void;
   demoMode?: boolean;
@@ -89,7 +96,13 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onToggleAccountStatus,
   onDeleteAccount,
   onExportBackup,
+  onExportEncryptedBackup,
   onImportBackup,
+  onOpenCategories,
+  backupStatus,
+  pendingImportSummary,
+  onRestorePendingImport,
+  onCancelPendingImport,
   onResetData,
   onLoadSampleData,
   demoMode,
@@ -784,38 +797,128 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
                   Local Backup & Restore
                 </h4>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px' }}>
-                  All data is stored locally in this browser. Export a JSON backup to transfer or save your data.
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px', lineHeight: 1.5 }}>
+                  All data is stored locally in this browser. Encrypted backups are recommended:
+                  they use AES-256-GCM with a password only you know. Plain JSON exports are
+                  readable by anyone who has the file.
                 </p>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
                     type="button"
-                    onClick={onExportBackup}
-                    className="btn-action-light"
-                    style={{ flex: 1, padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
+                    onClick={() => {
+                      sound.click();
+                      onExportEncryptedBackup();
+                    }}
+                    className="btn-action-dark"
+                    style={{ padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
                   >
-                    <Download size={14} />
-                    Export Backup
+                    <Shield size={14} />
+                    Export encrypted backup
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-action-light"
-                    style={{ flex: 1, padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
-                  >
-                    <Upload size={14} />
-                    Import Backup
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={onExportBackup}
+                      className="btn-action-light"
+                      style={{ flex: 1, padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
+                    >
+                      <Download size={14} />
+                      Export plain JSON
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="btn-action-light"
+                      style={{ flex: 1, padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px' }}
+                    >
+                      <Upload size={14} />
+                      Import backup
+                    </button>
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".json"
+                    accept=".json,.sanchay,application/json"
                     onChange={handleFileChange}
                     style={{ display: 'none' }}
                   />
                 </div>
+
+                {backupStatus && (
+                  <p role="status" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.5 }}>
+                    {backupStatus}
+                  </p>
+                )}
+
+                {pendingImportSummary && (
+                  <div
+                    role="alertdialog"
+                    aria-label="Confirm backup restore"
+                    style={{
+                      marginTop: '12px',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(245, 158, 11, 0.35)',
+                      background: 'rgba(245, 158, 11, 0.08)',
+                    }}
+                  >
+                    <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Restore this backup?
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                      {pendingImportSummary} This replaces everything currently on this device.
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.click();
+                          onRestorePendingImport?.();
+                        }}
+                        className="btn-action-dark"
+                        style={{ padding: '8px 14px', fontSize: '11px' }}
+                      >
+                        Restore backup
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.click();
+                          onCancelPendingImport?.();
+                        }}
+                        className="btn-action-light"
+                        style={{ padding: '8px 14px', fontSize: '11px' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
+                  Categories
+                </h4>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '10px', lineHeight: 1.5 }}>
+                  Rename, recolor, archive or delete categories. Existing transactions keep
+                  their history.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.click();
+                    onOpenCategories();
+                  }}
+                  className="btn-action-light"
+                  style={{ padding: '9px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Tags size={14} />
+                  Manage categories
+                </button>
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>

@@ -2,6 +2,7 @@ import type {
   Account,
   Budget,
   Category,
+  CategoryDefinition,
   Contact,
   Currency,
   PaymentAttempt,
@@ -39,6 +40,7 @@ export interface PersistedState {
   contacts: Contact[];
   goals: SavingsGoal[];
   budgets: Budget[];
+  categories: CategoryDefinition[];
   plannedPayments: PlannedPayment[];
   paymentAttempts: PaymentAttempt[];
   preferences: PersistedPreferences;
@@ -46,8 +48,9 @@ export interface PersistedState {
 
 export type PersistedStateInput = Omit<
   PersistedState,
-  'version' | 'savedAt' | 'plannedPayments' | 'paymentAttempts'
+  'version' | 'savedAt' | 'plannedPayments' | 'paymentAttempts' | 'categories'
 > & {
+  categories?: CategoryDefinition[];
   plannedPayments?: PlannedPayment[];
   paymentAttempts?: PaymentAttempt[];
 };
@@ -103,6 +106,41 @@ function isCategory(value: unknown): value is Category {
   return isString(value) && value.trim().length > 0;
 }
 
+function isDate(value: unknown): value is string {
+  if (!isString(value) || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(value)) return false;
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return year >= 1000 && year <= 9999 && date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 && date.getUTCDate() === day &&
+    Number.isFinite(Date.parse(value));
+}
+
+function isCategoryDefinition(value: unknown): value is CategoryDefinition {
+  if (!isRecord(value)) return false;
+  // Custom IDs use the custom_ namespace; built-in IDs are their historical names.
+  // Both may be stored so color/icon overrides survive a reload.
+  return isString(value.id) && value.id.trim().length > 0 && value.id.length <= 100 &&
+    isString(value.name) && value.name.trim().length > 0 && value.name.length <= 60 &&
+    (value.type === 'income' || value.type === 'expense') &&
+    isString(value.color) && /^#[0-9a-f]{6}$/i.test(value.color) &&
+    isString(value.icon) && value.icon.length <= 40 &&
+    (value.archived === undefined || typeof value.archived === 'boolean') &&
+    (value.builtIn === undefined || typeof value.builtIn === 'boolean');
+}
+
+function isRecurrence(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return ['daily', 'weekly', 'monthly', 'yearly'].includes(String(value.freq)) &&
+    isNumber(value.interval) && Number.isInteger(value.interval) &&
+    value.interval >= 1 && value.interval <= 365 &&
+    (value.endDate === undefined || isDate(value.endDate));
+}
+
+function uniqueIds(values: readonly { id: string }[]): boolean {
+  return values.every((value) => value.id.trim().length > 0) &&
+    new Set(values.map((value) => value.id)).size === values.length;
+}
+
 function isAccount(value: unknown): value is Account {
   if (!isRecord(value)) return false;
   return (
@@ -132,8 +170,10 @@ function isTransaction(value: unknown): value is Transaction {
     TRANSACTION_TYPES.includes(value.type as Transaction['type']) &&
     isString(value.status) &&
     TRANSACTION_STATUSES.includes(value.status as Transaction['status']) &&
-    isString(value.date) &&
-    !Number.isNaN(Date.parse(value.date)) &&
+    isDate(value.date) &&
+    (value.tags === undefined || (Array.isArray(value.tags) && value.tags.length <= 20 &&
+      value.tags.every((tag) => isString(tag) && tag.length <= 60))) &&
+    (value.plannedOccurrenceKey === undefined || isString(value.plannedOccurrenceKey)) &&
     (value.reference === undefined || isString(value.reference)) &&
     (value.orderId === undefined || isString(value.orderId)) &&
     (value.accountId === undefined || isString(value.accountId)) &&
@@ -172,7 +212,8 @@ function isContact(value: unknown): value is Contact {
     (value.currency === undefined || isCurrency(value.currency)) &&
     (value.upiId === undefined || isString(value.upiId)) &&
     (value.accountNumber === undefined || isString(value.accountNumber)) &&
-    (value.lastTransfer === undefined || isString(value.lastTransfer))
+    (value.lastTransfer === undefined || isString(value.lastTransfer)) &&
+    (value.archived === undefined || typeof value.archived === 'boolean')
   );
 }
 
@@ -182,10 +223,12 @@ function isGoal(value: unknown): value is SavingsGoal {
     isString(value.id) &&
     isString(value.title) &&
     isString(value.icon) &&
-    isNumber(value.savedAmount) &&
-    isNumber(value.targetAmount) &&
+    isNumber(value.savedAmount) && value.savedAmount >= 0 &&
+    isNumber(value.targetAmount) && value.targetAmount > 0 &&
     isString(value.targetDate) &&
-    isString(value.color)
+    isString(value.color) &&
+    (value.status === undefined || ['active', 'paused', 'completed', 'archived'].includes(String(value.status))) &&
+    (value.note === undefined || isString(value.note))
   );
 }
 
@@ -225,11 +268,15 @@ function isPlannedPayment(value: unknown): value is PlannedPayment {
     value.amount > 0 &&
     isString(value.direction) &&
     PLANNED_DIRECTIONS.includes(value.direction as PlannedPayment['direction']) &&
-    isString(value.dueDate) &&
-    !Number.isNaN(Date.parse(value.dueDate)) &&
+    isDate(value.dueDate) &&
     isCategory(value.category) &&
     (value.accountId === undefined || isString(value.accountId)) &&
-    (value.note === undefined || isString(value.note))
+    (value.note === undefined || isString(value.note)) &&
+    (value.currency === undefined || isCurrency(value.currency)) &&
+    (value.recurrence === undefined || isRecurrence(value.recurrence)) &&
+    (value.paused === undefined || typeof value.paused === 'boolean') &&
+    (value.skippedDates === undefined || (Array.isArray(value.skippedDates) &&
+      value.skippedDates.every(isDate)))
   );
 }
 
@@ -299,34 +346,45 @@ function isPreferences(value: unknown): value is PersistedPreferences {
   );
 }
 
-type PersistedStateBase = Omit<PersistedState, 'plannedPayments' | 'paymentAttempts'> & {
+type PersistedStateBase = Omit<PersistedState, 'plannedPayments' | 'paymentAttempts' | 'categories'> & {
+  categories?: CategoryDefinition[];
   plannedPayments?: PlannedPayment[];
   paymentAttempts?: PaymentAttempt[];
 };
 
 function isPersistedStateBase(value: unknown): value is PersistedStateBase {
   if (!isRecord(value)) return false;
-  return (
+  const valid =
     value.version === STORAGE_VERSION &&
     isString(value.savedAt) &&
     Array.isArray(value.accounts) &&
     value.accounts.every(isAccount) &&
+    uniqueIds(value.accounts) &&
     Array.isArray(value.transactions) &&
     value.transactions.every(isTransaction) &&
+    uniqueIds(value.transactions) &&
     Array.isArray(value.contacts) &&
     value.contacts.every(isContact) &&
+    uniqueIds(value.contacts) &&
     Array.isArray(value.goals) &&
     value.goals.every(isGoal) &&
+    uniqueIds(value.goals) &&
     Array.isArray(value.budgets) &&
     value.budgets.every(isBudget) &&
+    uniqueIds(value.budgets) &&
     (value.plannedPayments === undefined ||
       (Array.isArray(value.plannedPayments) &&
-        value.plannedPayments.every(isPlannedPayment))) &&
+        value.plannedPayments.every(isPlannedPayment) &&
+        uniqueIds(value.plannedPayments))) &&
     (value.paymentAttempts === undefined ||
       (Array.isArray(value.paymentAttempts) &&
-        value.paymentAttempts.every(isPaymentAttempt))) &&
-    isPreferences(value.preferences)
-  );
+        value.paymentAttempts.every(isPaymentAttempt) &&
+        uniqueIds(value.paymentAttempts))) &&
+    (value.categories === undefined || (Array.isArray(value.categories) &&
+      value.categories.every(isCategoryDefinition) &&
+      uniqueIds(value.categories))) &&
+    isPreferences(value.preferences);
+  return valid;
 }
 
 export function createPersistedState(input: PersistedStateInput): PersistedState {
@@ -334,6 +392,7 @@ export function createPersistedState(input: PersistedStateInput): PersistedState
     version: STORAGE_VERSION,
     savedAt: new Date().toISOString(),
     ...input,
+    categories: input.categories ?? [],
     plannedPayments: input.plannedPayments ?? [],
     paymentAttempts: input.paymentAttempts ?? [],
   };
@@ -359,6 +418,7 @@ export function parsePersistedState(raw: string): PersistedState | null {
     if (!isPersistedStateBase(parsed)) return null;
     return {
       ...parsed,
+      categories: parsed.categories ?? [],
       plannedPayments: parsed.plannedPayments ?? [],
       paymentAttempts: parsed.paymentAttempts ?? [],
     };
@@ -378,6 +438,32 @@ export function loadPersistedState(storage: StorageLike | null = browserStorage(
   }
 }
 
+export type ReadResult =
+  | { status: 'missing' }
+  | { status: 'unavailable' }
+  | { status: 'invalid'; raw: string }
+  | { status: 'valid'; state: PersistedState };
+
+/**
+ * Read without rewriting anything. A blank install, an unavailable browser,
+ * a corrupt snapshot and a valid snapshot are told apart so callers can ask
+ * before replacing data they could not read.
+ */
+export function readPersistedState(
+  storage: StorageLike | null = browserStorage()
+): ReadResult {
+  if (!storage) return { status: 'unavailable' };
+  let raw: string | null;
+  try {
+    raw = storage.getItem(STORAGE_KEY);
+  } catch {
+    return { status: 'unavailable' };
+  }
+  if (raw === null) return { status: 'missing' };
+  const state = parsePersistedState(raw);
+  return state ? { status: 'valid', state } : { status: 'invalid', raw };
+}
+
 export function savePersistedState(
   input: PersistedStateInput,
   storage: StorageLike | null = browserStorage()
@@ -387,6 +473,14 @@ export function savePersistedState(
   }
 
   const state = createPersistedState(input);
+  // Validate before touching storage: an unusable snapshot must never replace
+  // the last ledger that was readable.
+  if (!isPersistedStateBase(state)) {
+    return {
+      ok: false,
+      error: 'These changes are not valid and were not saved. Your previous data is unchanged.',
+    };
+  }
 
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -395,6 +489,47 @@ export function savePersistedState(
     return {
       ok: false,
       error: 'Changes could not be saved. Device storage may be full or unavailable.',
+    };
+  }
+}
+
+/**
+ * Restore an imported backup. Demo metadata and categories travel with the
+ * backup; the device lock stays local so a backup can never replace it.
+ * The write is single-shot so a quota failure leaves the previous snapshot.
+ */
+export function restorePersistedState(
+  backup: PersistedState,
+  currentPreferences: PersistedPreferences,
+  storage: StorageLike | null = browserStorage()
+): SaveResult {
+  if (!storage) {
+    return { ok: false, error: 'Local storage is unavailable in this browser.' };
+  }
+  if (!isPersistedStateBase(backup)) {
+    return { ok: false, error: 'This backup is not a valid Sanchay ledger.' };
+  }
+  const restored: PersistedState = {
+    ...backup,
+    savedAt: new Date().toISOString(),
+    categories: backup.categories ?? [],
+    plannedPayments: backup.plannedPayments ?? [],
+    paymentAttempts: backup.paymentAttempts ?? [],
+    preferences: {
+      ...backup.preferences,
+      appLock: currentPreferences.appLock,
+      appLockPin: currentPreferences.appLockPin,
+      appLockFailures: currentPreferences.appLockFailures,
+      appLockLockedUntil: currentPreferences.appLockLockedUntil,
+    },
+  };
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(restored));
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      error: 'The backup could not be written. Your previous data is unchanged.',
     };
   }
 }

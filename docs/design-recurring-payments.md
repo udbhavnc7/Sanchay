@@ -1,9 +1,10 @@
 # Design — Recurring (scheduled) planned payments
 
-Status: **draft for maintainer approval — do not implement until approved** (release checklist §5,
-"scoped design required before implementation"). Created 2026-11-09.
+Status: **implemented 2026-11-14** (`web/src/utils/recurrence.ts`,
+`web/src/components/PlannedPaymentsSection.tsx`, `recurrence.test.ts`). Created 2026-11-09.
 Scope follows the UPI compliance spec: Path A only — *estimates and local bookkeeping, never money
-movement*.
+movement*. The shipped version adds pause/resume and per-occurrence skip; there are no reminders
+or automatic ledger writes.
 
 ## 1. Problem
 

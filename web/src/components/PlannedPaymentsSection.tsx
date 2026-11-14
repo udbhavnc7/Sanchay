@@ -1,37 +1,34 @@
 import React, { useMemo, useState } from 'react';
-import type { Account, Category, PlannedPayment } from '../types/finance';
+import type { Account, Category, CategoryDefinition, PlannedPayment } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
   ArrowDownLeft,
   ArrowUpRight,
   CalendarDays,
+  Pause,
+  Pencil,
+  Play,
   Plus,
+  SkipForward,
   Trash2,
   X,
 } from 'lucide-react';
 import { formatDate, formatMoney, parseMoneyInput, sumMoney } from '../utils/money';
+import { categoryLabel, categoryOptions } from '../utils/categories';
+import { expandOccurrences, localCalendarDate } from '../utils/recurrence';
 
 interface PlannedPaymentsSectionProps {
   plannedPayments: PlannedPayment[];
   accounts: Account[];
+  categories?: CategoryDefinition[];
   onAdd: (payment: PlannedPayment) => void;
   onDelete: (paymentId: string) => void;
+  onUpdate?: (payment: PlannedPayment) => void;
 }
 
-const EXPENSE_CATEGORIES: Category[] = [
-  'Rent',
-  'Bills',
-  'Groceries',
-  'Dining',
-  'Transport',
-  'Shopping',
-  'Entertainment',
-  'Health',
-  'Travel',
-  'Other',
-];
+type RecurrenceFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-const INCOME_CATEGORIES: Category[] = ['Income', 'Payroll', 'Client Payment', 'Other'];
+const HORIZON_YEARS = 10;
 
 function dateValue(date: Date): string {
   const offset = date.getTimezoneOffset();
@@ -53,6 +50,18 @@ function dueDateIso(value: string): string {
   return new Date(year, month - 1, day, 12, 0, 0, 0).toISOString();
 }
 
+function startOfToday(): Date {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function horizonEnd(start: Date): Date {
+  const end = new Date(start);
+  end.setFullYear(start.getFullYear() + HORIZON_YEARS);
+  return end;
+}
+
 function dueLabel(payment: PlannedPayment): { text: string; tone: string } {
   const due = new Date(payment.dueDate);
   const today = new Date();
@@ -66,20 +75,47 @@ function dueLabel(payment: PlannedPayment): { text: string; tone: string } {
   return { text: formatDate(payment.dueDate), tone: 'var(--text-muted)' };
 }
 
+interface NextOccurrence {
+  date?: string;
+  warning?: string;
+}
+
+function nextOccurrence(payment: PlannedPayment, start: Date, end: Date): NextOccurrence {
+  if (payment.paused) return {};
+  const expansion = expandOccurrences(payment, start, end);
+  return { date: expansion.occurrences[0]?.date, warning: expansion.warning };
+}
+
+function frequencyLabel(payment: PlannedPayment): string {
+  if (!payment.recurrence) return 'One time';
+  const { freq, interval } = payment.recurrence;
+  const unit = freq.charAt(0).toUpperCase() + freq.slice(1);
+  return interval === 1 ? `Every ${unit.toLowerCase()}` : `Every ${interval} ${unit.toLowerCase()}`;
+}
+
 export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
   plannedPayments,
   accounts,
+  categories = [],
   onAdd,
   onDelete,
+  onUpdate,
 }) => {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState(tomorrowValue);
   const [direction, setDirection] = useState<PlannedPayment['direction']>('out');
   const [category, setCategory] = useState<Category>('Rent');
   const [accountId, setAccountId] = useState('');
+  const [frequency, setFrequency] = useState<RecurrenceFrequency>('once');
+  const [interval, setInterval] = useState('1');
+  const [endDate, setEndDate] = useState('');
   const [error, setError] = useState('');
+
+  const start = startOfToday();
+  const end = horizonEnd(start);
 
   const sorted = useMemo(
     () =>
@@ -92,15 +128,19 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
   const activeAccounts = accounts.filter(
     (account) => account.status === 'Active' && account.currency === 'INR'
   );
-  const categories = direction === 'out' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const options = categoryOptions(categories, direction === 'out' ? 'expense' : 'income');
 
   const resetForm = () => {
+    setEditingId(null);
     setTitle('');
     setAmount('');
     setDueDate(tomorrowValue());
     setDirection('out');
     setCategory('Rent');
     setAccountId('');
+    setFrequency('once');
+    setInterval('1');
+    setEndDate('');
     setError('');
   };
 
@@ -111,7 +151,24 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
 
   const handleDirection = (next: PlannedPayment['direction']) => {
     setDirection(next);
-    setCategory(next === 'out' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
+    const nextOptions = categoryOptions(categories, next === 'out' ? 'expense' : 'income');
+    setCategory(nextOptions[0]?.id ?? (next === 'out' ? 'Rent' : 'Income'));
+  };
+
+  const openEdit = (payment: PlannedPayment) => {
+    sound.click();
+    setEditingId(payment.id);
+    setTitle(payment.title);
+    setAmount(String(payment.amount));
+    setDueDate(localCalendarDate(payment.dueDate) ?? dateValue(new Date(payment.dueDate)));
+    setDirection(payment.direction);
+    setCategory(payment.category);
+    setAccountId(payment.accountId ?? '');
+    setFrequency(payment.recurrence?.freq ?? 'once');
+    setInterval(String(payment.recurrence?.interval ?? 1));
+    setEndDate(payment.recurrence?.endDate ?? '');
+    setError('');
+    setShowForm(true);
   };
 
   const handleSave = (event: React.FormEvent) => {
@@ -134,18 +191,52 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
       setError('Choose today or a future date.');
       return;
     }
+    if (frequency !== 'once') {
+      const every = Number(interval);
+      if (!Number.isSafeInteger(every) || every < 1) {
+        setError('Repeat every whole number of days, weeks, months or years.');
+        return;
+      }
+      if (endDate && endDate < dueDate) {
+        setError('Choose an end date on or after the first due date.');
+        return;
+      }
+    }
 
-    onAdd({
-      id: crypto.randomUUID(),
+    const editing = editingId ? plannedPayments.find((item) => item.id === editingId) : undefined;
+    const payment: PlannedPayment = {
+      id: editing?.id ?? crypto.randomUUID(),
       title: trimmed,
       amount: parsed.amount,
       direction,
       dueDate: dueDateIso(dueDate),
       category,
       accountId: accountId || undefined,
-    });
+      recurrence:
+        frequency === 'once'
+          ? undefined
+          : { freq: frequency, interval: Number(interval), ...(endDate ? { endDate } : {}) },
+      paused: editing?.paused,
+      skippedDates: editing?.skippedDates,
+    };
+
+    if (editing && onUpdate) onUpdate(payment);
+    else onAdd(payment);
     sound.success();
     closeForm();
+  };
+
+  const togglePaused = (payment: PlannedPayment) => {
+    if (!onUpdate) return;
+    sound.click();
+    onUpdate({ ...payment, paused: !payment.paused });
+  };
+
+  const skipNext = (payment: PlannedPayment, date: string) => {
+    if (!onUpdate) return;
+    sound.click();
+    const skipped = Array.from(new Set([...(payment.skippedDates ?? []), date]));
+    onUpdate({ ...payment, skippedDates: skipped });
   };
 
   const outflows = sumMoney(
@@ -181,6 +272,7 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
           style={{ padding: '8px 13px', fontSize: '11px' }}
           onClick={() => {
             sound.click();
+            resetForm();
             setShowForm(true);
           }}
         >
@@ -224,84 +316,134 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
             const due = dueLabel(payment);
             const account = accounts.find((item) => item.id === payment.accountId);
             const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
+            const next = nextOccurrence(payment, start, end);
             return (
               <div
                 key={payment.id}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
                   padding: '12px',
                   borderRadius: '14px',
                   background: 'var(--bg-pill)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
-                <div
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(255,87,34,0.1)',
-                    color: isIncome ? '#10b981' : 'var(--accent-orange)',
-                  }}
-                >
-                  <Icon size={14} />
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(255,87,34,0.1)',
+                      color: isIncome ? '#10b981' : 'var(--accent-orange)',
+                    }}
+                  >
+                    <Icon size={14} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        color: 'var(--text-main)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {payment.title}
+                    </div>
+                    <div style={{ fontSize: '10px', color: due.tone, marginTop: '2px' }}>
+                      {categoryLabel(payment.category, categories)}
+                      {account ? ` \u00b7 ${account.name}` : ''} {'\u00b7'} {due.text}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {frequencyLabel(payment)}
+                      {payment.paused
+                        ? ' \u00b7 Paused'
+                        : next.date
+                          ? ` \u00b7 next on ${formatDate(`${next.date}T12:00:00`)}`
+                          : ''}
+                    </div>
+                  </div>
+                  <div
+                    className="font-mono-numbers"
                     style={{
                       fontSize: '12px',
                       fontWeight: 800,
-                      color: 'var(--text-main)',
+                      color: isIncome ? '#10b981' : 'var(--text-main)',
                       whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
                     }}
                   >
-                    {payment.title}
-                  </div>
-                  <div style={{ fontSize: '10px', color: due.tone, marginTop: '2px' }}>
-                    {payment.category}
-                    {account ? ` \u00b7 ${account.name}` : ''} {'\u00b7'} {due.text}
+                    {isIncome ? '+' : '-'}
+                    {formatMoney(payment.amount, payment.currency ?? 'INR')}
                   </div>
                 </div>
                 <div
-                  className="font-mono-numbers"
                   style={{
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    color: isIncome ? '#10b981' : 'var(--text-main)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {isIncome ? '+' : '-'}
-                  {formatMoney(payment.amount)}
-                </div>
-                <button
-                  type="button"
-                  aria-label={`Delete ${payment.title}`}
-                  onClick={() => onDelete(payment.id)}
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
                     display: 'flex',
+                    justifyContent: 'flex-end',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--text-muted)',
-                    cursor: 'pointer',
-                    flexShrink: 0,
+                    gap: '4px',
+                    marginTop: '6px',
                   }}
                 >
-                  <Trash2 size={13} />
-                </button>
+                  {onUpdate && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label={`Edit ${payment.title} series`}
+                        title="Edit series"
+                        className="planned-icon-button"
+                        onClick={() => openEdit(payment)}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={
+                          payment.paused ? `Resume ${payment.title}` : `Pause ${payment.title}`
+                        }
+                        title={payment.paused ? 'Resume series' : 'Pause series'}
+                        className="planned-icon-button"
+                        onClick={() => togglePaused(payment)}
+                      >
+                        {payment.paused ? <Play size={13} /> : <Pause size={13} />}
+                      </button>
+                      {!payment.paused && next.date && payment.recurrence && (
+                        <button
+                          type="button"
+                          aria-label={`Skip ${payment.title} on ${next.date}`}
+                          title="Skip this occurrence"
+                          className="planned-icon-button"
+                          onClick={() => skipNext(payment, next.date!)}
+                        >
+                          <SkipForward size={13} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={`Delete ${payment.title}`}
+                    title="Delete"
+                    className="planned-icon-button"
+                    onClick={() => onDelete(payment.id)}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                {next.warning && (
+                  <p
+                    role="status"
+                    style={{ fontSize: '10px', color: '#b45309', marginTop: '6px', fontWeight: 700 }}
+                  >
+                    {next.warning}
+                  </p>
+                )}
               </div>
             );
           })}
@@ -345,10 +487,10 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
                   id="planned-payment-title"
                   style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main)' }}
                 >
-                  Add planned payment
+                  {editingId ? 'Edit planned payment' : 'Add planned payment'}
                 </h3>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  A dated estimate. Overdue and next-30-day payments affect safe-to-spend; nothing
+                  A dated estimate. Overdue and upcoming payments affect safe-to-spend; nothing
                   is recorded as spent.
                 </p>
               </div>
@@ -486,7 +628,7 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
                   Category
                   <select
                     value={category}
-                    onChange={(event) => setCategory(event.target.value as Category)}
+                    onChange={(event) => setCategory(event.target.value)}
                     style={{
                       display: 'block',
                       width: '100%',
@@ -500,14 +642,98 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
                       outline: 'none',
                     }}
                   >
-                    {categories.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
+                    {options.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
                 </label>
               </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '10px',
+                  marginTop: '12px',
+                }}
+              >
+                <label style={{ fontSize: '11px', fontWeight: 700 }}>
+                  Repeats
+                  <select
+                    value={frequency}
+                    onChange={(event) => setFrequency(event.target.value as RecurrenceFrequency)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      marginTop: '5px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-pill)',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="once">One time</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: '11px', fontWeight: 700 }}>
+                  Every
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={interval}
+                    disabled={frequency === 'once'}
+                    onChange={(event) => setInterval(event.target.value)}
+                    className="font-mono-numbers"
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      marginTop: '5px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-pill)',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      outline: 'none',
+                      opacity: frequency === 'once' ? 0.5 : 1,
+                    }}
+                  />
+                </label>
+              </div>
+
+              {frequency !== 'once' && (
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginTop: '12px' }}>
+                  End date (optional)
+                  <input
+                    type="date"
+                    value={endDate}
+                    min={dueDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      marginTop: '5px',
+                      padding: '10px 12px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-pill)',
+                      color: 'var(--text-main)',
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  />
+                </label>
+              )}
 
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginTop: '12px' }}>
                 Account (optional)
@@ -556,7 +782,7 @@ export const PlannedPaymentsSection: React.FC<PlannedPaymentsSectionProps> = ({
                   className="btn-action-dark"
                   style={{ flex: 1.4, padding: '9px 0' }}
                 >
-                  Add payment
+                  {editingId ? 'Save changes' : 'Add payment'}
                 </button>
               </div>
             </form>

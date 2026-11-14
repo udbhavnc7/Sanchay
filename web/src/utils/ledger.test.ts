@@ -8,6 +8,23 @@ import {
 } from './ledger';
 
 describe('ledger balance effects', () => {
+  it('rejects unsafe balances and amounts rather than returning a rounded ledger', () => {
+    expect(() => applyTransactionToBalance(90071992547409.9, { type: 'credit', amount: 1 })).toThrow();
+    expect(() => reverseTransactionFromBalance(90071992547409.9, { type: 'debit', amount: 1 })).toThrow();
+    expect(() => applyTransactionToBalance(100, { type: 'credit', amount: NaN })).toThrow();
+    expect(() => applyTransactionToBalance(100, { type: 'debit', amount: 1.000000001, currency: 'JPY' })).toThrow();
+  });
+
+  it('replaces large safe amounts without unsafe intermediate arithmetic', () => {
+    expect(replaceTransactionOnBalance(90071992547409.9, { type: 'debit', amount: 1000 }, { type: 'debit', amount: 1000 })).toBe(90071992547409.9);
+  });
+
+  it.each(['INR', 'USD', 'EUR', 'GBP', 'JPY'] as const)('honors explicit %s currency for legacy transaction effects', currency => {
+    expect(applyTransactionToBalance(100, { type: 'debit', amount: 1 }, currency)).toBe(99);
+    expect(reverseTransactionFromBalance(99, { type: 'debit', amount: 1 }, currency)).toBe(100);
+    expect(transactionMinorDelta({ type: 'debit', amount: 1 }, currency)).toBe(currency === 'JPY' ? -1 : -100);
+  });
+
   it('treats credits as money in and debits as money out', () => {
     expect(transactionMinorDelta({ type: 'credit', amount: 125.5 })).toBe(12550);
     expect(transactionMinorDelta({ type: 'debit', amount: 125.5 })).toBe(-12550);

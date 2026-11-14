@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.ivy.wallet">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -19,7 +18,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:name=".IvyAndroidApp"
+        android:name="com.ivy.wallet.IvyAndroidApp"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
@@ -32,7 +31,7 @@
         tools:ignore="LockedOrientationActivity">
 
         <activity
-            android:name=".RootActivity"
+            android:name="com.ivy.wallet.RootActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize|stateAlwaysHidden">
@@ -92,7 +91,7 @@
         </receiver>
 
         <service
-            android:name=".PaymentTileService"
+            android:name="com.ivy.wallet.PaymentTileService"
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:label="Add Payment"

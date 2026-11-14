@@ -1,12 +1,17 @@
-name: Automatic Release
+name: Version bump PR
 
 on:
-  schedule:
-    - cron: '0 0 * * 0'  # Runs every Sunday at midnight UTC
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Create a version-bump pull request'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   update_version:
+    if: github.event_name == 'workflow_dispatch' && inputs.bump
     runs-on: ubuntu-latest
 
     steps:
@@ -42,10 +47,10 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Automatic release: v${{ env.NEW_VERSION_NAME }} (${{ env.NEW_VERSION_CODE }})"
+          commit-message: "Version bump: v${{ env.NEW_VERSION_NAME }} (${{ env.NEW_VERSION_CODE }})"
           base: "main"
           branch: ${{ env.BRANCH_NAME }}
-          title: "Automatic release: v${{ env.NEW_VERSION_NAME }} (${{ env.NEW_VERSION_CODE }})"
+          title: "Version bump: v${{ env.NEW_VERSION_NAME }} (${{ env.NEW_VERSION_CODE }})"
           body: "This PR updates the version-name to v${{ env.NEW_VERSION_NAME }} and increments the version-code to ${{ env.NEW_VERSION_CODE }}."
           labels: auto-update
           author: "GitHub Actions <actions@github.com>"

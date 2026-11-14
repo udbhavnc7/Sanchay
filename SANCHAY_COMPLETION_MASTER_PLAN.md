@@ -6,6 +6,14 @@
 **Prepared:** 10 November 2026  
 **Purpose:** A single implementation and release roadmap for bringing the existing Sanchay application to a reliable, feature-complete, Android-ready release.
 
+## Execution status — 14 November 2026
+
+**Completed in this pass:** custom categories (create/rename/recolor/archive/delete, wired into entry, search, budgets and details); transaction tags; partial expense refunds; recurring planned payments (daily/weekly/monthly/yearly, interval, end date, pause/resume, per-occurrence skip) with safe-to-spend expansion; goal notes and pause/complete/archive states; payee duplicate detection; password-encrypted `.sanchay` backups (PBKDF2-SHA-256 600k + AES-256-GCM) with plain JSON fallback, legacy import, and atomic restore that preserves the device lock; Sanchay-only manual release workflows (demo APK CI, fail-closed internal-draft Fastlane upload, version-bump PR); Render deployment config; documentation synchronized.
+
+**Verification (local):** web `tsc`/oxlint clean; Vitest 21 files / 447 tests; production build `index-Cjl43afo.js` + `index-D7yrrk_f.css`; release-compliance 3,163 checks PASS; Fastlane harness 15/15; `assembleDemo` BUILD SUCCESSFUL; APK artifact scan PASS; Android assets contain exactly the current bundle pair.
+
+**Still externally blocked / pending:** production upload keystore + Play Console publishing, public privacy/terms URLs and contact details, physical-device and emulator androidTest runs, and on-device network capture. None of these are claimed as completed.
+
 ---
 
 ## 0. Instructions to the coding agent
@@ -225,7 +233,7 @@ Acceptance criteria:
 - Inspect the actual `applicationId`, namespace, manifest package references, deep links and signing setup.
 - Decide the final package ID before the first public store release.
 - If an existing Play listing or distributed APK must be updated, preserve the package ID and signing continuity. Do not rename it casually.
-- If this is still a private pre-release build with no upgrade obligation, choose the Sanchay package ID before publication and migrate all references consistently.
+- If this is still a private pre-release build with no upgrade obligation, choose the Sanchay package ID before publication and migrate all references consistently. **Decided 12 Nov 2026: `app.sanchay` (debug/demo `app.sanchay.debug`); migration + demo APK verification recorded in `docs/android-identity-and-signing.md`.**
 - Inspect `debug.jks` and all keystore/config files. Confirm no production signing key, service-account key, API secret or private credential is committed.
 - Use the appropriate private release-signing process; do not ship a debug-signed production APK.
 
@@ -1088,7 +1096,7 @@ Do not report a test as passing if it was not run. Do not mark physical-device v
 
 ### Android and release
 
-- [ ] Package ID and signing/update strategy are final.
+- [x] Package ID and signing/update strategy are final. **[Verified 12 Nov: package ID frozen as `app.sanchay` (debug/demo `app.sanchay.debug`); namespace, manifest components, `google-services.json`, BuildConfig imports and `device-verify.ps1` migrated; `assembleDemo` GREEN and `aapt2 dump badging` reports `app.sanchay.debug` + label Sanchay + launcher `com.ivy.wallet.RootActivity`. Signing strategy remains env-driven `SIGNING_*` + untracked `sign.jks` for release, tracked debug key only for `*.debug`; creating the upload keystore and Play account is maintainer-only (see `docs/android-identity-and-signing.md`).]**
 - [ ] Release APK tested on physical Android devices.
 - [ ] WebView lifecycle, file import/export and keyboard behavior pass.
 - [x] Permissions are minimal and justified. **[Verified 11 Nov: declared set audited against reachable features; no location/contacts/SMS/device-ID permissions; storage write capped at API 28; justification table in `docs/data-flow-inventory.md` 8; runtime prompts still need device pass (1090)]**

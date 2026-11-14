@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { Account, Category, Transaction } from '../types/finance';
+import type { Account, Category, CategoryDefinition, Currency, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
   Search,
@@ -12,11 +12,22 @@ import {
   Filter,
   Plus,
 } from 'lucide-react';
-import { addMoney, formatMoney, relativeDay } from '../utils/money';
+import { formatMoney, relativeDay } from '../utils/money';
+import { categoryLabel } from '../utils/categories';
+import {
+  computeReportTotals,
+  DEFAULT_CURRENCY,
+  reportCurrencies,
+  reportsAccountMap,
+  scopeToCurrency,
+  transactionCurrency,
+  transactionMatchesSearch,
+} from '../utils/reporting';
 
 interface ActivityTabProps {
   transactions: Transaction[];
   accounts: Account[];
+  categoryDefinitions?: CategoryDefinition[];
   onAddTransaction: () => void;
   onSelectTransaction: (tx: Transaction) => void;
 }
@@ -27,6 +38,7 @@ type DirectionFilter = 'All' | 'In' | 'Out' | 'Saved';
 export const ActivityTab: React.FC<ActivityTabProps> = ({
   transactions,
   accounts,
+  categoryDefinitions = [],
   onAddTransaction,
   onSelectTransaction,
 }) => {
@@ -34,53 +46,61 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('All');
   const [categoryFilter, setCategoryFilter] = useState<'All' | Category>('All');
+  const [currencyFilter, setCurrencyFilter] = useState<Currency | null>(null);
 
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
     [accounts]
   );
+  const accountsById = useMemo(() => reportsAccountMap(accounts), [accounts]);
+
+  const availableCurrencies = useMemo(
+    () => reportCurrencies(transactions, accountsById),
+    [transactions, accountsById]
+  );
+  const currency: Currency =
+    currencyFilter && availableCurrencies.includes(currencyFilter)
+      ? currencyFilter
+      : availableCurrencies[0] ?? DEFAULT_CURRENCY;
+  const scoped = useMemo(
+    () => scopeToCurrency(transactions, accountsById, currency),
+    [transactions, accountsById, currency]
+  );
 
   const categories = useMemo(() => {
-    const set = new Set<Category>();
-    transactions.forEach((tx) => set.add(tx.category));
-    return Array.from(set).sort();
-  }, [transactions]);
+    const ids = new Set<Category>();
+    scoped.forEach((tx) => ids.add(tx.category));
+    return Array.from(ids)
+      .map((id) => ({ id, label: categoryLabel(id, categoryDefinitions) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [scoped, categoryDefinitions]);
 
   const filtered = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
+    const query = searchTerm.trim();
 
-    return transactions.filter((tx) => {
+    return scoped.filter((tx) => {
       if (statusFilter !== 'All' && tx.status !== statusFilter) return false;
       if (categoryFilter !== 'All' && tx.category !== categoryFilter) return false;
 
-      if (directionFilter === 'In' && tx.kind !== 'income') return false;
+      if (directionFilter === 'In' && tx.kind !== 'income' && tx.kind !== 'refund') return false;
       if (directionFilter === 'Out' && tx.kind !== 'expense') return false;
-      if (directionFilter === 'Saved' && tx.kind !== 'transfer') return false;
+      if (directionFilter === 'Saved' && !(tx.kind === 'transfer' && tx.type === 'debit')) {
+        return false;
+      }
 
-      if (!query) return true;
-
-      const account = tx.accountId ? accountById.get(tx.accountId) : undefined;
-      return [tx.title, tx.counterparty, tx.category, tx.reference, tx.note ?? '', account?.name ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(query);
+      return transactionMatchesSearch(tx, query, accountsById, categoryDefinitions);
     });
-  }, [transactions, statusFilter, categoryFilter, directionFilter, searchTerm, accountById]);
+  }, [
+    scoped,
+    statusFilter,
+    categoryFilter,
+    directionFilter,
+    searchTerm,
+    accountsById,
+    categoryDefinitions,
+  ]);
 
-  const totals = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-    let saved = 0;
-
-    filtered.forEach((tx) => {
-      if (tx.status !== 'Completed') return;
-      if (tx.kind === 'income') income = addMoney(income, tx.amount);
-      else if (tx.kind === 'transfer') saved = addMoney(saved, tx.amount);
-      else expense = addMoney(expense, tx.amount);
-    });
-
-    return { income, expense, saved };
-  }, [filtered]);
+  const totals = useMemo(() => computeReportTotals(filtered, currency), [filtered, currency]);
 
   const hasFilters =
     searchTerm.trim() !== '' ||
@@ -110,6 +130,22 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
         </div>
 
         <div className="activity-metrics" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <select
+            aria-label="Activity currency"
+            value={currency}
+            onChange={(event) => {
+              sound.click();
+              setCurrencyFilter(event.target.value as Currency);
+            }}
+            className="pill-select"
+            style={{ padding: '8px 10px', fontSize: '12px', fontWeight: 700 }}
+          >
+            {availableCurrencies.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
           <button
             onClick={() => {
               sound.click();
@@ -126,7 +162,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
               In
             </div>
             <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', marginTop: '2px' }}>
-              +{formatMoney(totals.income, 'INR', { decimals: false })}
+              +{formatMoney(totals.income, currency)}
             </div>
           </div>
 
@@ -135,7 +171,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
               Out
             </div>
             <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px' }}>
-              −{formatMoney(totals.expense, 'INR', { decimals: false })}
+              −{formatMoney(totals.spending, currency)}
             </div>
           </div>
 
@@ -144,7 +180,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
               Saved
             </div>
             <div className="font-mono-numbers" style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-orange)', marginTop: '2px' }}>
-              {formatMoney(totals.saved, 'INR', { decimals: false })}
+              {formatMoney(totals.saved, currency)}
             </div>
           </div>
         </div>
@@ -210,8 +246,8 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
             >
               <option value="All">All categories</option>
               {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+                <option key={category.id} value={category.id}>
+                  {category.label}
                 </option>
               ))}
             </select>
@@ -279,8 +315,11 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
               <tbody>
                 {filtered.map((tx) => {
                   const account = tx.accountId ? accountById.get(tx.accountId) : undefined;
-                  const isIncome = tx.kind === 'income';
                   const isTransfer = tx.kind === 'transfer';
+                  const isCredit =
+                    tx.kind === 'income' ||
+                    tx.kind === 'refund' ||
+                    (isTransfer && tx.type === 'credit');
 
                   return (
                     <tr
@@ -295,14 +334,14 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                           <div
                             className={`tx-kind-icon ${
-                              isIncome
+                              isCredit
                                 ? 'tx-kind-income'
                                 : isTransfer
                                 ? 'tx-kind-transfer'
                                 : 'tx-kind-expense'
                             }`}
                           >
-                            {isIncome ? (
+                            {isCredit ? (
                               <ArrowDownLeft size={18} />
                             ) : isTransfer ? (
                               <ArrowLeftRight size={18} />
@@ -327,7 +366,7 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
 
                       <td className="activity-td">
                         <span className="badge-category">
-                          {tx.category}
+                          {categoryLabel(tx.category, categoryDefinitions)}
                         </span>
                       </td>
 
@@ -336,11 +375,11 @@ export const ActivityTab: React.FC<ActivityTabProps> = ({
                           style={{
                             fontSize: '14px',
                             fontWeight: 800,
-                            color: isIncome ? '#10b981' : 'var(--text-main)',
+                            color: isCredit ? '#10b981' : 'var(--text-main)',
                           }}
                         >
-                          {isIncome ? '+' : '−'}
-                          {formatMoney(tx.amount, account?.currency ?? 'INR')}
+                          {isCredit ? '+' : '−'}
+                          {formatMoney(tx.amount, transactionCurrency(tx, accountsById))}
                         </span>
                       </td>
 

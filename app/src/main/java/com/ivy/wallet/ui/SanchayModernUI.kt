@@ -24,7 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import com.ivy.wallet.BuildConfig
+import app.sanchay.BuildConfig
 import java.io.ByteArrayInputStream
 
 // WebView dashboard shell: PascalCase follows the @Composable convention;
@@ -148,6 +148,27 @@ fun SanchayModernUI(
                     override fun onPageFinished(view: WebView?, url: String?) {
                         super.onPageFinished(view, url)
                         canGoBack = view?.canGoBack() == true
+                    }
+
+                    // Open policy/help links in the user's browser; keep the local dashboard
+                    // inside the WebView (and continue blocking rendered external hosts).
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): Boolean {
+                        val url = request?.url ?: return false
+                        if (url.host == "sanchay.local") return false
+                        if (url.scheme != "https" && url.scheme != "http") return true
+                        return try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, url).addFlags(
+                                    Intent.FLAG_ACTIVITY_NEW_TASK
+                                )
+                            )
+                            true
+                        } catch (_: Exception) {
+                            true
+                        }
                     }
 
                     // Local-asset + host allowlist interceptor: early-return style.

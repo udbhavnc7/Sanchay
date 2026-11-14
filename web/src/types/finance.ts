@@ -18,23 +18,18 @@ export interface Account {
 
 export type Wallet = Account;
 
-export type Category =
-  | 'Income'
-  | 'Groceries'
-  | 'Dining'
-  | 'Transport'
-  | 'Shopping'
-  | 'Bills'
-  | 'Entertainment'
-  | 'Health'
-  | 'Rent'
-  | 'Savings'
-  | 'Payroll'
-  | 'Infrastructure'
-  | 'Client Payment'
-  | 'Equipment'
-  | 'Travel'
-  | 'Other';
+/** Built-in names or stable custom_ identifiers; labels live in CategoryDefinition. */
+export type Category = string;
+
+export interface CategoryDefinition {
+  id: string;
+  name: string;
+  type: 'income' | 'expense';
+  color: string;
+  icon: string;
+  archived?: boolean;
+  builtIn?: boolean;
+}
 
 export type TxStatus = 'Completed' | 'Pending' | 'Failed' | 'Flagged';
 export type TxKind = 'expense' | 'income' | 'transfer' | 'refund';
@@ -63,6 +58,8 @@ export interface Transaction {
   transferId?: string;
   transferRate?: number;
   refundOfId?: string;
+  tags?: string[];
+  plannedOccurrenceKey?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -80,6 +77,7 @@ export interface Contact {
   avatarColor: string;
   isFavorite: boolean;
   lastTransfer?: string;
+  archived?: boolean;
 }
 
 export type GoalIcon = 'laptop' | 'plane' | 'shield' | 'car' | 'gift' | string;
@@ -92,6 +90,8 @@ export interface SavingsGoal {
   targetAmount: number;
   targetDate: string;
   color: string;
+  status?: 'active' | 'paused' | 'completed' | 'archived';
+  note?: string;
 }
 
 export interface BudgetPeriod {
@@ -112,6 +112,12 @@ export interface Budget {
   archived?: boolean;
 }
 
+export interface RecurrenceRule {
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  interval: number;
+  endDate?: string;
+}
+
 export interface PlannedPayment {
   id: string;
   title: string;
@@ -121,6 +127,10 @@ export interface PlannedPayment {
   category: Category;
   accountId?: string;
   note?: string;
+  recurrence?: RecurrenceRule;
+  paused?: boolean;
+  skippedDates?: string[];
+  currency?: Currency;
 }
 
 export type PaymentAttemptStatus =
@@ -185,6 +195,7 @@ export interface NewTransactionInput {
   accountId: string;
   date: string;
   note?: string;
+  tags?: string[];
 }
 
 export interface UpdateTransactionInput extends NewTransactionInput {

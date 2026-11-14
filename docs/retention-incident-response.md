@@ -13,7 +13,7 @@ Grounded in [data-flow-inventory.md](data-flow-inventory.md) and
 | Data | Location | Retention | Removal |
 |---|---|---|---|
 | Dashboard financial data (accounts, transactions, payees, goals, budgets, planned payments, attempts, preferences, app-lock PIN) | App-private WebView `localStorage` (`sanchay.local.v1`) on the user's device | Until the user deletes it — no server copy exists | Privacy panel → Reset local data, or OS "Clear data" (inventory §10) |
-| Poll votes (`polls/{pollId}/votes/{deviceId}` = option id + timestamp; random app-generated UUID) | Google Firestore | Until `[TODO: retention decision]`; no dashboard data ever joins this store | User request via privacy-policy contact, or maintainer deletes the document |
+| Poll votes (`polls/{pollId}/votes/{deviceId}` = option id + timestamp; random app-generated UUID) | Google Firestore | Only for aggregate poll tallies; deleted when the poll is retired or on request via GitHub Issues (target: within 30 days); no dashboard data ever joins this store | User request via <https://github.com/udbhavnc7/Sanchay/issues>, or maintainer deletes the document |
 | Poll "already voted" flag + device UUID | App DataStore on device | Same as app data | OS "Clear data" |
 | Exported JSON/CSV/receipt files | Wherever the user saves them (`Downloads/Sanchay`, browser downloads) | User-controlled | User deletes the file |
 | Debug logs (Timber, Ktor BODY logs) | Device logcat, debug builds only | Not present in release builds; cleared by device reboot/log rotation | n/a (release emits none) |
@@ -43,7 +43,8 @@ analytics/crash SDK, or an exposed secret (`google-services.json` API key abuse)
    told how to wipe it; poll votes → server-side deletion).
 4. **Notify** — publish an honest statement: what happened, what data, what versions, what users
    should do (e.g. "Clear app storage", "revoke the API key"). Channels: Play release notes,
-   README, `[TODO: contact address]`. Do not claim "nothing was exposed" without evidence.
+   README, GitHub Issues (<https://github.com/udbhavnc7/Sanchay/issues>). Do not claim "nothing was
+   exposed" without evidence.
 5. **Fix & verify** — add the failing case to the checklist/tests (e.g. a test asserting the
    offending SDK/string is absent, as done for Crashlytics), re-run
    `docs/release-checklist.md` §2/§4, verify on a clean device.

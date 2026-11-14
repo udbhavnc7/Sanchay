@@ -81,7 +81,7 @@ Verified against the **release merged manifest** (`app/build/intermediates/merge
 | `WAKE_LOCK` | Widget/WorkManager updates |
 | `FOREGROUND_SERVICE` | Inherited reminder/sync foreground services (library-declared, merged in) |
 | `USE_BIOMETRIC` / `USE_FINGERPRINT` | AndroidX Biometric prompt for the optional app lock (merged in via the biometric dependency) |
-| `com.ivy.wallet.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AGP-generated internal permission for app-internal broadcast receivers — not user-facing |
+| `app.sanchay.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (`app.sanchay.debug.*` on debug/demo) | AGP-generated internal permission for app-internal broadcast receivers — not user-facing |
 
 Removed 2026-11-08: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (no usage found anywhere in source; absent from the release merged manifest). No contacts, SMS, call-log, or device-ID permissions exist in the manifest; no `crashlytics`/`gms.location` strings appear in the release merged manifest.
 
@@ -89,7 +89,7 @@ Removed 2026-11-08: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (no usage f
 
 - CSV export, receipt copy, and JSON/ZIP backups are written **locally only**: `Downloads/Sanchay` on Android (§3), browser downloads on desktop.
 - Backup import replaces dashboard `localStorage` after a confirmation preview; no upload path exists for backups.
-- Backups are **unencrypted**; the privacy panel and README state this explicitly and tell the user to store export files carefully (spec §7 "make the risks clear" branch). An encrypted-backup option remains an open P1 decision (checklist §5).
+- Backups can be password-encrypted (`.sanchay`, PBKDF2-SHA-256 600k + AES-256-GCM) or exported as plain JSON. Encryption and decryption happen in the WebView with WebCrypto; the password is never stored or transmitted. Plain JSON backups are unencrypted, and the privacy panel and README say so.
 - **App-lock PIN is never exported**: `createBackupState` (`web/src/data/persistence.ts`) whitelists non-secret preferences, so `appLock`, `appLockPin` (legacy), `appLockFailures` and `appLockLockedUntil` are all omitted from backup payloads; the restore path ignores any such fields in an imported file. Covered by unit tests (`persistence.test.ts`: legacy PIN exclusion + credential/backup exclusion).
 - Backup payload scope = exactly the dashboard state needed to restore: accounts, transactions, payees (contacts), goals, budgets, planned payments, payment-assistance attempts, and non-secret preferences (theme, sound, card-frozen, profile, safe-to-spend buffer). No device identifiers, no analytics ids, no credentials.
 

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { Account, Transaction } from '../types/finance';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import type { Account, CategoryDefinition, Transaction } from '../types/finance';
+import { ActivityTab } from '../components/ActivityTab';
+import { OverviewTab } from '../components/OverviewTab';
+import { ReportsTab } from '../components/ReportsTab';
+import { SearchOverlay } from '../components/SearchOverlay';
+import { buildSafeToSpend } from './safeToSpend';
+import * as reporting from './reporting';
 import { addTransaction, createTransfer, recordRefund, type LedgerState } from './ledgerOps';
 import {
   buildStatementCsv,
@@ -51,7 +59,7 @@ function stateWith(
 }
 
 describe('reporting totals reconcile with ledger operations', () => {
-  it('derives income, spending and goal savings from ledger entries', () => {
+  it('does not count internal account transfers as goal savings or consumption', () => {
     const main = account();
     const savings = account({ id: 'acc2', name: 'Savings', type: 'Savings' });
     let state = stateWith([main, savings]);
@@ -103,7 +111,7 @@ describe('reporting totals reconcile with ledger operations', () => {
     state = transfer.state;
 
     const totals = computeReportTotals(state.transactions, 'INR');
-    expect(totals).toEqual({ income: 2000, spending: 500, saved: 1000, net: 500 });
+    expect(totals).toEqual({ income: 2000, spending: 500, saved: 0, net: 1500 });
 
     const mainAccount = state.accounts.find((item) => item.id === main.id);
     expect(mainAccount?.balance).toBe(100000 - 500 + 2000 - 1000);
@@ -133,7 +141,7 @@ describe('reporting totals reconcile with ledger operations', () => {
       ],
       'INR'
     );
-    expect(totals).toEqual({ income: 0, spending: 0, saved: 400, net: -400 });
+    expect(totals).toEqual({ income: 0, spending: 0, saved: 0, net: 0 });
   });
 
   it('csv export covers every ledger row and carries the account currency', () => {
@@ -199,7 +207,122 @@ describe('multi-currency isolation', () => {
   });
 });
 
+const definitions: CategoryDefinition[] = [
+  { id: 'custom_care', name: 'Pet care', type: 'expense', color: '#123456', icon: 'heart', archived: true },
+];
+
+describe('statement safety and metadata', () => {
+  it.each(['=SUM(1,2)', '+cmd', '-cmd', '@SUM(A1)', '\tformula', '\rformula', '\nformula', '  =formula'])('neutralizes spreadsheet text %j', (value) => {
+    const csv = buildStatementCsv([tx({ title: value, reference: value, counterparty: value, note: value, category: value })], reportsAccountMap([account({ name: value })]));
+    expect(csv).toContain(`"'${value.replace(/"/g, '""')}"`);
+    expect(csv).not.toContain(`,"${value.replace(/"/g, '""')}",`);
+  });
+
+  it('exports currency-specific minor digits without rounding decimal currencies away', () => {
+    const csv = buildStatementCsv([tx({ amount: 1250, currency: 'JPY' }), tx({ amount: 12.34, currency: 'USD' })], new Map());
+    expect(csv).toContain('"1250","JPY"');
+    expect(csv).toContain('"12.34","USD"');
+  });
+
+  it('exports category labels and optional formula-safe tags without changing IDs', () => {
+    const row = tx({ category: 'custom_care', tags: ['=danger', 'vet, annual'] });
+    const csv = buildStatementCsv([row], new Map(), { categoryDefinitions: definitions });
+    expect(csv).toContain('"Pet care"');
+    expect(csv).toContain('"Tags"');
+    expect(csv).toContain('"\'=danger; vet, annual"');
+    expect(buildStatementCsv([row], new Map(), { includeTags: false })).not.toContain('"Tags"');
+    expect(row.category).toBe('custom_care');
+    expect(row.tags).toEqual(['=danger', 'vet, annual']);
+  });
+});
+
+describe('display regression coverage', () => {
+  const noop = () => {};
+  const accounts = [account(), account({ id: 'usd', currency: 'USD', name: 'Dollar account' })];
+  const date = new Date().toISOString();
+  const rows = [
+    tx({ id: 'income', title: 'Local income', kind: 'income', type: 'credit', amount: 1000, accountId: 'acc1', date }),
+    tx({ id: 'expense', title: 'Vet visit', category: 'custom_care', amount: 300, accountId: 'acc1', date }),
+    tx({ id: 'refund', title: 'Vet refund', category: 'custom_care', kind: 'refund', type: 'credit', amount: 100, accountId: 'acc1', date }),
+    tx({ id: 'goal', title: 'Goal contribution', kind: 'transfer', goalId: 'goal1', category: 'Savings', amount: 50, accountId: 'acc1', date }),
+    tx({ id: 'move-out', kind: 'transfer', category: 'Savings', amount: 400, accountId: 'acc1', date }),
+    tx({ id: 'move-in', kind: 'transfer', type: 'credit', category: 'Savings', amount: 400, accountId: 'acc1', date }),
+    tx({ id: 'usd', title: 'Foreign purchase', currency: 'USD', amount: 999, accountId: 'acc1', date }),
+  ];
+
+  it('defaults Activity totals and list to INR, nets refunds and counts only goal debits', () => {
+    const html = renderToStaticMarkup(createElement(ActivityTab, { accounts, transactions: rows, categoryDefinitions: definitions, onAddTransaction: noop, onSelectTransaction: noop }));
+    expect(html).not.toContain('Foreign purchase');
+    expect(html).toContain('₹1,000.00');
+    expect(html).toContain('₹200.00');
+    expect(html).toContain('₹50.00');
+    expect(html).toContain('Pet care');
+    expect(html).toContain('aria-label="Activity currency"');
+    expect(html).toMatch(/\+₹100\.00/);
+    expect(html).toMatch(/\+₹400\.00/);
+  });
+
+  it('renders Overview monthly income, category net spending and goal contributions in INR', () => {
+    const html = renderToStaticMarkup(createElement(OverviewTab, {
+      accounts, transactions: [...rows, tx({ title: 'Foreign income', kind: 'income', type: 'credit', amount: 800, currency: 'USD', date })],
+      categoryDefinitions: definitions, budgets: [], goals: [], monthlySpent: 200, monthlyBudget: 1000,
+      remainingBudget: 800, availableBalance: 100000, goalBalance: 50, freeToSpend: 99200,
+      safeToSpend: buildSafeToSpend({ availableBalance: 100000, remainingBudget: 800, goals: [], plannedPayments: [] }),
+      safeToSpendBuffer: 0, whatIfOutflow: 0, netWorth: 100050,
+      onOpenPayees: noop, onOpenPlan: noop, onOpenActivity: noop, onRequestMoney: noop,
+      onAddTransaction: noop, onSelectTransaction: noop, onSafeToSpendBufferChange: noop, onWhatIfOutflowChange: noop,
+    }));
+    expect(html).toContain('₹1,000.00');
+    expect(html).not.toContain('₹1,800.00');
+    expect(html).toContain('₹50.00 added this month');
+    expect(html).toContain('Pet care');
+    expect(html).toContain('$800.00');
+    expect(html).toContain('1 active INR accounts');
+  });
+
+  it('renders report trends with refunds reducing spending instead of inflating income', () => {
+    const html = renderToStaticMarkup(createElement(ReportsTab, { accounts, transactions: rows, categoryDefinitions: definitions, onSelectTransaction: noop }));
+    expect(html).toContain('title="Income ₹1,000.00"');
+    expect(html).toContain('title="Spending ₹200.00"');
+    expect(html).toContain('Pet care');
+    expect(html).toContain('$999.00');
+  });
+
+  it('renders search refunds and incoming transfers with credit signs and explicit transaction currency', () => {
+    const html = renderToStaticMarkup(createElement(SearchOverlay, { open: true, accounts, transactions: [rows[2], rows[5], rows[6]], contacts: [], goals: [], categoryDefinitions: definitions, onClose: noop, onNavigate: noop, onSelectTransaction: noop }));
+    expect(html).toContain('+₹100.00');
+    expect(html).toContain('+₹400.00');
+    expect(html).toContain('−$999.00');
+    expect(html).toContain('Pet care');
+  });
+
+  it('searches readable archived categories and tags while preserving original transactions', () => {
+    expect(reporting).toHaveProperty('transactionMatchesSearch');
+    const row = tx({ category: 'custom_care', tags: ['annual-checkup'] });
+    expect(reporting.transactionMatchesSearch(row, 'PET CARE', new Map(), definitions)).toBe(true);
+    expect(reporting.transactionMatchesSearch(row, 'checkup', new Map(), definitions)).toBe(true);
+    expect(reporting.transactionMatchesSearch(row, 'unrelated', new Map(), definitions)).toBe(false);
+    expect(row.category).toBe('custom_care');
+  });
+});
+
 describe('breakdown math', () => {
+  it('counts only completed goal contribution debits as saved', () => {
+    const totals = computeReportTotals([
+      tx({ kind: 'transfer', goalId: 'goal', amount: 100 }),
+      tx({ kind: 'transfer', goalId: 'goal', type: 'credit', amount: 100 }),
+      tx({ kind: 'transfer', amount: 400 }),
+      tx({ kind: 'transfer', goalId: 'goal', amount: 50, status: 'Pending' }),
+    ]);
+    expect(totals).toEqual({ income: 0, spending: 0, saved: 100, net: -100 });
+  });
+
+  it('nets payee refunds without treating them as another payment', () => {
+    expect(computePayeeBreakdown([
+      tx({ counterparty: 'Vet', amount: 300 }),
+      tx({ counterparty: 'Vet', amount: 100, kind: 'refund', type: 'credit' }),
+    ])).toEqual([{ name: 'Vet', amount: 200, count: 1 }]);
+  });
   it('computes category percentages within the active currency', () => {
     const rows = [
       tx({ category: 'Dining', amount: 300 }),

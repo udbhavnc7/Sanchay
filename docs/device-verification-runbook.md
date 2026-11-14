@@ -9,8 +9,8 @@ Created 2026-11-09. Companion helper: `scripts/device-verify.ps1` (Windows/Power
 
 | Purpose | Build | Package id | Signing |
 |---|---|---|---|
-| Behaviour, persistence, offline, backup tests (iterative) | `./gradlew assembleDemo` → `app/build/outputs/apk/demo/app-demo.apk` | `com.ivy.wallet.debug` | debug keystore (checked in) |
-| Final gate (release config, minified, no debug logs) | `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release-unsigned.apk` **then sign** | `com.ivy.wallet` | needs `sign.jks` + `SIGNING_STORE_PASSWORD`/`SIGNING_KEY_ALIAS`/`SIGNING_KEY_PASSWORD` env vars (`app/build.gradle.kts:37–42`); or install the Play-internal-testing build |
+| Behaviour, persistence, offline, backup tests (iterative) | `./gradlew assembleDemo` → `app/build/outputs/apk/demo/app-demo.apk` | `app.sanchay.debug` | debug keystore (checked in) |
+| Final gate (release config, minified, no debug logs) | `./gradlew assembleRelease` → `app/build/outputs/apk/release/app-release-unsigned.apk` **then sign** | `app.sanchay` | needs `sign.jks` + `SIGNING_STORE_PASSWORD`/`SIGNING_KEY_ALIAS`/`SIGNING_KEY_PASSWORD` env vars (`app/build.gradle.kts:37–42`); or install the Play-internal-testing build |
 
 Run the full checklist on the **release** build; the demo build is fine for iterating on steps.
 Evidence goes to `device-evidence/` (git-ignored): screenshots, `package-info.txt`, `logcat.txt`,
@@ -19,12 +19,12 @@ netstats deltas, notes.
 ## 1. Automated subset (run first)
 
 ```powershell
-.\scripts\device-verify.ps1 -Apk app\build\outputs\apk\demo\app-demo.apk -Package com.ivy.wallet.debug
+.\scripts\device-verify.ps1 -Apk app\build\outputs\apk\demo\app-demo.apk -Package app.sanchay.debug
 ```
 
 The script: installs the APK, dumps `dumpsys package` (asserts **no location/SMS/call-log
 permissions**), launches `RootActivity`, waits, captures a screenshot and a logcat dump, and
-prints a permission assertion result. Release build: `-Package com.ivy.wallet`.
+prints a permission assertion result. Release build: `-Package app.sanchay`.
 
 ## 2. Manual steps (map to checklist §3)
 
@@ -39,7 +39,7 @@ scoped-storage step below. Record model + OS version in `device-evidence/notes.m
    confirm **only** `sanchay.local` requests (assets) and **zero** third-party requests.
 
 **44 — Persistence + data-loss behaviour matches README.**
-1. Add a transaction; force-stop the app (`adb shell am force-stop com.ivy.wallet.debug`);
+1. Add a transaction; force-stop the app (`adb shell am force-stop app.sanchay.debug`);
    relaunch → transaction still there.
 2. In-app: Privacy panel → "Reset local data" (two-step) → back to demo data, PIN cleared.
 3. OS-level: Settings → Apps → Sanchay → Storage → **Clear data** → relaunch → app reseeds
@@ -54,7 +54,7 @@ scoped-storage step below. Record model + OS version in `device-evidence/notes.m
 
 **46 — No network traffic for dashboard-only flows.**
 1. Baseline: `adb shell dumpsys netstats --uid <appUid>` (get uid via
-   `adb shell dumpsys package com.ivy.wallet.debug | findstr userId`) → save.
+   `adb shell dumpsys package app.sanchay.debug | findstr userId`) → save.
 2. Airplane mode ON; exercise dashboard flows 5–10 min (add/edit/report/export/reset).
 3. Airplane mode OFF (Wi-Fi only, no mobile data); repeat; then re-read netstats — the app UID
    must show no meaningful RX/TX delta beyond negligible Android background noise; any Firestore/
@@ -67,7 +67,7 @@ NO-SOURCE); re-run if the device session follows new code changes.
 
 **48 — Play data-safety / privacy review with the release manifest + SDK list** — use
 [play-submission-drafts.md](play-submission-drafts.md) §1 against the *installed* build's
-manifest: `adb shell dumpsys package com.ivy.wallet | findstr permission` must match inventory
+manifest: `adb shell dumpsys package app.sanchay | findstr permission` must match inventory
 §8 exactly (no surprises).
 
 **Inventory §10 rows (fold into the same session):**

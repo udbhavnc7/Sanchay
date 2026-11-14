@@ -1,11 +1,13 @@
-# Sanchay — Terms of use (DRAFT)
+# Sanchay — Terms of use
 
-Status: **draft for maintainer review — not yet published.** Created 2026-11-12 to pair with the
-[privacy policy](privacy-policy.md) for the Play submission checklist. Fill in every `[TODO]` and
-publish at a public HTTPS URL before the first store release.
+**Published:** 12 November 2026 at
+<https://github.com/udbhavnc7/Sanchay/blob/main/docs/terms-of-use.md>
+**Effective date:** 12 November 2026
+**Contact (support, legal, data-deletion):**
+<https://github.com/udbhavnc7/Sanchay/issues> (maintainer: `@udbhavnc7`)
 
-**Effective date:** `[TODO: publication date]`
-**Contact:** `[TODO: support / legal contact, same as the privacy policy]`
+Created 2026-11-12 to pair with the [privacy policy](privacy-policy.md) for the Play submission
+checklist.
 
 ## 1. What Sanchay is
 
@@ -21,8 +23,9 @@ budgets, goals, planned payments and reports that you enter yourself.
 
 - Dashboard data is stored in the app's private storage on your device. There is no Sanchay
   account, server or sync.
-- You are responsible for keeping your own backups. Exported backups are unencrypted JSON files;
-  anyone with the file can read it.
+- You are responsible for keeping your own backups. Encrypted `.sanchay` backups require the
+  password you chose, which Sanchay does not store or recover. Plain JSON exports are unencrypted;
+  anyone with that file can read it.
 - The optional app-lock PIN is an access barrier for this device, not encryption of the ledger.
 - Data can be lost if Android clears app storage or app data, or if the device is lost or reset.
   Keep a copy of important records elsewhere.

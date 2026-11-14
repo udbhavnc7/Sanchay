@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type {
   Account,
   Budget,
+  CategoryDefinition,
   GoalDepositInput,
   MoneyResult,
   PlannedPayment,
@@ -12,14 +13,18 @@ import { sound } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import {
   AlertTriangle,
+  Archive,
   Car,
   CheckCircle2,
   Gift,
   Laptop,
+  Pause,
   Pencil,
   PiggyBank,
   Plane,
+  Play,
   Plus,
+  RotateCcw,
   ShieldCheck,
   Target,
   TrendingUp,
@@ -51,6 +56,7 @@ import {
   scopeToCurrency,
 } from '../utils/reporting';
 import { PlannedPaymentsSection } from './PlannedPaymentsSection';
+import { categoryLabel } from '../utils/categories';
 
 interface GoalsTabProps {
   goals: SavingsGoal[];
@@ -58,12 +64,14 @@ interface GoalsTabProps {
   accounts: Account[];
   transactions: Transaction[];
   plannedPayments: PlannedPayment[];
+  categoryDefinitions?: CategoryDefinition[];
   onDepositToGoal: (input: GoalDepositInput) => MoneyResult;
   onAddGoal: (goal: SavingsGoal) => void;
   onUpdateGoal: (goal: SavingsGoal) => void;
   onUpdateBudget: (budgetId: string, limit: number) => void;
   onArchiveBudget: (budgetId: string, archived: boolean) => void;
   onAddPlannedPayment: (payment: PlannedPayment) => void;
+  onUpdatePlannedPayment: (payment: PlannedPayment) => void;
   onDeletePlannedPayment: (paymentId: string) => void;
 }
 
@@ -99,12 +107,14 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   accounts,
   transactions,
   plannedPayments,
+  categoryDefinitions = [],
   onDepositToGoal,
   onAddGoal,
   onUpdateGoal,
   onUpdateBudget,
   onArchiveBudget,
   onAddPlannedPayment,
+  onUpdatePlannedPayment,
   onDeletePlannedPayment,
 }) => {
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
@@ -119,6 +129,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   const [goalDate, setGoalDate] = useState('2027-06');
   const [goalIcon, setGoalIcon] = useState('shield');
   const [goalColor, setGoalColor] = useState(GOAL_COLORS[0]);
+  const [goalNote, setGoalNote] = useState('');
   const [goalError, setGoalError] = useState('');
 
   const monthStart = useMemo(() => startOfMonth(), []);
@@ -273,6 +284,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
     setGoalDate('2027-06');
     setGoalIcon('shield');
     setGoalColor(GOAL_COLORS[0]);
+    setGoalNote('');
   };
 
   const openNewGoal = () => {
@@ -289,6 +301,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
     setGoalDate(goalTargetMonthValue(goal.targetDate) || currentMonthValue());
     setGoalIcon(goal.icon);
     setGoalColor(goal.color);
+    setGoalNote(goal.note ?? '');
     setGoalError('');
     setShowNewGoal(true);
   };
@@ -334,6 +347,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
         targetAmount: parsedTarget.amount,
         targetDate: formatMonthValue(goalDate),
         color: goalColor,
+        note: goalNote.trim() || undefined,
       });
     } else {
       onAddGoal({
@@ -344,12 +358,24 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
         targetAmount: parsedTarget.amount,
         targetDate: formatMonthValue(goalDate),
         color: goalColor,
+        note: goalNote.trim() || undefined,
       });
     }
 
     sound.success();
     resetGoalForm();
   };
+
+  const updateGoalStatus = (
+    goal: SavingsGoal,
+    status: NonNullable<SavingsGoal['status']>
+  ) => {
+    sound.click();
+    onUpdateGoal({ ...goal, status });
+  };
+
+  const visibleGoals = goals.filter((goal) => goal.status !== 'archived');
+  const archivedGoals = goals.filter((goal) => goal.status === 'archived');
 
   return (
     <div
@@ -524,10 +550,23 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               Your goals
             </h2>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              {goals.filter((goal) => goal.savedAmount >= goal.targetAmount).length} complete
+              {goals.filter((goal) => goal.status !== 'archived' && goal.savedAmount >= goal.targetAmount).length} complete
             </span>
           </div>
 
+          {visibleGoals.length === 0 ? (
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                padding: '14px',
+                borderRadius: '12px',
+                background: 'var(--bg-pill)',
+              }}
+            >
+              No goals yet. Create one to start setting money aside.
+            </p>
+          ) : (
           <div
             className="goals-cards-grid"
             style={{
@@ -536,7 +575,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               gap: '16px',
             }}
           >
-            {goals.map((goal) => {
+            {visibleGoals.map((goal) => {
               const pct = Math.min(
                 100,
                 Math.round((goal.savedAmount / goal.targetAmount) * 100)
@@ -546,11 +585,17 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
               const projectionLabel =
                 projection.status === 'complete'
                   ? 'Fully funded'
-                  : projection.status === 'planned' && projection.requiredMonthly !== null
-                    ? `${formatMoney(projection.requiredMonthly)}/month to reach ${goal.targetDate}`
-                    : projection.status === 'past-due'
-                      ? 'Target month has passed'
-                      : 'Set a target month for a monthly pace';
+                  : projection.status === 'completed'
+                    ? 'Marked complete'
+                    : projection.status === 'paused'
+                      ? 'Paused — no monthly pace'
+                      : projection.status === 'archived'
+                        ? 'Archived'
+                        : projection.status === 'planned' && projection.requiredMonthly !== null
+                          ? `${formatMoney(projection.requiredMonthly)}/month to reach ${goal.targetDate}`
+                          : projection.status === 'past-due'
+                            ? 'Target month has passed'
+                            : 'Set a target month for a monthly pace';
               const radius = 34;
               const circumference = 2 * Math.PI * radius;
               const offset = circumference - (pct / 100) * circumference;
@@ -690,6 +735,20 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                     >
                       {projectionLabel}
                     </div>
+                    {goal.note && (
+                      <div
+                        style={{
+                          fontSize: '9px',
+                          textAlign: 'center',
+                          color: 'var(--text-muted)',
+                          marginTop: '3px',
+                          lineHeight: 1.4,
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        {goal.note}
+                      </div>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
@@ -711,10 +770,68 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                       <span>Add money</span>
                     </button>
                   </div>
+
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    {goal.status === 'paused' ? (
+                      <button
+                        type="button"
+                        onClick={() => updateGoalStatus(goal, 'active')}
+                        className="btn-action-light"
+                        style={{ padding: '6px 9px', fontSize: '10px' }}
+                      >
+                        <Play size={11} />
+                        Resume
+                      </button>
+                    ) : goal.status === 'completed' ? (
+                      <button
+                        type="button"
+                        onClick={() => updateGoalStatus(goal, 'active')}
+                        className="btn-action-light"
+                        style={{ padding: '6px 9px', fontSize: '10px' }}
+                      >
+                        <RotateCcw size={11} />
+                        Reopen
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => updateGoalStatus(goal, 'paused')}
+                          className="btn-action-light"
+                          aria-label={`Pause ${goal.title}`}
+                          style={{ padding: '6px 9px', fontSize: '10px' }}
+                        >
+                          <Pause size={11} />
+                          Pause
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateGoalStatus(goal, 'completed')}
+                          className="btn-action-light"
+                          aria-label={`Mark ${goal.title} complete`}
+                          style={{ padding: '6px 9px', fontSize: '10px' }}
+                        >
+                          <CheckCircle2 size={11} />
+                          Complete
+                        </button>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => updateGoalStatus(goal, 'archived')}
+                      className="btn-action-light"
+                      aria-label={`Archive ${goal.title}`}
+                      style={{ padding: '6px 9px', fontSize: '10px', marginLeft: 'auto' }}
+                    >
+                      <Archive size={11} />
+                      Archive
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
+          )}
         </div>
 
         <div className="s-card">
@@ -814,6 +931,55 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
         </div>
       </div>
 
+      {archivedGoals.length > 0 && (
+        <div className="s-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>
+              Archived goals
+            </h2>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+              {archivedGoals.length} archived
+            </span>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+            Archived goals keep their history and can be restored at any time.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+            {archivedGoals.map((goal) => (
+              <div
+                key={goal.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 0',
+                  borderTop: '1px solid var(--border-subtle)',
+                  fontSize: '11px',
+                }}
+              >
+                <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{goal.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="font-mono-numbers" style={{ color: 'var(--text-muted)' }}>
+                    {formatMoney(goal.savedAmount)} of {formatMoney(goal.targetAmount)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateGoalStatus(goal, 'active')}
+                    className="btn-action-light"
+                    aria-label={`Restore ${goal.title}`}
+                    style={{ padding: '5px 9px', fontSize: '10px' }}
+                  >
+                    <RotateCcw size={11} />
+                    Restore
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="s-card">
         <div
           style={{
@@ -851,6 +1017,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {liveBudgets.map((budget) => {
             const limit = budgetLimitByBudgetId.get(budget.id) ?? budget.limit;
+            const label = categoryLabel(budget.category, categoryDefinitions);
             const rawSpent = monthSpendByCategory.get(budget.category) ?? 0;
             const spent = rawSpent > 0 ? rawSpent : 0;
             const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
@@ -876,7 +1043,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   }}
                 >
                   <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-main)' }}>
-                    {budget.category}
+                    {label}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span
@@ -894,7 +1061,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                       type="number"
                       min={0}
                       step={100}
-                      aria-label={`${budget.category} monthly limit`}
+                      aria-label={`${label} monthly limit`}
                       value={limit}
                       onChange={(event) => {
                         const next = parseMoneyInput(event.target.value);
@@ -916,7 +1083,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                     <button
                       type="button"
                       onClick={() => onArchiveBudget(budget.id, true)}
-                      aria-label={`Archive ${budget.category} budget`}
+                      aria-label={`Archive ${label} budget`}
                       style={{
                         padding: '4px 9px',
                         borderRadius: '9999px',
@@ -996,6 +1163,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
             {pausedBudgets.map((budget) => {
               const limit = budgetLimitForMonth(budget, currentMonth)?.limit ?? budget.limit;
+              const label = categoryLabel(budget.category, categoryDefinitions);
               return (
                 <div
                   key={budget.id}
@@ -1009,14 +1177,14 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                   }}
                 >
                   <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                    {budget.category}
+                    {label}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="font-mono-numbers">{formatMoney(limit)}</span>
                     <button
                       type="button"
                       onClick={() => onArchiveBudget(budget.id, false)}
-                      aria-label={`Restore ${budget.category} budget`}
+                      aria-label={`Restore ${label} budget`}
                       style={{
                         padding: '4px 9px',
                         borderRadius: '9999px',
@@ -1139,7 +1307,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       <PlannedPaymentsSection
         plannedPayments={plannedPayments}
         accounts={accounts}
+        categories={categoryDefinitions}
         onAdd={onAddPlannedPayment}
+        onUpdate={onUpdatePlannedPayment}
         onDelete={onDeletePlannedPayment}
       />
 
@@ -1401,6 +1571,18 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
                     setGoalTitle(event.target.value);
                     setGoalError('');
                   }}
+                  style={goalInputStyle}
+                />
+              </div>
+
+              <div>
+                <label style={goalLabelStyle}>Note (optional)</label>
+                <input
+                  type="text"
+                  maxLength={160}
+                  placeholder="e.g. Book flights by March"
+                  value={goalNote}
+                  onChange={(event) => setGoalNote(event.target.value)}
                   style={goalInputStyle}
                 />
               </div>

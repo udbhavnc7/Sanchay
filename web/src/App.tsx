@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Account,
   Budget,
+  CategoryDefinition,
   ConnectAccountInput,
   Contact,
   GoalDepositInput,
@@ -37,12 +38,20 @@ import {
   toMinorUnits,
 } from './utils/money';
 import {
+  archiveCategory,
+  deleteCategory,
+  saveCategory,
+} from './utils/categories';
+import { decryptBackupJson, encryptBackupJson, isEncryptedBackup } from './utils/backupCrypto';
+import {
   clearPersistedState,
   createBackupState,
-  loadPersistedState,
   parsePersistedState,
+  readPersistedState,
+  restorePersistedState,
   savePersistedState,
   type PersistedState,
+  type ReadResult,
 } from './data/persistence';
 import {
   createPinCredential,
@@ -56,10 +65,12 @@ import {
   createTransfer as createTransferOp,
   deleteAccount as deleteAccountOp,
   deleteTransaction as deleteTransactionOp,
+  recordRefund as recordRefundOp,
   undoAddTransaction as undoAddTransactionOp,
   undoDeleteTransaction as undoDeleteTransactionOp,
   updateTransaction as updateTransactionOp,
   updateTransfer as updateTransferOp,
+  type RefundInput,
   type TransferInput,
   type TransferOpResult,
   type TransferUpdateInput,
@@ -90,6 +101,9 @@ import { RequestMoneyModal } from './components/RequestMoneyModal';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { ConnectAccountModal } from './components/ConnectAccountModal';
 import { ProfileSettingsModal } from './components/ProfileSettingsModal';
+import { CategoriesModal } from './components/CategoriesModal';
+import { BackupPasswordModal } from './components/BackupPasswordModal';
+import { StorageRecoveryScreen } from './components/StorageRecoveryScreen';
 import { AppLockScreen } from './components/AppLockScreen';
 import { SanchaySplash } from './components/SanchaySplash';
 import { FirstRunScreen } from './components/FirstRunScreen';
@@ -153,7 +167,12 @@ const defaultUserProfile: UserProfile = {
 };
 
 export const App: React.FC = () => {
-  const [initialSnapshot] = useState(loadPersistedState);
+  const [initialRead] = useState<ReadResult>(() => readPersistedState());
+  const initialSnapshot = initialRead.status === 'valid' ? initialRead.state : null;
+  const [persistenceReady, setPersistenceReady] = useState(initialRead.status !== 'invalid');
+  const [invalidSnapshotRaw, setInvalidSnapshotRaw] = useState<string | null>(
+    initialRead.status === 'invalid' ? initialRead.raw : null
+  );
   const [isDarkMode, setIsDarkMode] = useState(
     initialSnapshot?.preferences.isDarkMode ?? false
   );
@@ -199,10 +218,15 @@ export const App: React.FC = () => {
   const [paymentAttempts, setPaymentAttempts] = useState<PaymentAttempt[]>(
     initialSnapshot?.paymentAttempts ?? []
   );
+  const [categories, setCategories] = useState<CategoryDefinition[]>(
+    initialSnapshot?.categories ?? []
+  );
   const [demoMode, setDemoMode] = useState(
     initialSnapshot?.preferences.demoMode ?? false
   );
-  const [pendingFirstRun, setPendingFirstRun] = useState(initialSnapshot === null);
+  const [pendingFirstRun, setPendingFirstRun] = useState(
+    initialRead.status === 'missing' || initialRead.status === 'unavailable'
+  );
 
   const [isCardFrozen, setIsCardFrozen] = useState(
     initialSnapshot?.preferences.isCardFrozen ?? false
@@ -213,6 +237,7 @@ export const App: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showTransfer, setShowTransfer] = useState(false);
   const [editingTransfer, setEditingTransfer] = useState<{ transferId: string; legs: Transaction[] } | null>(null);
@@ -220,6 +245,11 @@ export const App: React.FC = () => {
   const [storageError, setStorageError] = useState('');
   const [backupStatus, setBackupStatus] = useState('');
   const [pendingImport, setPendingImport] = useState<PersistedState | null>(null);
+  const [backupDialog, setBackupDialog] = useState<
+    { mode: 'export' } | { mode: 'import'; text: string; fileName: string } | null
+  >(null);
+  const [backupDialogError, setBackupDialogError] = useState('');
+  const [backupBusy, setBackupBusy] = useState(false);
   const [lastAdded, setLastAdded] = useState<Transaction | null>(null);
   const [lastDeleted, setLastDeleted] = useState<Transaction[] | null>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
@@ -261,12 +291,14 @@ export const App: React.FC = () => {
   }, [isAudioEnabled]);
 
   useEffect(() => {
+    if (!persistenceReady) return;
     const result = savePersistedState({
       accounts,
       transactions,
       contacts,
       goals,
       budgets,
+      categories,
       plannedPayments,
       paymentAttempts,
       preferences: {
@@ -289,8 +321,10 @@ export const App: React.FC = () => {
     contacts,
     goals,
     budgets,
+    categories,
     plannedPayments,
     paymentAttempts,
+    persistenceReady,
     isDarkMode,
     isAudioEnabled,
     isCardFrozen,
@@ -666,6 +700,8 @@ export const App: React.FC = () => {
               targetAmount: goal.targetAmount,
               targetDate: goal.targetDate,
               color: goal.color,
+              status: goal.status,
+              note: goal.note,
             }
           : item
       )
@@ -715,6 +751,57 @@ export const App: React.FC = () => {
   const handleDeletePlannedPayment = (paymentId: string) => {
     sound.click();
     setPlannedPayments((prev) => prev.filter((payment) => payment.id !== paymentId));
+  };
+
+  const handleUpdatePlannedPayment = (payment: PlannedPayment) => {
+    setPlannedPayments((prev) =>
+      prev
+        .map((item) => (item.id === payment.id ? payment : item))
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    );
+  };
+
+  const handleSaveCategory = (definition: CategoryDefinition) => {
+    const result = saveCategory(categories, definition);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+    setCategories(
+      result.categories.map((item) => ({ ...item, builtIn: item.builtIn || undefined }))
+    );
+    sound.success();
+    return { ok: true };
+  };
+
+  const handleArchiveCategory = (id: string, archived: boolean) => {
+    const result = archiveCategory(categories, id, archived);
+    if (!result.ok) {
+      setStorageError(result.error);
+      return;
+    }
+    setCategories(
+      result.categories.map((item) => ({ ...item, builtIn: item.builtIn || undefined }))
+    );
+    sound.click();
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    const result = deleteCategory(
+      { categories, transactions, budgets, plannedPayments, paymentAttempts },
+      id
+    );
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+    setCategories(
+      result.state.categories.map((item) => ({ ...item, builtIn: item.builtIn || undefined }))
+    );
+    setTransactions(result.state.transactions);
+    setBudgets(result.state.budgets);
+    setPlannedPayments(result.state.plannedPayments);
+    setPaymentAttempts(result.state.paymentAttempts);
+    sound.click();
+    return { ok: true };
   };
 
   const handleAddTransaction = (input: NewTransactionInput): MoneyResult => {
@@ -789,6 +876,22 @@ export const App: React.FC = () => {
     return { ok: true, transaction: result.transaction };
   };
 
+  const handleRefundTransaction = (input: RefundInput): MoneyResult => {
+    const result = recordRefundOp({ accounts, transactions, goals }, input);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+    setAccounts(result.state.accounts);
+    setTransactions(result.state.transactions);
+    setGoals(result.state.goals);
+    setSelectedTransaction(null);
+    setEditingTransaction(null);
+    setLastAdded(null);
+    setLastDeleted(null);
+    sound.success();
+    return { ok: true, transaction: result.transaction };
+  };
+
   const handleUndoDelete = () => {
     if (!lastDeleted || lastDeleted.length === 0) return;
 
@@ -838,6 +941,15 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showPrivacy]);
 
+  const backupPreferences = () => ({
+    isDarkMode,
+    isAudioEnabled,
+    isCardFrozen,
+    userProfile,
+    safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
+    demoMode: demoMode || undefined,
+  });
+
   const handleExportBackup = () => {
     const state = createBackupState({
       accounts,
@@ -845,15 +957,10 @@ export const App: React.FC = () => {
       contacts,
       goals,
       budgets,
+      categories,
       plannedPayments,
       paymentAttempts,
-      preferences: {
-        isDarkMode,
-        isAudioEnabled,
-        isCardFrozen,
-        userProfile,
-        safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
-      },
+      preferences: backupPreferences(),
     });
     const result = saveTextFile(
       `sanchay-backup-${new Date().toISOString().slice(0, 10)}.json`,
@@ -867,10 +974,16 @@ export const App: React.FC = () => {
     }
     setBackupStatus(
       result.via === 'android'
-        ? `Backup saved to ${result.location} with ${transactions.length} transactions.`
-        : `Backup downloaded with ${transactions.length} transactions.`
+        ? `Plain JSON backup saved to ${result.location} with ${transactions.length} transactions. It is not encrypted.`
+        : `Plain JSON backup downloaded with ${transactions.length} transactions. It is not encrypted.`
     );
     sound.success();
+  };
+
+  const handleOpenEncryptedExport = () => {
+    sound.click();
+    setBackupDialogError('');
+    setBackupDialog({ mode: 'export' });
   };
 
   const handleBackupFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -882,43 +995,132 @@ export const App: React.FC = () => {
     setStorageError('');
     setBackupStatus('');
     setPendingImport(null);
+    setBackupDialogError('');
 
-    if (file.size > 5_000_000) {
-      setStorageError('That backup is larger than 5 MB. Choose a Sanchay JSON backup.');
+    if (file.size > 7_000_000) {
+      setStorageError('That backup is larger than 7 MB. Choose a Sanchay backup file.');
       return;
     }
 
     try {
-      const parsed = parsePersistedState(await file.text());
+      const text = await file.text();
+      if (isEncryptedBackup(text)) {
+        setBackupDialog({ mode: 'import', text, fileName: file.name });
+        return;
+      }
+      if (file.size > 5_000_000) {
+        setStorageError('That plain JSON backup is larger than 5 MB.');
+        return;
+      }
+      const parsed = parsePersistedState(text);
       if (!parsed) {
         setStorageError('That file is not a valid Sanchay backup.');
         return;
       }
       setPendingImport(parsed);
+      setBackupStatus('Plain JSON backup ready to restore. It was not encrypted.');
     } catch {
       setStorageError('That backup could not be read.');
     }
   };
 
+  const handleBackupPasswordSubmit = async (password: string) => {
+    if (!backupDialog) return;
+    setBackupBusy(true);
+    setBackupDialogError('');
+    try {
+      if (backupDialog.mode === 'export') {
+        const state = createBackupState({
+          accounts,
+          transactions,
+          contacts,
+          goals,
+          budgets,
+          categories,
+          plannedPayments,
+          paymentAttempts,
+          preferences: backupPreferences(),
+        });
+        const encrypted = await encryptBackupJson(JSON.stringify(state), password);
+        const result = saveTextFile(
+          `sanchay-backup-${new Date().toISOString().slice(0, 10)}.sanchay.json`,
+          encrypted,
+          'application/json'
+        );
+        if (result.via === 'failed') {
+          setBackupDialogError('Could not save the encrypted backup file.');
+          return;
+        }
+        setBackupStatus(
+          result.via === 'android'
+            ? `Encrypted backup saved to ${result.location} with ${transactions.length} transactions.`
+            : `Encrypted backup downloaded with ${transactions.length} transactions.`
+        );
+        setBackupDialog(null);
+        sound.success();
+        return;
+      }
+
+      const decrypted = await decryptBackupJson(backupDialog.text, password);
+      const parsed = parsePersistedState(decrypted);
+      if (!parsed) {
+        setBackupDialogError('The decrypted file is not a valid Sanchay backup.');
+        return;
+      }
+      setPendingImport(parsed);
+      setBackupStatus('Encrypted backup verified. Review it, then confirm the restore.');
+      setBackupDialog(null);
+      sound.success();
+    } catch (error) {
+      setBackupDialogError(
+        error instanceof Error ? error.message : 'The backup could not be opened.'
+      );
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
   const handleRestoreBackup = () => {
     if (!pendingImport) return;
-
-    setAccounts(pendingImport.accounts);
-    setTransactions(pendingImport.transactions);
-    setContacts(pendingImport.contacts);
-    setGoals(pendingImport.goals);
-    setBudgets(pendingImport.budgets);
-    setPlannedPayments(pendingImport.plannedPayments);
-    setPaymentAttempts(pendingImport.paymentAttempts);
-    setIsDarkMode(pendingImport.preferences.isDarkMode);
-    setIsAudioEnabled(pendingImport.preferences.isAudioEnabled);
-    setIsCardFrozen(pendingImport.preferences.isCardFrozen);
-    if (pendingImport.preferences.userProfile) {
-      setUserProfile(pendingImport.preferences.userProfile);
+    const backup = pendingImport;
+    const result = restorePersistedState(backup, {
+      isDarkMode,
+      isAudioEnabled,
+      isCardFrozen,
+      userProfile,
+      appLock: appLock ?? undefined,
+      appLockPin: legacyAppLockPin || undefined,
+      appLockFailures: appLockFailures > 0 ? appLockFailures : undefined,
+      appLockLockedUntil: appLockLockedUntil > 0 ? appLockLockedUntil : undefined,
+      safeToSpendBuffer: safeToSpendBuffer > 0 ? safeToSpendBuffer : undefined,
+      demoMode: demoMode || undefined,
+    });
+    if (!result.ok) {
+      setStorageError(result.error);
+      sound.click();
+      return;
     }
-    setSafeToSpendBuffer(pendingImport.preferences.safeToSpendBuffer ?? 0);
+
+    setAccounts(backup.accounts);
+    setTransactions(backup.transactions);
+    setContacts(backup.contacts);
+    setGoals(backup.goals);
+    setBudgets(backup.budgets);
+    setCategories(backup.categories);
+    setPlannedPayments(backup.plannedPayments);
+    setPaymentAttempts(backup.paymentAttempts);
+    setIsDarkMode(backup.preferences.isDarkMode);
+    setIsAudioEnabled(backup.preferences.isAudioEnabled);
+    setIsCardFrozen(backup.preferences.isCardFrozen);
+    if (backup.preferences.userProfile) {
+      setUserProfile(backup.preferences.userProfile);
+    }
+    setSafeToSpendBuffer(backup.preferences.safeToSpendBuffer ?? 0);
+    setDemoMode(backup.preferences.demoMode ?? false);
     setWhatIfOutflow(0);
-    sound.enabled = pendingImport.preferences.isAudioEnabled;
+    sound.enabled = backup.preferences.isAudioEnabled;
+    setInvalidSnapshotRaw(null);
+    setPersistenceReady(true);
     setStorageError('');
     setPendingImport(null);
     setConfirmReset(false);
@@ -926,9 +1128,7 @@ export const App: React.FC = () => {
     setLastDeleted(null);
     setSelectedTransaction(null);
     setEditingTransaction(null);
-    setBackupStatus(
-      `Backup restored with ${pendingImport.transactions.length} transactions.`
-    );
+    setBackupStatus(`Backup restored with ${backup.transactions.length} transactions.`);
     sound.success();
   };
 
@@ -942,8 +1142,10 @@ export const App: React.FC = () => {
       setBudgets(seed.budgets);
       setPlannedPayments(seed.plannedPayments);
       setPaymentAttempts(seed.paymentAttempts);
+      setCategories([]);
       setDemoMode(seed.demoMode);
       setPendingFirstRun(false);
+      setPersistenceReady(true);
       // Persist immediately: for "blank" the state values do not change, so the
       // auto-save effect would not run and the choice would not survive a reload.
       const result = savePersistedState({
@@ -952,6 +1154,7 @@ export const App: React.FC = () => {
         contacts: seed.contacts,
         goals: seed.goals,
         budgets: seed.budgets,
+        categories: [],
         plannedPayments: seed.plannedPayments,
         paymentAttempts: seed.paymentAttempts,
         preferences: {
@@ -992,7 +1195,10 @@ export const App: React.FC = () => {
     setBudgets(seed.budgets);
     setPlannedPayments(seed.plannedPayments);
     setPaymentAttempts(seed.paymentAttempts);
+    setCategories([]);
     setDemoMode(true);
+    setPersistenceReady(true);
+    setInvalidSnapshotRaw(null);
     setStorageError('');
     setPendingImport(null);
     setLastAdded(null);
@@ -1014,7 +1220,10 @@ export const App: React.FC = () => {
     setBudgets(blank.budgets);
     setPlannedPayments(blank.plannedPayments);
     setPaymentAttempts(blank.paymentAttempts);
+    setCategories([]);
     setDemoMode(false);
+    setPersistenceReady(true);
+    setInvalidSnapshotRaw(null);
     setIsDarkMode(false);
     setIsAudioEnabled(true);
     setIsCardFrozen(false);
@@ -1155,8 +1364,48 @@ export const App: React.FC = () => {
     ? accounts.find((account) => account.id === selectedTransaction.accountId)
     : undefined;
 
+  const selectedRefundable = useMemo(() => {
+    if (!selectedTransaction) return 0;
+    if (
+      selectedTransaction.type !== 'debit' ||
+      selectedTransaction.status !== 'Completed' ||
+      selectedTransaction.kind === 'transfer' ||
+      selectedTransaction.kind === 'refund' ||
+      selectedTransaction.transferId ||
+      selectedTransaction.refundOfId
+    ) {
+      return 0;
+    }
+    const refunded = transactions
+      .filter((item) => item.refundOfId === selectedTransaction.id)
+      .reduce((sum, item) => sum + item.amount, 0);
+    return Math.max(
+      0,
+      subtractMoney(selectedTransaction.amount, refunded, selectedTransaction.currency ?? 'INR')
+    );
+  }, [selectedTransaction, transactions]);
+
   return (
     <>
+      {invalidSnapshotRaw !== null ? (
+        <StorageRecoveryScreen
+          raw={invalidSnapshotRaw}
+          onDownload={() => {
+            const result = saveTextFile(
+              `sanchay-unreadable-storage-${new Date().toISOString().slice(0, 10)}.txt`,
+              invalidSnapshotRaw,
+              'text/plain'
+            );
+            if (result.via === 'failed') {
+              sound.click();
+            } else {
+              sound.success();
+            }
+          }}
+          onStartFresh={handleResetLocalData}
+        />
+      ) : (
+        <>
       {showSplash && <SanchaySplash onEnter={handleEnterApp} />}
       {pendingFirstRun && !showSplash && (
         <FirstRunScreen onChoose={handleFirstRunChoice} />
@@ -1465,6 +1714,7 @@ export const App: React.FC = () => {
                 accounts={accounts}
                 transactions={transactions}
                 budgets={budgets}
+                categoryDefinitions={categories}
                 goals={goals}
                 monthlySpent={monthlySpent}
                 monthlyBudget={monthlyBudget}
@@ -1491,6 +1741,7 @@ export const App: React.FC = () => {
               <ActivityTab
                 transactions={transactions}
                 accounts={accounts}
+                categoryDefinitions={categories}
                 onAddTransaction={() => setShowAddTransaction(true)}
                 onSelectTransaction={setSelectedTransaction}
               />
@@ -1516,12 +1767,14 @@ export const App: React.FC = () => {
                 accounts={accounts}
                 transactions={transactions}
                 plannedPayments={plannedPayments}
+                categoryDefinitions={categories}
                 onDepositToGoal={handleDepositToGoal}
                 onAddGoal={handleAddGoal}
                 onUpdateGoal={handleUpdateGoal}
                 onUpdateBudget={handleUpdateBudget}
                 onArchiveBudget={handleArchiveBudget}
                 onAddPlannedPayment={handleAddPlannedPayment}
+                onUpdatePlannedPayment={handleUpdatePlannedPayment}
                 onDeletePlannedPayment={handleDeletePlannedPayment}
               />
             )}
@@ -1544,6 +1797,7 @@ export const App: React.FC = () => {
               <ReportsTab
                 transactions={transactions}
                 accounts={accounts}
+                categoryDefinitions={categories}
                 onSelectTransaction={setSelectedTransaction}
               />
             )}
@@ -1554,6 +1808,9 @@ export const App: React.FC = () => {
           key={selectedTransaction?.id ?? 'none'}
           transaction={selectedTransaction}
           account={selectedAccount}
+          categoryDefinitions={categories}
+          refundableAmount={selectedRefundable}
+          onRefund={handleRefundTransaction}
           onEdit={(transaction) => {
             setSelectedTransaction(null);
             if (transaction.transferId) {
@@ -1573,6 +1830,7 @@ export const App: React.FC = () => {
           contacts={contacts}
           goals={goals}
           accounts={accounts}
+          categoryDefinitions={categories}
           onClose={() => setShowSearch(false)}
           onNavigate={navigate}
           onSelectTransaction={(transaction) => {
@@ -1597,8 +1855,7 @@ export const App: React.FC = () => {
         )}
 
         {showProfileSettings && (
-          <ProfileSettingsModal
-            userProfile={userProfile}
+          <ProfileSettingsModal            userProfile={userProfile}
             accounts={accounts}
             isDarkMode={isDarkMode}
             isAudioEnabled={isAudioEnabled}
@@ -1610,6 +1867,7 @@ export const App: React.FC = () => {
             onToggleAccountStatus={handleToggleAccountStatus}
             onDeleteAccount={handleDeleteAccount}
             onExportBackup={handleExportBackup}
+            onExportEncryptedBackup={handleOpenEncryptedExport}
             onImportBackup={(file) => {
               const fakeEvent = {
                 currentTarget: {
@@ -1619,6 +1877,18 @@ export const App: React.FC = () => {
               } as unknown as React.ChangeEvent<HTMLInputElement>;
               void handleBackupFile(fakeEvent);
             }}
+            onOpenCategories={() => setShowCategories(true)}
+            backupStatus={backupStatus}
+            pendingImportSummary={
+              pendingImport
+                ? `Saved ${pendingImport.savedAt.slice(0, 10)}. Contains ${pendingImport.transactions.length} transactions, ${pendingImport.accounts.length} accounts, ${pendingImport.goals.length} goals, ${pendingImport.plannedPayments.length} planned payments and ${pendingImport.contacts.length} payees.`
+                : null
+            }
+            onRestorePendingImport={handleRestoreBackup}
+            onCancelPendingImport={() => {
+              setPendingImport(null);
+              setBackupStatus('');
+            }}
             onResetData={handleResetLocalData}
             onLoadSampleData={handleLoadSampleData}
             demoMode={demoMode}
@@ -1627,6 +1897,31 @@ export const App: React.FC = () => {
             onOpenConnectModal={() => {
               setShowProfileSettings(false);
               setShowConnectAccount(true);
+            }}
+          />
+        )}
+
+        {showCategories && (
+          <CategoriesModal
+            categories={categories}
+            onSave={handleSaveCategory}
+            onArchive={handleArchiveCategory}
+            onDelete={handleDeleteCategory}
+            onClose={() => setShowCategories(false)}
+          />
+        )}
+
+        {backupDialog && (
+          <BackupPasswordModal
+            mode={backupDialog.mode}
+            fileName={backupDialog.mode === 'import' ? backupDialog.fileName : undefined}
+            busy={backupBusy}
+            error={backupDialogError}
+            onSubmit={handleBackupPasswordSubmit}
+            onClose={() => {
+              if (backupBusy) return;
+              setBackupDialog(null);
+              setBackupDialogError('');
             }}
           />
         )}
@@ -1648,6 +1943,7 @@ export const App: React.FC = () => {
           <AddTransactionModal
             accounts={accounts}
             transactions={transactions}
+            categoryDefinitions={categories}
             onAdd={handleAddTransaction}
             onClose={() => setShowAddTransaction(false)}
           />
@@ -1659,6 +1955,7 @@ export const App: React.FC = () => {
             transaction={editingTransaction}
             accounts={accounts}
             transactions={transactions}
+            categoryDefinitions={categories}
             onAdd={handleAddTransaction}
             onUpdate={handleUpdateTransaction}
             onClose={() => setEditingTransaction(null)}
@@ -1802,8 +2099,9 @@ export const App: React.FC = () => {
                     ledger data. The repository data-flow inventory lists every destination.
                   </li>
                   <li>
-                    Exported backups are unencrypted JSON files you control. Your app-lock PIN is
-                    never included in an export.
+                    Backups can be encrypted with AES-256-GCM and a password only you know, or
+                    exported as plain JSON if you prefer. Your app-lock PIN is never included in
+                    an export.
                   </li>
                 </ul>
               </div>
@@ -1831,10 +2129,39 @@ export const App: React.FC = () => {
                 </ul>
               </div>
 
+              <p className="privacy-links">
+                Full documents:{' '}
+                <a
+                  href="https://github.com/udbhavnc7/Sanchay/blob/main/docs/privacy-policy.md"
+                  rel="noreferrer"
+                >
+                  Privacy policy
+                </a>
+                {' · '}
+                <a
+                  href="https://github.com/udbhavnc7/Sanchay/blob/main/docs/terms-of-use.md"
+                  rel="noreferrer"
+                >
+                  Terms of use
+                </a>
+                {' · '}
+                <a href="https://github.com/udbhavnc7/Sanchay/issues" rel="noreferrer">
+                  Contact &amp; data deletion
+                </a>
+              </p>
+
               <div className="privacy-data-actions">
+                <button
+                  type="button"
+                  onClick={handleOpenEncryptedExport}
+                  className="btn-action-dark"
+                >
+                  <ShieldCheck size={14} />
+                  Encrypted backup
+                </button>
                 <button type="button" onClick={handleExportBackup} className="btn-action-light">
                   <Download size={14} />
-                  Export backup
+                  Plain JSON
                 </button>
                 <button
                   type="button"
@@ -1852,7 +2179,7 @@ export const App: React.FC = () => {
                 ref={backupInputRef}
                 className="privacy-file-input"
                 type="file"
-                accept="application/json,.json"
+                accept="application/json,.json,.sanchay"
                 onChange={(event) => {
                   void handleBackupFile(event);
                 }}
@@ -1865,11 +2192,12 @@ export const App: React.FC = () => {
                   lineHeight: 1.5,
                 }}
               >
-                The JSON backup includes accounts, transactions, payees, goals, budgets,
-                planned payments, payment assistance attempts and preferences. Backups are not
-                encrypted — anyone with the file can read it — so store it carefully. Your
-                app-lock PIN is never included in an export and is never taken from an imported
-                file. Importing replaces the data on this device.
+                An encrypted backup uses AES-256-GCM with a password you choose; without that
+                password the file cannot be opened. A plain JSON backup is readable by anyone who
+                has the file. Either way the backup includes accounts, transactions, payees,
+                goals, budgets, planned payments, payment assistance attempts and preferences.
+                Your app-lock PIN is never included in an export and is never taken from an
+                imported file. Importing replaces the data on this device.
               </p>
 
               {backupStatus && (
@@ -2010,6 +2338,8 @@ export const App: React.FC = () => {
           })}
         </nav>
       </div>
+        </>
+      )}
     </>
   );
 };

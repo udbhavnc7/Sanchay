@@ -1,34 +1,48 @@
 name: Internal Release
 
+# Manual, fail-closed release lane. Nothing is uploaded automatically.
+# A maintainer must type app.sanchay and explicitly enable publishing.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      confirm_package:
+        description: 'Type app.sanchay to confirm this release'
+        required: true
+        type: string
+      publish:
+        description: 'Upload the signed AAB to Play internal testing as a draft'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
 
 jobs:
-  google_play_release:
-    if: |
-      contains(github.event.head_commit.message, 'Automatic release')
+  release_candidate:
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_package == 'app.sanchay' && inputs.publish
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout GIT
         uses: actions/checkout@v4
 
-      - name: Verify Commit Author
-        id: verify_author
-        run: |
-          AUTHOR=$(git log -1 --pretty=format:'%an')
-          if [ "$AUTHOR" != "github-actions[bot]" ]; then
-            echo "Commit not authored by github-actions[bot], exiting."
-            exit 1
-          fi
-
       - name: Setup Java SDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: '18'
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Setup Ruby (for Fastlane)
         uses: ruby/setup-ruby@v1
@@ -37,76 +51,89 @@ jobs:
 
       - name: Install Fastlane
         run: bundle install
-      #----------------------------------------------------
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      # Decode Secrets for production build
-      - name: Create JKS for prod signing
+      - name: Require release credentials
         run: |
-          echo "$SIGNING_KEYSTORE_JKS" > sign.jks.b64
-          base64 -d -i sign.jks.b64 > sign.jks
+          test -n "$SIGNING_KEYSTORE" || { echo "Missing SIGNING_KEYSTORE secret"; exit 1; }
+          test -n "$SIGNING_KEY_ALIAS" || { echo "Missing SIGNING_KEY_ALIAS secret"; exit 1; }
+          test -n "$SIGNING_KEY_PASSWORD" || { echo "Missing SIGNING_KEY_PASSWORD secret"; exit 1; }
+          test -n "$SIGNING_STORE_PASSWORD" || { echo "Missing SIGNING_STORE_PASSWORD secret"; exit 1; }
+          test -n "$PLAY_CONFIG_JSON" || { echo "Missing GOOGLE_PLAY_CONSOLE_JSON secret"; exit 1; }
         env:
-          SIGNING_KEYSTORE_JKS: ${{ secrets.SIGNING_KEYSTORE }}
+          SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          PLAY_CONFIG_JSON: ${{ secrets.GOOGLE_PLAY_CONSOLE_JSON }}
 
-      - name: Create Google Play Config file
-        run: |
-          echo "$PLAY_CONFIG_JSON" > play_config.json.b64
-          base64 -d -i play_config.json.b64 > google-play-console-user.json
+      - name: Decode signing keystore
+        run: printf '%s' "$SIGNING_KEYSTORE" | base64 -d > sign.jks
+        env:
+          SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+
+      - name: Decode Play service account
+        run: printf '%s' "$PLAY_CONFIG_JSON" | base64 -d > google-play-console-user.json
         env:
           PLAY_CONFIG_JSON: ${{ secrets.GOOGLE_PLAY_CONSOLE_JSON }}
-      #--------------------------------------------------------------------------------
 
-      - name: Build production App Bundle
+      - name: Verify release compliance
+        run: node scripts/check-release-compliance.mjs
+
+      - name: Build release App Bundle
         run: bundle exec fastlane production_build
         env:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
 
-      - name: Upload App Bundle to GitHub
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.aab
+          name: Sanchay-release.aab
           path: app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
 
-      - name: Release App Bundle to Google PlayStore Internal Testing
+      - name: Upload signed AAB to Play internal testing (draft)
         run: bundle exec fastlane internal_release
         env:
+          SANCHAY_PUBLISH_INTERNAL: 'true'
+          SANCHAY_CONFIRM_PACKAGE: ${{ inputs.confirm_package }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
 
   github_release:
-    if: |
-      contains(github.event.head_commit.message, 'Automatic release')
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm_package == 'app.sanchay' && inputs.publish
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    needs: release_candidate
     steps:
       - name: Checkout GIT
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for all branches and tags
-
-      - name: Verify Commit Author
-        id: verify_author
-        run: |
-          AUTHOR=$(git log -1 --pretty=format:'%an')
-          if [ "$AUTHOR" != "github-actions[bot]" ]; then
-            echo "Commit not authored by github-actions[bot], exiting."
-            exit 1
-          fi
+          fetch-depth: 0
 
       - name: Setup Java SDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: '18'
+          distribution: 'temurin'
+          java-version: '21'
 
-      - name: Enable Gradle Wrapper caching (optimization)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Enable Gradle caching
         uses: actions/cache@v4
         with:
           path: |
@@ -116,31 +143,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Get version name and code from libs.versions.toml
+      - name: Read version from libs.versions.toml
         id: get_version
         run: |
           VERSION_NAME=$(grep 'version-name =' gradle/libs.versions.toml | awk -F'=' '{print $2}' | tr -d ' "')
           VERSION_CODE=$(grep 'version-code =' gradle/libs.versions.toml | awk -F'=' '{print $2}' | tr -d ' "')
-          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
-          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
 
       - name: Create and push tag
         run: |
-          TAG_NAME="v${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          TAG_NAME="v${VERSION_NAME}-${VERSION_CODE}"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
 
-      - name: Build Demo APK
+      - name: Build current web dashboard
+        run: pnpm run build
+
+      - name: Build demo APK
         run: ./gradlew assembleDemo
 
-      - name: Upload APK to Github Actions
+      - name: Upload APK to GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: Ivy-Wallet-Demo.apk
+          name: Sanchay-Demo.apk
           path: app/build/outputs/apk/demo/app-demo.apk
+          if-no-files-found: error
 
-      - name: Prepare changelog for GitHub Release
+      - name: Prepare changelog
         id: changelog
         continue-on-error: true
         uses: Bullrich/generate-release-changelog@master
@@ -154,7 +185,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.TAG_NAME }}
-          release_name: Release ${{ env.TAG_NAME }}
+          release_name: Sanchay ${{ env.TAG_NAME }}
           body: |
             ${{ steps.changelog.outputs.changelog }}
           draft: false
@@ -167,17 +198,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_github_release.outputs.upload_url }}
           asset_path: app/build/outputs/apk/demo/app-demo.apk
-          asset_name: Ivy-Wallet-${{ env.TAG_NAME }}.apk
+          asset_name: Sanchay-${{ env.TAG_NAME }}.apk
           asset_content_type: application/vnd.android.package-archive
-
-      - name: Announce in Telegram group
-        run: |
-          RELEASE_TAG=${{ env.TAG_NAME }}
-          RELEASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
-          CAPTION=$'🚀 Ivy Wallet '"$RELEASE_TAG"$' release\n\nCheck it out here: '"$RELEASE_URL"'    🚢 Please, test the release candidate before we ship it.'
-
-          curl -F "chat_id=-1001647280565" \
-               -F "document=@app/build/outputs/apk/demo/app-demo.apk" \
-               -F "reply_to_message_id=16118" \
-               -F "caption=$CAPTION" \
-               https://api.telegram.org/bot${{ secrets.BOTFATHER_TELEGRAM_BOT_TOKEN }}/sendDocument

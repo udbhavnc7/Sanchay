@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import type { Account, Currency, Transaction } from '../types/finance';
+import type { Account, CategoryDefinition, Currency, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import { saveTextFile } from '../utils/fileSave';
 import {
@@ -25,6 +25,7 @@ import {
   shortMonth,
   startOfMonth,
   startOfYear,
+  subtractMoney,
   sumMoney,
 } from '../utils/money';
 import {
@@ -36,7 +37,9 @@ import {
   reportCurrencies,
   reportsAccountMap,
   scopeToCurrency,
+  transactionCurrency,
 } from '../utils/reporting';
+import { categoryLabel } from '../utils/categories';
 import {
   absoluteMoney,
   buildMonthlyComparison,
@@ -46,6 +49,7 @@ import type { CategoryMovement } from '../utils/spendingComparison';
 interface ReportsTabProps {
   transactions: Transaction[];
   accounts: Account[];
+  categoryDefinitions?: CategoryDefinition[];
   onSelectTransaction: (tx: Transaction) => void;
 }
 
@@ -77,6 +81,7 @@ function endOfToday(): Date {
 export const ReportsTab: React.FC<ReportsTabProps> = ({
   transactions,
   accounts,
+  categoryDefinitions = [],
   onSelectTransaction,
 }) => {
   const [range, setRange] = useState<RangeKey>('month');
@@ -170,8 +175,13 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
       .forEach((tx) => {
         const bucket = byKey.get(monthKey(new Date(tx.date)));
         if (!bucket || tx.kind === 'transfer') return;
-        if (tx.type === 'credit') bucket.income = addMoney(bucket.income, tx.amount, activeCurrency);
-        else bucket.spending = addMoney(bucket.spending, tx.amount, activeCurrency);
+        if (tx.kind === 'refund') {
+          bucket.spending = subtractMoney(bucket.spending, tx.amount, activeCurrency);
+        } else if (tx.type === 'credit') {
+          bucket.income = addMoney(bucket.income, tx.amount, activeCurrency);
+        } else {
+          bucket.spending = addMoney(bucket.spending, tx.amount, activeCurrency);
+        }
       });
     return months;
   }, [allInCurrency, currentMonth, activeCurrency]);
@@ -537,7 +547,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                     }}
                   >
                     <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                      {row.category}
+                      {categoryLabel(row.category, categoryDefinitions)}
                     </span>
                     <span
                       className="font-mono-numbers"
@@ -805,7 +815,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                       </td>
                       <td style={{ padding: '9px 10px', fontWeight: 600 }}>{tx.title}</td>
                       <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
-                        {tx.category}
+                        {categoryLabel(tx.category, categoryDefinitions)}
                       </td>
                       <td style={{ padding: '9px 10px', color: 'var(--text-muted)' }}>
                         {account?.name ?? '—'}
@@ -837,7 +847,7 @@ export const ReportsTab: React.FC<ReportsTabProps> = ({
                         }}
                       >
                         {tx.type === 'credit' ? '+' : '−'}
-                        {formatMoney(tx.amount, account?.currency ?? 'INR')}
+                        {formatMoney(tx.amount, transactionCurrency(tx, accountsById))}
                       </td>
                     </tr>
                   );

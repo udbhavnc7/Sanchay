@@ -16,34 +16,46 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
-          java-version: '18'
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Demo APK
+      - name: Build current web dashboard into Android assets
+        run: pnpm run build
+
+      - name: Build demo APK
         run: ./gradlew assembleDemo
 
       - name: Check built APK artifact
         run: bash scripts/check-apk-artifact.sh app/build/outputs/apk/demo/app-demo.apk
 
-      - name: Upload APK to Github Actions
+      - name: Upload APK to GitHub Actions
         uses: actions/upload-artifact@v4
         with:
-          name: Ivy-Wallet-Demo.apk
+          name: Sanchay-Demo.apk
           path: app/build/outputs/apk/demo/app-demo.apk
+          if-no-files-found: error
 
-      - name: Upload APK in Telegram Group
-        if: |
-          github.ref == 'refs/heads/main'
-        run: |
-          COMMIT_LINK="https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
-          COMMIT_MESSAGE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}" | jq -r .commit.message | cut -c 1-100)
-          CAPTION=$'Ivy Wallet Demo APK:\n\n'"$COMMIT_MESSAGE"$'\n... see commit at: '"$COMMIT_LINK"
-          
-          curl -F "chat_id=-1001647280565" \
-               -F "document=@app/build/outputs/apk/demo/app-demo.apk" \
-               -F "reply_to_message_id=16118" \
-               -F "caption=$CAPTION" \
-               https://api.telegram.org/bot${{ secrets.BOTFATHER_TELEGRAM_BOT_TOKEN }}/sendDocument
+      - name: Upload SHA-256 checksum
+        run: sha256sum app/build/outputs/apk/demo/app-demo.apk > Sanchay-Demo.apk.sha256
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sanchay-Demo.apk.sha256
+          path: Sanchay-Demo.apk.sha256
+          if-no-files-found: error

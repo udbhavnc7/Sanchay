@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { Account, Budget, SavingsGoal, Transaction } from '../types/finance';
+import type { Account, Budget, CategoryDefinition, SavingsGoal, Transaction } from '../types/finance';
 import { sound } from '../utils/audio';
 import {
   ArrowDownLeft,
@@ -23,12 +23,15 @@ import {
   DEFAULT_CURRENCY,
   reportsAccountMap,
   scopeToCurrency,
+  transactionCurrency,
 } from '../utils/reporting';
+import { categoryLabel } from '../utils/categories';
 import type { SafeToSpendResult } from '../utils/safeToSpend';
 
 interface OverviewTabProps {
   accounts: Account[];
   transactions: Transaction[];
+  categoryDefinitions?: CategoryDefinition[];
   budgets: Budget[];
   goals: SavingsGoal[];
   monthlySpent: number;
@@ -77,6 +80,7 @@ function greeting(): string {
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   accounts,
   transactions,
+  categoryDefinitions = [],
   budgets,
   goals,
   monthlySpent,
@@ -108,47 +112,59 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     [transactions, monthStart]
   );
 
+  const monthInrTransactions = useMemo(
+    () => scopeToCurrency(monthTransactions, reportsAccountMap(accounts), DEFAULT_CURRENCY),
+    [monthTransactions, accounts]
+  );
+
   const monthlyIncome = useMemo(
     () =>
       sumMoney(
-        monthTransactions
+        monthInrTransactions
           .filter((tx) => tx.type === 'credit' && tx.kind !== 'transfer' && tx.kind !== 'refund')
-          .map((tx) => tx.amount)
+          .map((tx) => tx.amount),
+        DEFAULT_CURRENCY
       ),
-    [monthTransactions]
+    [monthInrTransactions]
   );
 
   const monthlySaved = useMemo(
     () =>
       sumMoney(
-        monthTransactions
-          .filter((tx) => tx.kind === 'transfer' && tx.category === 'Savings')
-          .map((tx) => tx.amount)
+        monthInrTransactions
+          .filter((tx) => tx.kind === 'transfer' && tx.goalId && tx.type === 'debit')
+          .map((tx) => tx.amount),
+        DEFAULT_CURRENCY
       ),
-    [monthTransactions]
+    [monthInrTransactions]
   );
 
   const categoryBreakdown = useMemo(() => {
     const totals = new Map<string, number>();
-    monthTransactions
-      .filter((tx) => tx.status === 'Completed' && tx.type === 'debit' && tx.kind !== 'transfer')
+    monthInrTransactions
+      .filter((tx) => tx.type === 'debit' && tx.kind !== 'transfer')
       .forEach((tx) => {
         totals.set(tx.category, addMoney(totals.get(tx.category) ?? 0, tx.amount));
       });
-    monthTransactions
-      .filter((tx) => tx.status === 'Completed' && tx.type === 'credit' && tx.kind === 'refund')
+    monthInrTransactions
+      .filter((tx) => tx.type === 'credit' && tx.kind === 'refund')
       .forEach((tx) => {
         totals.set(tx.category, subtractMoney(totals.get(tx.category) ?? 0, tx.amount));
       });
     const rows = Array.from(totals.entries())
-      .map(([category, amount]) => ({ category, amount }))
+      .filter(([, amount]) => amount > 0)
+      .map(([category, amount]) => ({
+        category,
+        label: categoryLabel(category, categoryDefinitions),
+        amount,
+      }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
     return rows.map((row, index) => ({
       ...row,
       color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
     }));
-  }, [monthTransactions]);
+  }, [monthInrTransactions, categoryDefinitions]);
 
   const budgetHealth = useMemo(() => {
     const accountsById = reportsAccountMap(accounts);
@@ -178,7 +194,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     () =>
       [...transactions]
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 6),
+        .slice(0, 8),
     [transactions]
   );
 
@@ -275,7 +291,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               {formatMoney(availableBalance)}
             </div>
             <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '4px' }}>
-              across {accounts.filter((account) => account.status === 'Active').length} active accounts
+              across {accounts.filter((account) => account.status === 'Active' && account.currency === 'INR').length} active INR accounts
             </div>
             <div
               style={{
@@ -847,7 +863,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       marginBottom: '6px',
                     }}
                   >
-                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.category}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>{row.label}</span>
                     <span className="font-mono-numbers" style={{ color: 'var(--text-muted)' }}>
                       {formatMoney(row.amount)} · {pct}%
                     </span>
@@ -1060,7 +1076,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       {tx.title}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      {tx.category} · {relativeDay(tx.date)}
+                      {categoryLabel(tx.category, categoryDefinitions)} · {relativeDay(tx.date)}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -1073,7 +1089,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                       }}
                     >
                       {isCredit ? '+' : '−'}
-                      {formatMoney(tx.amount)}
+                      {formatMoney(tx.amount, transactionCurrency(tx, reportsAccountMap(accounts)))}
                     </div>
                     <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{tx.status}</div>
                   </div>

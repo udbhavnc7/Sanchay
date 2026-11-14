@@ -11,11 +11,11 @@ plugins {
 }
 
 android {
-    namespace = "com.ivy.wallet"
+    namespace = "app.sanchay"
     compileSdk = libs.versions.compile.sdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.ivy.wallet"
+        applicationId = "app.sanchay"
         minSdk = libs.versions.min.sdk.get().toInt()
         targetSdk = libs.versions.compile.sdk.get().toInt()
         versionName = libs.versions.version.name.get()

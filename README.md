@@ -33,12 +33,13 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 - Get an explainable category suggestion from earlier titles or payees, showing the match count and source.
 - Record amount, active INR account, category, date, and an optional note.
 - Account balances update immediately, with an 8-second Undo action.
-- Edit a transaction's amount, category, account, date, and note; affected balances are recalculated.
+- Edit a transaction's amount, category, account, date, note, and tags; affected balances are recalculated.
 - Delete a completed transaction with a balance warning and an 8-second Undo action.
+- Refund all or part of a completed expense into the same active account and currency. Refunds are linked to the original transaction, capped at its remaining refundable amount, and count against spending in budgets and reports.
 - Goal deposits are linked to their goal so deleting or restoring them adjusts goal progress.
 - Future-dated quick-add transactions are rejected.
 - Search transactions and filter by status, category, or direction.
-- Open a transaction to view its details, edit or delete it, and copy a receipt.
+- Open a transaction to view its details, refund it, edit or delete it, and copy a receipt.
 
 ### Accounts and cards
 
@@ -59,19 +60,22 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 
 ### Budgets and goals
 
-- View monthly budgets and spending progress.
+- Create and manage custom income and expense categories with a name, color, and icon, alongside the built-in set. Custom categories can be renamed, recolored, archived, or deleted once unused.
+- View monthly budgets and spending progress, grouped by built-in or custom category.
 - Adjust category budget limits. Each edit applies from the current month as a new period, so earlier months keep their recorded limits.
 - Review a six-month budget history table with budgeted, spent and result per month, plus per-category progress for the current month.
 - Archive a budget to stop tracking it; archived budgets keep their past months and can be restored.
 - Spending counts only completed INR payments and nets refunds; transfers, pending entries and other currencies are excluded, consistent with reports.
-- Create savings goals with a target amount, target month, icon, and color.
+- Create savings goals with a target amount, target month, icon, and color, plus an optional note.
 - Deposit money into a goal from an active INR account.
 - View goal progress and amounts still needed.
 - See the equal monthly amount implied by each goal's remaining balance and target month.
-- Edit a goal's name, target, date, icon, or colour and see the pace recalculate.
-- Add one-time planned payments with a title, amount, direction, due date, category, and optional account.
-- See a 30-day safe-to-spend estimate after remaining budgets, goal pace, planned outflows, and planned inflows, with an optional saved safety buffer and a temporary what-if purchase test. Overdue outflows stay in the estimate until you delete them.
-- Review the planned payments behind the estimate; planned entries never change the ledger or account balances.
+- Edit a goal's name, target, date, icon, colour, or note and see the pace recalculate.
+- Pause, complete, reopen, or archive a goal. Archived goals keep their history and can be restored.
+- Add planned payments with a title, amount, direction, due date, category, optional account, and an optional recurrence (daily, weekly, monthly, or yearly with an interval and end date).
+- Pause or resume a recurring series and skip individual occurrences without deleting the series.
+- See a 30-day safe-to-spend estimate after remaining budgets, goal pace, expanded planned outflows, and planned inflows, with an optional saved safety buffer and a temporary what-if purchase test. Overdue outflows stay in the estimate until you delete them.
+- Review the planned payments behind the estimate; planned entries and recurrence expansion never change the ledger or account balances and never schedule automatic payments.
 
 ### Payees and payments (Path A payment assistance)
 
@@ -96,11 +100,11 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 
 - Light and dark themes.
 - Sound on/off preference.
-- Privacy panel that explains local storage and retention, summarizes privacy and terms (including the no-analytics and Path A limits), exports a JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
+- Privacy panel that explains local storage and retention, summarizes privacy and terms (including the no-analytics and Path A limits), exports an encrypted or plain JSON backup, imports a backup, and offers a two-step reset to a blank ledger.
 - Sample data is opt-in (first launch or Profile settings), labeled with a persistent banner while active, and can be removed at any time without touching real records.
-- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, and preferences — but never the app-lock PIN or its hashed credential.
-- Backups are not encrypted; anyone with the file can read it. Store exported backups carefully and delete them when no longer needed.
-- Restoring a backup replaces the current data on this device after a confirmation preview; the app-lock PIN on the device is never replaced by a backup.
+- Backups include accounts, transactions, payees, goals, budgets, planned payments, payment assistance attempts, categories, and preferences — but never the app-lock PIN or its hashed credential.
+- Password-encrypted backups use PBKDF2-SHA-256 (600,000 iterations) and AES-256-GCM, are written as `.sanchay` files, and expose no financial data without the password. The password is never stored; if it is lost, the backup cannot be recovered. A plain JSON export remains available for interoperability, and anyone with that file can read it.
+- Restoring a backup replaces the current data on this device after a confirmation preview; the app-lock PIN on the device is never replaced by a backup. Plain JSON backups made by earlier versions still import.
 - On Android, exports and receipt/CSV downloads are written to `Downloads/Sanchay` through a native bridge, and imports use the system file picker.
 - In a desktop browser, exports use normal browser downloads.
 - All dashboard data is stored in the WebView's `localStorage` under `sanchay.local.v1`.
@@ -110,18 +114,17 @@ Captured from the dashboard build at a 390×844 phone viewport using the sample 
 
 ## Current limitations
 
-- Categories are fixed; custom category management is not implemented.
 - Recent quick-fill is inferred from local transaction history; saved custom templates are not implemented.
 - Category suggestions use simple local text matching and only change the category when the user taps Use.
 - Goal monthly-pace figures assume equal contributions and do not schedule or move money automatically.
 - Quick-add, goal deposits, and transaction editing currently require an active INR account, except that an existing transaction on a now-inactive INR account can still be edited. Other currencies are supported through account creation and transfers with an explicit rate, and reports are always grouped per currency.
 - USD, EUR, GBP, and JPY accounts appear in seed/display data; quick entry for those currencies is not implemented yet.
-- Planned payments are one-time estimates; recurring schedules, automatic occurrence generation, and bill reminders are not implemented.
-- Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, entered planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
-- Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard.
-- Backups are manual JSON files and are not encrypted; import only accepts backups with the current storage version, and the app-lock PIN/credential is never exported or imported.
+- Recurring planned payments are estimates that expand on a calendar schedule inside the Plan tab and safe-to-spend. They do not create ledger rows, send notifications, or pay anything automatically.
+- Safe-to-spend is a deterministic 30-day estimate using remaining budgets, goal pace, overdue outflows, expanded planned payments, and an optional user-defined safety buffer (saved locally). A temporary what-if purchase amount can be applied in the UI to test impact without creating a transaction. It does not predict income beyond entered planned inflows or guarantee a balance.
+- Loans, bank sync, automatic cloud backups, and cloud sync are not connected to the dashboard. Backups are created only when you export them.
+- Backup import accepts encrypted `.sanchay` files and plain JSON from current or earlier versions; the app-lock PIN/credential is never exported or imported. A forgotten backup password cannot be recovered.
 - The native Ivy Wallet Compose/Room modules remain in the repository, but the visible Sanchay dashboard is not wired to that native ledger.
-- The dashboard has been tested in a desktop browser and emulated phone viewports; a debug APK has been installed and launched on a physical Android device. Full on-device flows and the signed release APK are still pending.
+- The dashboard has been tested in a desktop browser and emulated phone viewports; the demo APK builds and passes an artifact scan. Physical-device verification, the production signing keystore, and a Play Store release remain pending.
 - UPI / Bank integration: Operates under Path A (payment assistance and local ledger reconciliation only). Sanchay does not connect to bank or UPI networks, does not verify bank settlement or UTRs, and does not initiate fund transfers.
 - Data can be lost if Android clears WebView storage or the app's data.
 
@@ -208,7 +211,7 @@ Network behavior of the current app:
 - The WebView loads only bundled assets from `sanchay.local`; requests to any other host are blocked, cleartext traffic is disabled, and WebView file/content access is turned off.
 - The APK still contains inherited native modules with network capability (currency-rate sync, GitHub repository metadata, Firebase Firestore poll voting). These native screens are not wired into the current dashboard UI; see [docs/data-flow-inventory.md](docs/data-flow-inventory.md) for the full destination list.
 - No crash-reporting or analytics SDK is included; Firebase Crashlytics was removed.
-- Exports, receipts, and JSON backups are written locally (`Downloads/Sanchay` on Android); backups are unencrypted.
+- Exports, receipts, and backups are written locally (`Downloads/Sanchay` on Android). Encrypted `.sanchay` backups protect their contents with a user-chosen password; plain JSON exports are unencrypted.
 
 Before relying on Sanchay for real records, verify behavior on your device, keep your own backups, and do not enter sensitive banking credentials.
 
@@ -237,10 +240,9 @@ Sanchay aims to answer simple questions:
 Planned areas include:
 
 - On-device verification and Android storage hardening
-- Recurring payment schedules and reminders ([design draft](docs/design-recurring-payments.md))
-- Custom categories and account management
-- Complete multi-currency handling
-- Encrypted and automatic backup options ([design draft](docs/design-encrypted-backups.md))
+- An optional release signing pipeline and Play Store submission (maintainer-owned keystore)
+- Full multi-currency entry across the dashboard
+- Automatic scheduled backups (backups are manual today)
 - Stronger reports and accessibility
 - Connecting or retiring the inherited native Ivy Wallet ledger
 
@@ -261,9 +263,13 @@ Notable modifications relative to upstream Ivy Wallet:
 - Custom React/TypeScript dashboard hosted in an Android WebView shell (`sanchay.local`), with local-only persistence.
 - Payment assistance (Path A) features: payees, payment attempts, reconciliation queue, plain-text money requests.
 - Safe-to-spend buffer and what-if purchase estimate in the dashboard.
+- Recurring planned payments with pause, end date, and per-occurrence skip; goal notes and pause/complete/archive states.
+- Custom income/expense categories with color and icon, plus transaction tags and partial expense refunds.
+- Password-encrypted `.sanchay` backups (PBKDF2-SHA-256 + AES-256-GCM) alongside plain JSON export/import.
+- Sanchay-only, manual release workflows (demo APK CI plus a fail-closed internal-draft Fastlane job); inherited Ivy Wallet Telegram distribution removed.
 - Removed Firebase Crashlytics, Play Services in-app review/app-update libraries, and location permissions.
 - WebView security hardening (local-host-only requests, file/content access disabled, cleartext disabled).
-- Backup/privacy hardening: app-lock PIN excluded from exports and ignored on import; privacy panel documents retention, deletion, and the unencrypted-backup risk; release checklist, data-flow inventory, and privacy-policy/retention drafts added under `docs/`.
+- Backup/privacy hardening: app-lock PIN excluded from exports and ignored on import; password-encrypted `.sanchay` backups with a plain JSON fallback; privacy panel documents retention, deletion, and the plain-export risk; release checklist, data-flow inventory, and privacy-policy/retention drafts added under `docs/`.
 
 All modifications are released under the same GNU GPL-3.0 license. The complete set of changes is visible in the git history; privacy-relevant behavior is documented in [docs/data-flow-inventory.md](docs/data-flow-inventory.md).
 

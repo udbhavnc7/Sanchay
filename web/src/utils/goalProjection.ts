@@ -6,7 +6,7 @@ import {
   toMinorUnits,
 } from './money';
 
-export type GoalProjectionStatus = 'complete' | 'planned' | 'past-due' | 'no-date';
+export type GoalProjectionStatus = 'complete' | 'planned' | 'past-due' | 'no-date' | 'paused' | 'completed' | 'archived';
 
 export interface GoalProjection {
   remaining: number;
@@ -53,10 +53,18 @@ export function goalTargetMonthValue(targetDate: string): string {
 }
 
 export function buildGoalProjection(
-  goal: Pick<SavingsGoal, 'savedAmount' | 'targetAmount' | 'targetDate'>,
+  goal: Pick<SavingsGoal, 'savedAmount' | 'targetAmount' | 'targetDate' | 'status'>,
   now = new Date()
 ): GoalProjection {
   const remaining = subtractMoney(goal.targetAmount, goal.savedAmount);
+  if (goal.status && goal.status !== 'active') {
+    return {
+      remaining: Math.max(0, remaining),
+      monthsRemaining: null,
+      requiredMonthly: null,
+      status: goal.status,
+    };
+  }
   if (compareMoney(remaining, 0) <= 0) {
     return {
       remaining: 0,

@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   Account,
   Category,
+  CategoryDefinition,
+  Currency,
   MoneyResult,
   NewTransactionInput,
   Transaction,
@@ -12,39 +14,31 @@ import {
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
-  Check,
   ShieldCheck,
   Sparkles,
   X,
 } from 'lucide-react';
-import { compareMoney, formatMoney, parseMoneyInput } from '../utils/money';
+import {
+  CURRENCY_SYMBOL,
+  compareMoney,
+  formatMoney,
+  minorDigits,
+  parseMoneyInput,
+} from '../utils/money';
 import { balanceAfterTransactionEdit } from '../utils/ledger';
 import { buildRecentTemplates } from '../utils/transactionTemplates';
 import { suggestCategory } from '../utils/categorySuggestion';
+import { categoryLabel, categoryOptions } from '../utils/categories';
 
 interface AddTransactionModalProps {
   accounts: Account[];
   transactions: Transaction[];
+  categoryDefinitions?: CategoryDefinition[];
   transaction?: Transaction | null;
   onAdd: (input: NewTransactionInput) => MoneyResult;
   onUpdate?: (input: UpdateTransactionInput) => MoneyResult;
   onClose: () => void;
 }
-
-const EXPENSE_CATEGORIES: Category[] = [
-  'Groceries',
-  'Dining',
-  'Transport',
-  'Shopping',
-  'Bills',
-  'Entertainment',
-  'Health',
-  'Rent',
-  'Travel',
-  'Other',
-];
-
-const INCOME_CATEGORIES: Category[] = ['Income', 'Payroll', 'Client Payment', 'Other'];
 
 function todayDateValue(): string {
   const today = new Date();
@@ -59,9 +53,14 @@ function dateValueFromIso(iso: string): string {
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
+function amountText(amount: number, currency: Currency): string {
+  return amount.toFixed(minorDigits(currency));
+}
+
 export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   accounts,
   transactions,
+  categoryDefinitions = [],
   transaction,
   onAdd,
   onUpdate,
@@ -71,51 +70,91 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const initialType: 'expense' | 'income' =
     transaction?.kind === 'income' || transaction?.type === 'credit' ? 'income' : 'expense';
 
-  const inrAccounts = useMemo(
-    () =>
-      accounts.filter(
-        (account) =>
-          account.currency === 'INR' &&
-          (account.status === 'Active' || account.id === transaction?.accountId)
-      ),
-    [accounts, transaction?.accountId]
-  );
+  const eligibleAccounts = useMemo(() => {
+    const usable = accounts.filter(
+      (account) => account.status === 'Active' || account.id === transaction?.accountId
+    );
+    if (!transaction) return usable;
+    // A saved amount has no conversion rate, so edits stay in its own currency.
+    const txCurrency =
+      transaction.currency ??
+      accounts.find((account) => account.id === transaction.accountId)?.currency ??
+      'INR';
+    return usable.filter((account) => account.currency === txCurrency);
+  }, [accounts, transaction]);
+
+  const initialCurrency =
+    transaction?.currency ??
+    accounts.find((account) => account.id === transaction?.accountId)?.currency ??
+    eligibleAccounts[0]?.currency ??
+    'INR';
 
   const [type, setType] = useState<'expense' | 'income'>(initialType);
   const [amountInput, setAmountInput] = useState(
-    transaction ? transaction.amount.toFixed(2) : ''
+    transaction ? amountText(transaction.amount, initialCurrency) : ''
   );
   const [accountId, setAccountId] = useState(
-    transaction?.accountId ?? inrAccounts[0]?.id ?? ''
+    transaction?.accountId ?? eligibleAccounts[0]?.id ?? ''
   );
   const [category, setCategory] = useState<Category>(
     transaction?.category ??
-      (initialType === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0])
+      categoryOptions(categoryDefinitions, initialType)[0]?.id ??
+      (initialType === 'expense' ? 'Other' : 'Income')
   );
   const [title, setTitle] = useState(transaction?.title ?? '');
   const [date, setDate] = useState(
     transaction ? dateValueFromIso(transaction.date) : todayDateValue()
   );
   const [note, setNote] = useState(transaction?.note ?? '');
+  const [tagsInput, setTagsInput] = useState((transaction?.tags ?? []).join(', '));
   const [error, setError] = useState('');
   const submittingRef = useRef(false);
 
-  const categoryOptions = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-  const categories =
-    transaction?.category && !categoryOptions.includes(transaction.category)
-      ? [transaction.category, ...categoryOptions]
-      : categoryOptions;
+  const account =
+    eligibleAccounts.find((item) => item.id === accountId) ?? eligibleAccounts[0];
+  const currency = account?.currency ?? initialCurrency;
 
-  const account = inrAccounts.find((item) => item.id === accountId) ?? inrAccounts[0];
+  const baseCategoryOptions = useMemo(
+    () => categoryOptions(categoryDefinitions, type),
+    [categoryDefinitions, type]
+  );
+
+  const categories = useMemo(() => {
+    if (
+      transaction?.category &&
+      !baseCategoryOptions.some((definition) => definition.id === transaction.category)
+    ) {
+      return [
+        {
+          id: transaction.category,
+          name: categoryLabel(transaction.category, categoryDefinitions),
+          type,
+          color: '#64748b',
+          icon: 'tag',
+        } as CategoryDefinition,
+        ...baseCategoryOptions,
+      ];
+    }
+    return baseCategoryOptions;
+  }, [baseCategoryOptions, categoryDefinitions, transaction, type]);
+
   const recentTemplates = useMemo(
-    () => (isEditing ? [] : buildRecentTemplates(transactions, inrAccounts, type)),
-    [inrAccounts, isEditing, transactions, type]
+    () => (isEditing ? [] : buildRecentTemplates(transactions, eligibleAccounts, type)),
+    [eligibleAccounts, isEditing, transactions, type]
   );
   const categorySuggestion = useMemo(
-    () => (isEditing ? null : suggestCategory(transactions, type, title, categoryOptions)),
-    [categoryOptions, isEditing, title, transactions, type]
+    () =>
+      isEditing
+        ? null
+        : suggestCategory(
+            transactions,
+            type,
+            title,
+            categories.map((definition) => definition.id)
+          ),
+    [categories, isEditing, title, transactions, type]
   );
-  const parsedAmount = parseMoneyInput(amountInput);
+  const parsedAmount = parseMoneyInput(amountInput, currency);
   const amount = parsedAmount.ok ? parsedAmount.amount : 0;
   const nextEffect = {
     type: type === 'expense' ? ('debit' as const) : ('credit' as const),
@@ -130,7 +169,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     account && parsedAmount.ok
       ? transaction && transaction.status !== 'Completed'
         ? account.balance
-        : balanceAfterTransactionEdit(account.balance, previousOnAccount, nextEffect)
+        : balanceAfterTransactionEdit(
+            account.balance,
+            previousOnAccount,
+            nextEffect,
+            account.currency
+          )
       : null;
 
   useEffect(() => {
@@ -144,13 +188,19 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   const chooseType = (next: 'expense' | 'income') => {
     sound.click();
     setType(next);
-    setCategory(next === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
+    setCategory(
+      categoryOptions(categoryDefinitions, next)[0]?.id ??
+        (next === 'expense' ? 'Other' : 'Income')
+    );
     setError('');
   };
 
   const applyTemplate = (template: (typeof recentTemplates)[number]) => {
     sound.click();
-    setAmountInput(template.amount.toFixed(2));
+    const templateAccount = accounts.find((item) => item.id === template.accountId);
+    setAmountInput(
+      amountText(template.amount, templateAccount?.currency ?? currency)
+    );
     setTitle(template.title);
     setCategory(template.category);
     setAccountId(template.accountId);
@@ -165,8 +215,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     if (!account) {
       setError(
         isEditing
-          ? 'Choose an INR account before saving this transaction.'
-          : 'Add an active INR account before recording a transaction.'
+          ? 'Choose an account before saving this transaction.'
+          : 'Add an active account before recording a transaction.'
       );
       return;
     }
@@ -177,10 +227,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     if (
       type === 'expense' &&
       balanceAfter !== null &&
-      compareMoney(balanceAfter, 0) < 0
+      compareMoney(balanceAfter, 0, account.currency) < 0
     ) {
       setError(
-        `Not enough in ${account.name}. This change would leave ${formatMoney(balanceAfter)}.`
+        `Not enough in ${account.name}. This change would leave ${formatMoney(
+          balanceAfter,
+          account.currency
+        )}.`
       );
       return;
     }
@@ -199,6 +252,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       accountId: account.id,
       date,
       note: note.trim() || undefined,
+      tags: tagsInput
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
     };
 
     if (isEditing && (!transaction || !onUpdate)) {
@@ -215,7 +272,8 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     if (!result.ok) {
       submittingRef.current = false;
       setError(
-        result.error ?? (isEditing ? 'Could not save this transaction.' : 'Could not add this transaction.')
+        result.error ??
+          (isEditing ? 'Could not save this transaction.' : 'Could not add this transaction.')
       );
       return;
     }
@@ -343,11 +401,18 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   type="button"
                   className="recent-template"
                   onClick={() => applyTemplate(template)}
-                  aria-label={`Use ${template.title} for ${formatMoney(template.amount)}`}
+                  aria-label={`Use ${template.title} for ${formatMoney(
+                    template.amount,
+                    accounts.find((item) => item.id === template.accountId)?.currency ?? currency
+                  )}`}
                 >
                   <span className="recent-template-title">{template.title}</span>
                   <span className="recent-template-meta">
-                    {formatMoney(template.amount)} · {template.category}
+                    {formatMoney(
+                      template.amount,
+                      accounts.find((item) => item.id === template.accountId)?.currency ?? currency
+                    )}{' '}
+                    · {categoryLabel(template.category, categoryDefinitions)}
                   </span>
                 </button>
               ))}
@@ -372,18 +437,21 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <span style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)' }}>
-                    ₹
+                    {CURRENCY_SYMBOL[currency]}
                   </span>
                   <input
                     autoFocus
                     type="text"
-                    inputMode="decimal"
+                    inputMode={minorDigits(currency) === 0 ? 'numeric' : 'decimal'}
                     value={amountInput}
                     onChange={(event) => {
-                      setAmountInput(event.target.value.replace(/[^0-9.,]/g, ''));
+                      const raw = event.target.value.replace(/[^0-9.,]/g, '');
+                      setAmountInput(
+                        minorDigits(currency) === 0 ? raw.replace(/[.,]/g, '') : raw
+                      );
                       setError('');
                     }}
-                    placeholder="0.00"
+                    placeholder={minorDigits(currency) === 0 ? '0' : '0.00'}
                     className="font-mono-numbers"
                     style={{
                       fontSize: '22px',
@@ -408,7 +476,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  INR
+                  {currency}
                 </span>
               </div>
             </div>
@@ -435,12 +503,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     setError('');
                   }}
                   style={inputStyle}
-                  disabled={inrAccounts.length === 0}
+                  disabled={eligibleAccounts.length === 0}
                 >
-                  {inrAccounts.length === 0 && <option value="">No active INR account</option>}
-                  {inrAccounts.map((item) => (
+                  {eligibleAccounts.length === 0 && (
+                    <option value="">No active account</option>
+                  )}
+                  {eligibleAccounts.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name}
+                      {item.name} · {item.currency}
                     </option>
                   ))}
                 </select>
@@ -451,14 +521,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 <select
                   value={category}
                   onChange={(event) => {
-                    setCategory(event.target.value as Category);
+                    setCategory(event.target.value);
                     setError('');
                   }}
                   style={inputStyle}
                 >
                   {categories.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                    <option key={item.id} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
                 </select>
@@ -484,7 +554,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   <Sparkles size={14} color="#38bdf8" style={{ flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '11px', fontWeight: 800 }}>
-                      Suggested: {categorySuggestion.category}
+                      Suggested: {categoryLabel(categorySuggestion.category, categoryDefinitions)}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
                       Based on {categorySuggestion.matchCount} earlier{' '}
@@ -534,6 +604,20 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   style={inputStyle}
                 />
               </div>
+
+              <div>
+                <label style={labelStyle}>Tags (optional)</label>
+                <input
+                  type="text"
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  placeholder="e.g. work, reimbursable"
+                  style={inputStyle}
+                />
+                <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  Separate tags with commas.
+                </span>
+              </div>
             </div>
 
             {account && parsedAmount.ok && (
@@ -556,7 +640,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                   className="font-mono-numbers"
                   style={{ color: 'var(--text-main)', fontWeight: 800 }}
                 >
-                  {formatMoney(balanceAfter ?? account.balance)}
+                  {formatMoney(balanceAfter ?? account.balance, account.currency)}
                 </span>
               </div>
             )}
@@ -611,10 +695,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             <button
               type="submit"
               className="btn-action-dark"
-              style={{ flex: 1.4, padding: '11px 0', gap: '6px' }}
+              style={{ flex: 1, padding: '11px 0' }}
             >
-              <Check size={15} />
-              {isEditing ? 'Save changes' : `Add ${type}`}
+              {isEditing ? 'Save changes' : 'Add transaction'}
             </button>
           </div>
         </form>
@@ -623,43 +706,42 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
   );
 };
 
-function typeButtonStyle(active: boolean, color: string): React.CSSProperties {
-  return {
-    flex: 1,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '6px',
-    padding: '9px 10px',
-    borderRadius: '11px',
-    border: 'none',
-    cursor: 'pointer',
-    background: active ? 'var(--bg-card)' : 'transparent',
-    color: active ? color : 'var(--text-muted)',
-    fontSize: '12px',
-    fontWeight: 800,
-    boxShadow: active ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-  };
-}
-
 const labelStyle: React.CSSProperties = {
-  display: 'block',
   fontSize: '10px',
   fontWeight: 700,
   textTransform: 'uppercase',
-  letterSpacing: '0.06em',
+  letterSpacing: '0.05em',
   color: 'var(--text-muted)',
-  marginBottom: '7px',
+  marginBottom: '4px',
+  display: 'block',
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '11px 14px',
-  borderRadius: '14px',
-  fontSize: '12px',
-  fontWeight: 600,
+  padding: '9px 12px',
+  borderRadius: '12px',
   backgroundColor: 'var(--bg-pill)',
   border: '1px solid var(--border-subtle)',
+  fontSize: '12px',
+  fontWeight: 600,
   color: 'var(--text-main)',
   outline: 'none',
 };
+
+function typeButtonStyle(active: boolean, accent: string): React.CSSProperties {
+  return {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    padding: '9px 0',
+    borderRadius: '10px',
+    fontSize: '12px',
+    fontWeight: 700,
+    border: 'none',
+    cursor: 'pointer',
+    background: active ? accent : 'transparent',
+    color: active ? '#ffffff' : 'var(--text-muted)',
+  };
+}
