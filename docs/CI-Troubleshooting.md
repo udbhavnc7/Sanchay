@@ -84,10 +84,10 @@ Paparazzi is used for automated visual testing. It captures screenshots of vario
 
 **Fixing Paparazzi issues:**
 
-1. Run `./gradlew verifyPaparazziDebug` locally to execute the Paparazzi tests and identify the specific screens where failures occur.
-2. Upon failure, the system generates detailed reports pinpointing the changes introduced since the last successful test run. Review these reports to understand the nature of the failures.
-3. If the identified changes are intentional, proceed by running `./gradlew {module_name}:recordPaparazziDebug` to update the baseline screenshots specifically for the failed UI components.
-4. After updating the baseline screenshots, rerun `./gradlew {module_name}:verifyPaparazziDebug` to ensure that the tests now pass with the updated baselines.
-5. Repeat this process iteratively for all modules that have failed Paparazzi tests, ensuring thorough validation and updating of baseline images as needed.
+1. Check the failed CI log for the specific tests and download the `failure`/`delta` PNGs from the job's `feature/<module>/build/paparazzi/` output. If CI passes and only your local Windows run fails, stop — nothing is broken.
+2. Review the delta image to understand what actually changed. Stale goldens (for example after a rebranding) look like real text differences, not antialiasing noise.
+3. If the change is intentional and reproducible on CI, run the **Record Paparazzi goldens** workflow (`record_paparazzi_goldens.yml`, `workflow_dispatch`) and download its `paparazzi-goldens` artifact.
+4. Commit only the goldens that genuinely changed — diff the artifact against `src/test/snapshots/images/` first; the rest are usually byte-noise with identical pixels.
+5. Push and confirm `paparazzi_screenshot_test.yml` is green. Never record goldens locally on Windows or macOS.
 
 > **Note**: Ensure the use of static data only. Dynamic data, such as current time or date, will cause test failures due to its variability.

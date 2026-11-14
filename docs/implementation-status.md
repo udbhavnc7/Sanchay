@@ -62,7 +62,7 @@ Platform key: **B** = desktop browser · **E** = emulator · **D** = physical de
 | automatic_release.yml | ✅ manual | Repurposed as an explicit "Version bump PR" workflow, not an automatic store release |
 | test.yml / detekt.yml / lint.yml | ✅ | local green |
 | ci_actions_test.yml / compose_stability.yml | ✅ | local green (CRLF baseline fix) |
-| paparazzi.yml | 🟡 CI-only | Windows local delta documented — never re-record |
+| paparazzi.yml | ✅ CI | stale post-rebrand disclaimer goldens refreshed 14 Nov on `ubuntu-latest` (`record_paparazzi_goldens.yml`); never record locally |
 | integration_test.yml (androidTest) | ❌ blocked | needs emulator/device |
 
 ## Open blockers (updated 14 Nov)
